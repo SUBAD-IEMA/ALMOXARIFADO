@@ -1,168 +1,183 @@
 # Pedidos de material – Almoxarifado IEMA
 
 > **Endereço do site:** `https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/`
-> Esta página que você está lendo é o código. O site fica no endereço acima, depois de ativar o GitHub Pages (Parte 1).
+> Esta página é o código. O site fica no endereço acima, depois de ativar o GitHub Pages (Parte 1).
 
-## Páginas
+## Os 7 arquivos
 
-| Arquivo | Quem usa | Para quê |
-|---|---|---|
-| `index.html` | Todos | Página inicial com três atalhos: fazer pedido, acompanhar pedido e área do gestor. |
-| `solicitante.html` | Servidores, sem login | Ver o catálogo, fazer o pedido, baixar a planilha Excel e acompanhar o andamento. |
-| `gestor.html` | Gestor, com senha | Receber e atender pedidos, controlar o estoque, cadastrar materiais e ver o histórico. |
+| Arquivo | Para quê |
+|---|---|
+| `index.html` | Página inicial: fazer pedido, acompanhar pedido, área do gestor |
+| `solicitante.html` | Catálogo, pedido (dados obrigatórios), planilha Excel e acompanhamento. Sem login |
+| `gestor.html` | Área do gestor: até 3 logins, pedidos, painel, catálogo, relatórios, histórico |
+| `imagens.js` | Fotos dos materiais do Catálogo GOV ES |
+| `config.js` | Configuração. É o único arquivo a editar (`API_URL`) |
+| `Code.gs` | Servidor: colar no Google Apps Script |
+| `README.md` | Este guia |
 
-**Na página do solicitante:**
-- A página segue o modelo do Relatório de Itens em Estoque: materiais agrupados por natureza de despesa, com totais por natureza e o total do almoxarifado.
-- Cada material aparece com uma ilustração genérica (caixinha). Ao passar o mouse sobre ela, o painel lateral mostra os detalhes do material e o link **Ver mais imagens na web**.
-- O catálogo mostra a descrição, a quantidade em estoque e o limite por pedido. Os materiais indisponíveis aparecem como **INDISPONÍVEL** e não podem ser pedidos.
-- Os dados do solicitante são **obrigatórios**: nome completo, setor (escolhido numa lista suspensa com as siglas dos setores), telefone e e-mail. Sem eles, o pedido não é enviado.
-- O servidor marca os materiais e digita as quantidades. O sistema não aceita mais do que o disponível nem mais do que o limite por pedido.
+Não há pastas. Envie os 7 arquivos lado a lado na raiz do repositório.
+
+## O que o sistema faz
+
+**Solicitante (`solicitante.html`)**
+- A página segue o modelo do Relatório de Itens em Estoque: materiais agrupados por natureza de despesa, com totais.
+- Nome completo, setor (lista suspensa de siglas), telefone e e-mail são obrigatórios.
+- Não aceita materiais indisponíveis nem quantidade acima do disponível ou do limite por pedido.
+- Os materiais ocultados pelo gestor não aparecem.
 - Ao clicar em **Enviar pedido**:
-  - o pedido recebe um número único (ex.: `2026-00001`);
-  - aparece na hora para o gestor;
-  - a planilha Excel do pedido é baixada, com a ilustração de cada material.
-- Em **Acompanhar pedido**, o servidor informa o número e o e-mail usado no pedido para ver a situação e o andamento.
+  - o pedido recebe um número único;
+  - aparece na hora para os gestores;
+  - a planilha Excel do pedido é baixada, com as imagens.
+- **Acompanhar pedido:** informe o número e o e-mail usado no pedido.
+- **E-mails automáticos** a cada pedido e a cada mudança de situação. São somente para consulta e não podem ser respondidos (veja "E-mails").
 
-**Na área do gestor:**
-- A senha fica guardada no servidor (Google), nunca no código do site. Ela vale em qualquer computador.
-- Pedidos novos aparecem automaticamente, em até 10 segundos.
-- Ao passar o mouse sobre um pedido aparecem os dados do solicitante, os materiais e as quantidades.
-- Cada pedido pode ser **aprovado**, **atendido por completo**, **atendido em parte** ou **recusado**.
-- Na aba **Catálogo e estoque**:
-  - alterar quantidades, informando o motivo;
-  - marcar materiais como **INDISPONÍVEL**;
-  - cadastrar materiais novos;
-  - editar código, descrição, unidade, natureza, conta contábil e limite por pedido;
-  - as mudanças aparecem na página do solicitante em segundos.
-- A aba **Histórico** registra tudo: pedidos, aprovações, atendimentos, recusas, ajustes de estoque, cadastros e alterações. Pode ser exportada para Excel.
+**Gestor (`gestor.html`)**
+- **Até 3 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo** em computadores diferentes. As telas se atualizam sozinhas a cada 6 segundos.
+- Cada ação fica no histórico com o nome de quem fez.
+- **Pedidos:**
+  - aprovar, atender tudo, atender em parte ou recusar;
+  - baixar Excel ou PDF e imprimir;
+  - **excluir pedido**, com motivo obrigatório. A exclusão fica no histórico com o nome do gestor, a data e o horário. Pedidos pendentes ou aprovados devolvem as quantidades ao estoque.
+- **Visão geral:** indicadores e gráficos com **filtros** de período (incluindo datas escolhidas), setor, situação e natureza de despesa.
+- **Catálogo e estoque:**
+  - **Visível**: desligado, o material some da página de pedidos;
+  - **Indisponível**: ligado, o material aparece marcado como INDISPONÍVEL;
+  - alterar quantidades (com motivo);
+  - cadastrar, editar ou remover materiais;
+  - trocar a imagem: enviar foto do computador, usar a foto do catálogo ou deixar sem foto.
+- **Relatórios:**
+  - tipos: pedidos (resumo), pedidos por material, consumo por material, consumo por setor, posição do estoque, histórico e auditoria, pedidos excluídos;
+  - filtros de período, setor, situação e natureza;
+  - visualização na tela, **Excel**, **PDF** e impressão.
+- **Histórico:** tudo o que aconteceu, com filtros por tipo e por responsável.
+- **Gestores e contato:**
+  - o gestor principal cadastra até 2 outros logins, remove logins e redefine senhas;
+  - cada gestor troca a própria senha;
+  - contato do almoxarifado.
 
 ### Situações do pedido
 
-| Situação | Significado | Estoque |
-|---|---|---|
-| Pendente | Pedido recebido, aguardando o gestor | As quantidades ficam **reservadas** (saem do disponível) |
-| Aprovado | O gestor aprovou, aguardando a entrega | Continua reservado |
-| Atendido | Tudo foi entregue | Baixa definitiva |
-| Parcialmente atendido | Parte foi entregue | O que não foi entregue **volta** ao estoque |
-| Recusado | O gestor recusou e informou o motivo | Tudo **volta** ao estoque |
+| Situação | Estoque |
+|---|---|
+| Pendente / Aprovado | Quantidades **reservadas** (saem do disponível) |
+| Atendido | Baixa definitiva |
+| Parcialmente atendido | O que não foi entregue **volta** ao estoque |
+| Recusado | Tudo **volta** ao estoque |
+| Excluído (pelo gestor) | Sai da lista. Se estava pendente ou aprovado, tudo **volta** ao estoque. A exclusão fica no histórico |
+
+### Catálogo
+
+O catálogo tem **254 materiais**:
+- 136 do Relatório de Itens em Estoque de 17/10/2026;
+- **118 do Catálogo GOV ES** (BrSupply), com a foto de cada item.
+
+Do Catálogo GOV ES, foram trazidos apenas **descrição, unidade, natureza de despesa e foto**. Não foram trazidos código do item do fornecedor, NCM nem preço. Os 118 novos materiais receberam códigos internos `CAT-001` a `CAT-118`, que o gestor pode trocar em **Editar**.
+
+- **Os novos materiais começam com quantidade 0**, porque o PDF não informa estoque. Por isso aparecem como INDISPONÍVEL até o gestor informar a quantidade em *Catálogo e estoque* (digite as quantidades, escreva o motivo e clique em **Salvar quantidades**). Também podem ser ocultados com **Visível**.
+- **30 itens do PDF já existiam na lista** (açúcar, adoçante, copos, apontador, clipes, lápis, lapiseiras, grafites, envelopes, pilhas, entre outros). Eles não foram duplicados: a foto do catálogo foi vinculada ao material existente.
 
 ---
 
 ## Parte 1 – Colocar o site no ar (5 minutos)
 
-1. Descompacte o arquivo `.zip` no seu computador.
-2. No GitHub, crie um repositório novo: botão **New**, dê um nome (ex.: `almoxarifado`), marque **Public** e clique em **Create repository**.
-3. Na página do repositório, clique em **uploading an existing file**.
-4. Abra a pasta descompactada, selecione **os 6 arquivos** (`index.html`, `solicitante.html`, `gestor.html`, `config.js`, `Code.gs` e `README.md`) e arraste para o GitHub. Também pode usar *choose your files* e selecionar os 6. Não há pastas: cada página já leva o próprio visual e o próprio código.
-5. Clique em **Commit changes**.
-6. Vá em **Settings › Pages**. Em *Branch*, escolha `main` e a pasta `/ (root)`, e clique em **Save**.
-7. Aguarde 1 a 2 minutos e recarregue a página de **Settings › Pages**. O endereço do site aparece no topo, com o botão **Visit site**.
+1. Descompacte o `.zip`.
+2. No GitHub, crie um repositório:
+   - clique em **New**, dê um nome (ex.: `almoxarifado`), marque **Public** e clique em **Create repository**;
+   - clique em **uploading an existing file**, selecione **os 7 arquivos**, arraste para a página e clique em **Commit changes**.
+3. Em **Settings › Pages**, escolha *Branch* `main` e a pasta `/ (root)`, e clique em **Save**.
+4. Aguarde 1 a 2 minutos. O endereço do site aparece em **Settings › Pages**, no botão **Visit site**.
 
-> **Aparece só texto, como se fosse o README?**
-> - Ou você está no endereço do **repositório** (`github.com/...`) em vez do **site** (`...github.io/...`).
-> - Ou os arquivos ficaram dentro de uma pasta. Na lista principal do repositório, os 6 arquivos precisam aparecer lado a lado.
->
-> **A página abre sem formatação?** Você provavelmente está usando arquivos de uma versão antiga, que dependia da pasta `assets`. Apague os arquivos antigos do repositório e suba os 6 arquivos desta versão. Depois force a atualização no navegador com Ctrl+F5.
+O site já abre em **modo demonstração**, mas nesse modo cada computador tem uma cópia própria dos dados. **Para uso simultâneo em qualquer máquina, a Parte 2 é obrigatória.**
 
-O site já funciona em **modo demonstração**, com o catálogo carregado automaticamente. Mas atenção: nesse modo **cada computador tem uma cópia própria** do estoque e dos pedidos. Um pedido feito numa máquina não chega ao gestor em outra máquina.
-
-**Para uso simultâneo em qualquer máquina ou navegador, a Parte 2 é obrigatória.**
+> **Aparece só texto?** Ou você está no endereço do repositório (`github.com/...`) em vez do site (`...github.io/...`), ou os arquivos ficaram dentro de uma pasta.
+> **A página abre sem formatação?** Apague arquivos de versões antigas e suba os 7 desta versão. Depois aperte Ctrl+F5.
 
 ## Parte 2 – Ligar o banco de dados (10 minutos, uma vez só)
 
-Essa parte é o que permite usar o sistema **em vários computadores ao mesmo tempo**. Os dados ficam numa Planilha Google da sua conta.
-
-1. Abra o Google Drive com a conta do almoxarifado e crie uma **Planilha Google** em branco. Dê um nome, por exemplo `Banco – Almoxarifado IEMA`.
+1. No Google Drive da conta do almoxarifado, crie uma **Planilha Google** em branco.
 2. Na planilha, clique em **Extensões › Apps Script**.
-3. Apague o que estiver no editor e cole **todo** o conteúdo do arquivo `Code.gs` deste repositório. Clique no ícone de **Salvar**.
-4. Volte para a aba da planilha e recarregue a página (F5). Aparece o menu **Almoxarifado**.
-5. Clique em **Almoxarifado › Configurar sistema (primeira vez)**:
-   - O Google pede autorização. Clique em *Continuar*, escolha a sua conta, depois *Avançado › Acessar … (não seguro)* e por fim *Permitir*. O aviso aparece porque o script é seu e ainda não foi verificado pelo Google.
-   - Defina a **senha do gestor**, com pelo menos 8 caracteres.
-   - O catálogo com os 136 materiais é carregado automaticamente.
-6. Volte ao Apps Script e clique em **Implantar › Nova implantação**:
-   - na engrenagem de *Selecionar tipo*, escolha **App da Web**;
-   - *Executar como*: **Eu**;
-   - *Quem pode acessar*: **Qualquer pessoa**;
-   - clique em **Implantar** e **copie a URL**, que termina em `/exec`.
-7. Ligue o site à planilha. O jeito mais fácil:
-   - abra a área do gestor do seu site (`gestor.html`), ainda em modo demonstração;
-   - cole a URL no quadro **Ligar ao banco de dados** e clique em **Testar**;
-   - clique em **Abrir config.js no GitHub para editar**;
-   - troque a linha `API_URL: "",` pela linha mostrada e clique em **Commit changes**.
+3. Apague o que houver no editor, cole **todo** o conteúdo do `Code.gs` e clique em **Salvar**.
+4. Volte para a planilha, recarregue a página (F5) e use **Almoxarifado › Configurar sistema (primeira vez)**:
+   - autorize o acesso: *Continuar › sua conta › Avançado › Acessar (não seguro) › Permitir*;
+   - cadastre o **gestor principal** (nome, usuário e senha);
+   - o catálogo de 254 materiais é carregado automaticamente.
+5. No Apps Script, clique em **Implantar › Nova implantação**:
+   - escolha **App da Web**;
+   - em *Executar como*, escolha **Eu**;
+   - em *Quem pode acessar*, escolha **Qualquer pessoa**;
+   - clique em **Implantar** e copie a URL, que termina em `/exec`.
+6. Abra `gestor.html`, cole a URL no quadro **Ligar ao banco de dados**, clique em **Testar** e depois em **Abrir config.js no GitHub**. Troque a linha `API_URL: "",` e clique em **Commit changes**.
+7. Aguarde 1 a 2 minutos. Entre na área do gestor com o usuário e a senha do gestor principal.
+8. Na aba **Gestores e contato**, cadastre os outros 2 gestores, se houver, e preencha o contato do almoxarifado.
 
-   Se preferir fazer à mão: no GitHub, abra `config.js`, clique no lápis e cole a URL entre as aspas:
-   ```js
-   API_URL: "https://script.google.com/macros/s/AKfy.../exec",
-   ```
-8. Aguarde 1 a 2 minutos. Abra `gestor.html`, entre com a senha definida no passo 5 e preencha **Meus dados**. Pronto.
+Quando o aviso amarelo de "Modo demonstração" sumir das páginas, o sistema está compartilhado por todas as máquinas.
 
-   O aviso amarelo de "Modo demonstração" deve sumir de todas as páginas. A partir daí, o catálogo carrega sozinho em qualquer computador, celular ou navegador, e todos usam o mesmo estoque ao mesmo tempo.
+### Atualizar uma instalação que já existe
 
-Para os servidores, compartilhe o endereço do site ou direto `.../solicitante.html`.
+1. No Apps Script, apague o código antigo, cole o `Code.gs` novo e salve.
+2. Publique a versão nova: **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. A URL não muda.
+3. No GitHub, substitua os arquivos pelos 7 desta versão. Mantenha a sua linha `API_URL` no `config.js`.
 
-> **Alterou o `Code.gs` depois?** No Apps Script, vá em **Implantar › Gerenciar implantações**, clique no lápis, escolha **Versão: Nova versão** e clique em **Implantar**. A URL continua a mesma, então não é preciso mudar o `config.js`.
+Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
+- os 118 materiais novos e as fotos são incluídos sozinhos;
+- **a senha única antiga vira o usuário `gestor`**, com a mesma senha. Entre com ele e cadastre os demais logins.
 
 ---
 
+## Gestores e senhas
+
+- **Até 3 logins.** O primeiro é o **gestor principal**: cadastra e remove logins e redefine senhas. Todos atendem pedidos, alteram o catálogo e geram relatórios, inclusive ao mesmo tempo.
+- **Senhas seguras:** ficam no servidor (Google) como código cifrado. Nunca aparecem no HTML nem no GitHub.
+- **Manter conectado:** ao entrar, marque **Manter conectado neste computador** para não precisar digitar a senha por 30 dias. Sem essa opção, a sessão dura 10 horas.
+- **Login removido:** quem teve o login removido perde o acesso na hora, em todos os computadores.
+- **Esqueceu a senha?**
+  - O gestor principal redefine pela aba *Gestores e contato*.
+  - Se for o próprio principal, use **Almoxarifado › Redefinir a senha de um gestor**, na planilha.
+- **Bloqueio por tentativas:** depois de 8 senhas erradas, aquele usuário fica bloqueado por 10 minutos.
+
+## E-mails (somente consulta)
+
+- **Quando são enviados:** o solicitante recebe um e-mail quando o pedido é registrado e a cada mudança de situação.
+- **Aviso no e-mail:** a mensagem informa, em destaque, que é **automática e não deve ser respondida**, e traz o link para acompanhar o pedido.
+- **Cópia ao almoxarifado:** o e-mail do contato do almoxarifado recebe **cópia oculta** de cada pedido novo. O solicitante não vê esse endereço.
+- **Contas Google Workspace (institucionais):** o e-mail sai de um endereço **no-reply** do domínio, que não aceita resposta.
+- **Contas Gmail comuns:** o Google não oferece o remetente no-reply. A resposta é desviada para um endereço inexistente, então ninguém a recebe.
+- **Desligar os e-mails:** mude `ENVIAR_EMAIL` para `false` no início do `Code.gs` e publique uma nova versão.
+- **Limite diário do Google:** cerca de 100 e-mails por dia em contas Gmail e 1.500 em contas Workspace.
+
 ## Problemas comuns
 
-**O catálogo não aparece, ou os pedidos não chegam ao gestor, em outra máquina**
-
-- **Aparece o aviso amarelo "Modo demonstração"?** Então o `API_URL` do `config.js` está vazio, e cada máquina está usando a própria cópia dos dados. Faça a Parte 2 e cole a URL no `config.js`.
-- **Aparece uma mensagem de erro no lugar do catálogo?** Confira três coisas:
+**O catálogo não aparece em outra máquina, ou os pedidos não chegam ao gestor**
+- **Aviso amarelo de "Modo demonstração" na página:** o `API_URL` está vazio. Faça a Parte 2.
+- **Mensagem de erro no lugar do catálogo:** confira três coisas:
   - a URL termina em `/exec`;
-  - a implantação é do tipo **App da Web**;
-  - "Quem pode acessar" está como **Qualquer pessoa**, e não "Qualquer pessoa com Conta do Google" nem "Somente eu".
-- **Você trocou o `Code.gs`?** Publique uma **nova versão** em *Implantar › Gerenciar implantações*.
-- **Teste rápido:** abra a URL do App da Web direto no navegador. Deve aparecer uma mensagem começando com `{"ok":true,"servico":"Almoxarifado IEMA"`.
+  - o tipo da implantação é **App da Web**;
+  - "Quem pode acessar" está como **Qualquer pessoa**.
+- **Trocou o `Code.gs`?** Publique uma **nova versão** da implantação.
 
-**Alterei o `config.js`, mas as páginas não mudaram**
-
-O GitHub Pages leva de 1 a 2 minutos para publicar. As páginas já buscam sempre a versão mais nova do `config.js`, então basta esperar e recarregar.
-
-## Senha do gestor
-
-- A senha fica nas propriedades do Apps Script, **no servidor**. Ela não está no HTML nem no GitHub.
-- Vale em qualquer navegador e computador. Ao entrar, marque **Manter conectado neste computador** para não precisar digitar de novo por 30 dias. Sem essa opção, a sessão dura 10 horas.
-- Para trocar a senha, use a aba **Meus dados e senha** do painel ou o menu **Almoxarifado › Definir ou trocar a senha do gestor** na planilha. Ao trocar, todos os computadores conectados são desconectados.
-- Esqueceu a senha? Defina outra pelo menu da planilha. Só quem tem acesso à planilha consegue fazer isso.
-- Depois de 8 tentativas erradas, o acesso fica bloqueado por 10 minutos.
-
-## E-mails automáticos
-
-Com o banco ligado, o solicitante recebe um e-mail quando o pedido é registrado (com cópia para o gestor) e outro quando a situação muda. O e-mail traz o link para acompanhar o pedido.
-
-- Para desligar, mude `ENVIAR_EMAIL` para `false` no início do `Code.gs` e publique uma nova versão.
-- Limite do Google: cerca de 100 e-mails por dia em contas Gmail e 1.500 em contas Google Workspace.
+**As fotos não aparecem**
+Confira se o arquivo `imagens.js` foi enviado ao repositório, na raiz, junto com os outros.
 
 ## Configurações (`config.js`)
 
 | Opção | Para que serve |
 |---|---|
-| `API_URL` | Endereço do App da Web. Vazio = modo demonstração. |
-| `ESTOQUE_BAIXO` | A partir de quantas unidades o material aparece como "estoque baixo" no painel. |
-| `ATUALIZAR_A_CADA` | De quantos em quantos segundos o painel verifica se há pedidos novos. |
-| `SETORES` | Lista suspensa de setores (siglas da planilha *Siglas dos Setores*). Para incluir ou retirar um setor, edite esta lista. |
-| `GOVERNO`, `ORGAO`, `ALMOXARIFADO` | Textos do cabeçalho e das planilhas. |
+| `API_URL` | Endereço do App da Web. Vazio = modo demonstração |
+| `ESTOQUE_BAIXO` | A partir de quantas unidades o material aparece como estoque baixo |
+| `ATUALIZAR_A_CADA` | Intervalo (segundos) da atualização em tempo real (padrão 6) |
+| `SETORES` | Lista suspensa de setores (siglas) |
+| `GOVERNO`, `ORGAO`, `ALMOXARIFADO` | Textos do cabeçalho, planilhas e relatórios |
 
-## Imagens dos materiais
+No início do `Code.gs`, `MAX_GESTORES` define o número de logins (3).
 
-As páginas não usam fotos dos produtos. Cada material é mostrado com uma ilustração genérica. Na página do solicitante, o link **Ver mais imagens na web**, no painel lateral, abre uma busca de imagens de referência.
+## Planilha Google (banco de dados)
 
-A planilha Excel do pedido também traz a ilustração genérica de cada material. As imagens são meramente ilustrativas; para conferência, vale sempre a descrição e o código do item.
+| Aba | Conteúdo |
+|---|---|
+| *Catálogo* | Materiais, quantidades, limite, indisponível, oculto, imagem |
+| *Pedidos* | Pedidos e andamento |
+| *Histórico* | Todas as ações, com a coluna **Responsável** |
+| *Imagens enviadas* | Fotos enviadas pelos gestores |
+| *Configuração* | Contato do almoxarifado |
 
-## Estrutura
-
-```
-index.html        página inicial
-solicitante.html  catálogo, pedido e acompanhamento
-gestor.html       área do gestor
-config.js         configuração (API_URL) – o único arquivo a editar
-Code.gs           servidor: colar no Google Apps Script
-README.md         este guia
-```
-
-Cada página HTML já contém o visual e todas as bibliotecas usadas: ExcelJS 4.4.0, jsPDF 2.5.1, jsPDF-AutoTable 3.8.2 e Chart.js 4.4.1. Por isso as páginas são maiores (até cerca de 1,7 MB), mas não dependem de pastas nem de outros sites para funcionar. A única exceção é a fonte de letra, que vem da internet; sem ela, as páginas usam a fonte padrão do sistema.
-
-Na Planilha Google, as abas *Catálogo*, *Pedidos*, *Histórico*, *Imagens enviadas* e *Configuração* podem ser consultadas e filtradas. Faça as alterações pelo painel do gestor, para que tudo fique registrado no histórico.
+Faça as alterações pelo painel do gestor, para que fiquem registradas no histórico.

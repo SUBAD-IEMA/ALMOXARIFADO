@@ -6,13 +6,13 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "https://script.google.com/macros/s/AKfycbwt2pFaJCEKJycu-IKL1h0Dfk2Nya9DnRIxU8tjWmQyHdW5Bc9KFJaObNNmfNLZ8-aHrA/exec",
+  API_URL: "",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
 
-  /* De quantos em quantos segundos o painel do gestor verifica se chegaram pedidos novos. */
-  ATUALIZAR_A_CADA: 10,
+  /* De quantos em quantos segundos as páginas dos gestores verificam se houve pedido novo ou alteração (tempo real). */
+  ATUALIZAR_A_CADA: 6,
 
   /* Textos do cabeçalho e das planilhas. */
   GOVERNO: "Governo do Estado do Espírito Santo",

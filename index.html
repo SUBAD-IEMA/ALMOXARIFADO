@@ -429,6 +429,42 @@ tr.item.indisponivel td.qty{opacity:1}
 #tbl td.qty .limite{white-space:normal}
 @media (max-width:1320px){ .layout{grid-template-columns:minmax(0,1fr) 280px} #tbl td.desc{min-width:160px} }
 
+/* ===================== Versão 4: fotos do catálogo, gestores, relatórios ===================== */
+.thumb img.foto,.mini .tn.foto{object-fit:contain;background:#fff}
+.preview-img.com-foto{background:#fff}
+.preview-img.com-foto img{object-fit:contain;padding:12px}
+.modal-card img.foto{object-fit:contain;background:#fff}
+.oculto-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);border:1.5px solid currentColor;border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:1px}
+tr.item.oculto td:not(.acoes):not(.sw){opacity:.5}
+.switch.verde input:checked + .trilho{background:var(--up)}
+.filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;margin:0 0 14px}
+.filtros .field{min-width:150px;flex:1 1 150px}
+.filtros .field input,.filtros .field select{height:36px}
+.filtros .acao{flex:0 0 auto}
+.filtro-resumo{font-size:13px;color:var(--muted);margin:-6px 0 14px}
+.rel-tipos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:0 0 14px}
+.rel-tipo{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;cursor:pointer;font-size:14px}
+.rel-tipo input{margin-top:3px;accent-color:var(--pine)}
+.rel-tipo b{display:block}
+.rel-tipo small{color:var(--muted);font-size:12.5px;line-height:1.35;display:block;margin-top:2px}
+.rel-tipo:has(input:checked){border-color:var(--pine);background:var(--pine-soft)}
+.rel-acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.rel-cab{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin:0 0 8px}
+.rel-cab h3{margin:0;font-size:17px}
+.rel-cab small{color:var(--muted)}
+table.rel{min-width:700px}
+table.rel tfoot td{font-weight:700;background:var(--surface-2);border-top:2px solid var(--rule-strong)}
+.gest-lista{display:grid;gap:8px;margin:0 0 14px}
+.gest{display:flex;align-items:center;gap:12px;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;flex-wrap:wrap}
+.gest .av{width:36px;height:36px;border-radius:50%;background:var(--pine-soft);color:var(--pine);display:grid;place-items:center;font-weight:800}
+.gest .info{flex:1;min-width:160px}
+.gest .info b{display:block}
+.gest .info small{color:var(--muted)}
+.selo{font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--pine-soft);color:var(--pine);margin-left:6px}
+.img-mini{display:flex;gap:14px;align-items:center;margin:0 0 12px}
+.img-mini img{width:96px;height:96px;object-fit:contain;background:#fff;border:1px solid var(--rule);border-radius:8px}
+.img-mini .bts{display:flex;gap:8px;flex-wrap:wrap}
+
 </style>
 </head>
 <body>
@@ -469,7 +505,7 @@ tr.item.indisponivel td.qty{opacity:1}
   <footer><p data-cfg="ALMOXARIFADO">Almoxarifado IEMA</p></footer>
 </main>
 <script>document.write('<script src="config.js?v=' + Date.now() + '"><\/script>');</script>
-<script>window.CONFIG = Object.assign({ API_URL: "", ESTOQUE_BAIXO: 10, ATUALIZAR_A_CADA: 10,
+<script>window.CONFIG = Object.assign({ API_URL: "", ESTOQUE_BAIXO: 10, ATUALIZAR_A_CADA: 6,
   GOVERNO: "Governo do Estado do Espírito Santo", ORGAO: "IEMA – Instituto Estadual de Meio Ambiente e Recursos Hídricos",
   ALMOXARIFADO: "Almoxarifado IEMA", SETORES: ["APACB", "APAGO", "APAGUA", "APAPE", "APAPM", "APAS", "ARIEMV", "ASSCOM", "ASSJUR", "CONADM", "DIAF", "DILCAM", "DISPN", "GEA", "GEAD", "GECAM", "GEDOC", "GEFIN", "GEIC", "GEOCIP", "GEPREVINES", "GEPRO", "GEREF", "GESIM", "GFAU", "GFI", "GGEP", "GGUC", "GP", "GQA", "GTI", "MONACP", "MONAFF", "MONAST", "PECF", "PEFG", "PEI", "PEMF", "PEPAZ", "PEPCV", "RDSCO", "REBIODB", "SUAP", "SUBAD", "SUBCON", "SUBEC", "SUBED", "SUBEI", "SUBEUC", "SUBFAU", "SUBIO", "SUBMIN", "SUBOC", "SUBOR", "SUBPOI", "SUBSAN", "SUBSID", "SUCOP", "SUFAM", "SUGEO", "SUPAT"] }, window.CONFIG || {});</script>
 <script>/* comum.js */

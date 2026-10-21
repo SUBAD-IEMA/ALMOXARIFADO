@@ -9,27 +9,34 @@
  *     (Executar como: Eu · Quem pode acessar: Qualquer pessoa) > copie a URL que termina em /exec.
  *  4. No GitHub, cole a URL em config.js (API_URL).
  *
- * Depois de alterar este código: Implantar > Gerenciar implantações > lápis > Versão: Nova versão.
- * Este mesmo arquivo também é usado pelo "modo demonstração" das páginas, para que o comportamento seja idêntico.
+ * ATUALIZAÇÃO: cole a versão nova por cima e publique em
+ *  Implantar > Gerenciar implantações > lápis > Versão: Nova versão. Os dados da planilha são mantidos.
+ * Este mesmo arquivo também é usado pelo "modo demonstração" das páginas.
  */
 
 /* ======================= Opções ======================= */
-const ENVIAR_EMAIL = true;        // avisa o solicitante (com cópia ao gestor) quando o pedido é recebido e quando muda de situação
-const NOME_REMETENTE = 'Almoxarifado IEMA';
-const HORAS_SESSAO = 10;          // sessão comum do gestor
+const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é recebido e quando muda de situação
+const NOME_REMETENTE = 'Almoxarifado IEMA (não responda)';
+const MAX_GESTORES = 3;           // número máximo de logins de gestor
+const HORAS_SESSAO = 10;          // sessão comum
 const DIAS_LEMBRAR = 30;          // sessão com "manter conectado neste computador"
 
 /* ======================= Estrutura ======================= */
 const SITUACOES = ['Pendente', 'Aprovado', 'Parcialmente atendido', 'Atendido', 'Recusado'];
+const ABERTAS = ['Pendente', 'Aprovado'];
 const FINAIS = ['Parcialmente atendido', 'Atendido', 'Recusado'];
 const ABAS = {
-  catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termos da foto automática', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem'], 'A:B'],
+  catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto'], 'A:B'],
   imagens:  ['Imagens enviadas', ['id', 'Imagem (dados)', 'Atualizado em'], 'A:A'],
   pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)'], 'A:A,E:E'],
-  historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes'], 'C:E'],
+  historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável'], 'C:E'],
   config:   ['Configuração', ['Chave', 'Valor'], 'A:B']
 };
-const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15 };
+const NCOL = 17;
+const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15, oculto: 16 };
+
+let QUEM = 'Sistema';     // quem está fazendo a operação (vai para a coluna "Responsável" do histórico)
+let GESTOR = null;        // gestor conectado (ações do gestor)
 
 /* ======================= Entrada ======================= */
 function doGet() {
@@ -39,11 +46,16 @@ function doGet() {
 function doPost(e) {
   let req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return saida({ ok: false, erro: 'Requisição inválida.' }); }
-  const publicas = { versao: acaoVersao, catalogo: acaoCatalogo, imagens: acaoImagens, solicitar: acaoSolicitar, consultar: acaoConsultar, login: acaoLogin, situacaoSenha: acaoSituacaoSenha, criarSenha: acaoCriarSenha };
-  const gestor = { sair: acaoSair, painel: acaoPainel, atender: acaoAtender, salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, removerItem: acaoRemoverItem, salvarGestor: acaoSalvarGestor, inicializar: acaoInicializar, trocarSenha: acaoTrocarSenha };
+  QUEM = 'Sistema'; GESTOR = null;
+  const publicas = { versao: acaoVersao, catalogo: acaoCatalogo, imagens: acaoImagens, solicitar: acaoSolicitar, consultar: acaoConsultar,
+    login: acaoLogin, situacaoAcesso: acaoSituacaoAcesso, criarPrimeiroGestor: acaoCriarPrimeiroGestor };
+  const doGestor = { sair: acaoSair, painel: acaoPainel, atender: acaoAtender, excluirPedido: acaoExcluirPedido,
+    salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade,
+    removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
+    removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha };
   try {
     let f = publicas[req.acao];
-    if (!f && gestor[req.acao]) { exigirSessao(req.token); f = gestor[req.acao]; }
+    if (!f && doGestor[req.acao]) { exigirSessao(req.token); f = doGestor[req.acao]; }
     if (!f) throw amigavel('Ação desconhecida: ' + req.acao);
     if (req.site && /^https?:\/\//.test(req.site)) lembrarSite(req.site);
     return saida(Object.assign({ ok: true }, f(req) || {}));
@@ -56,6 +68,7 @@ function saida(obj) { return ContentService.createTextOutput(JSON.stringify(obj)
 function amigavel(msg) { const e = new Error(msg); e.amigavel = true; return e; }
 
 /* ======================= Planilha ======================= */
+const ABAS_OK = {};
 function aba(chave) {
   const [nome, cab, texto] = ABAS[chave];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -65,7 +78,12 @@ function aba(chave) {
     if (texto) texto.split(',').forEach(a1 => sh.getRange(a1).setNumberFormat('@'));
     sh.getRange(1, 1, 1, cab.length).setValues([cab]).setFontWeight('bold').setBackground('#E2EDE8');
     sh.setFrozenRows(1);
+  } else if (!ABAS_OK[chave]) {
+    // Atualização de versões anteriores: acrescenta colunas novas no cabeçalho.
+    const atual = sh.getRange(1, 1, 1, cab.length).getValues()[0];
+    if (atual[cab.length - 1] === '') sh.getRange(1, 1, 1, cab.length).setValues([cab]).setFontWeight('bold').setBackground('#E2EDE8');
   }
+  ABAS_OK[chave] = true;
   return sh;
 }
 function linhas(sh) {
@@ -100,10 +118,12 @@ function lembrarSite(site) {
   const base = site.replace(/[?#].*$/, '').replace(/[^/]*$/, '');
   if (props().getProperty('SITE_URL') !== base) props().setProperty('SITE_URL', base);
 }
-function dadosGestor() {
+function dadosContato() {
   const c = lerConfig();
   return { nome: c.gestor_nome || '', setor: c.gestor_setor || '', telefone: String(c.gestor_telefone || ''), email: c.gestor_email || '' };
 }
+function dataBR(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm'); }
+function registrar(rows) { anexar('historico', rows.map(r => r.length >= 11 ? r : r.concat(new Array(10 - r.length).fill(''), [QUEM]))); }
 
 /* ---------- Catálogo ---------- */
 function simNao(v) { return v === true || String(v).toUpperCase() === 'SIM'; }
@@ -114,22 +134,54 @@ function lerCatalogo() {
     natureza: String(r[COL.natureza]), naturezaNome: String(r[COL.naturezaNome]), conta: String(r[COL.conta] || ''),
     qtd: Number(r[COL.qtd]) || 0, limite: Number(r[COL.limite]) || 0, indisponivel: simNao(r[COL.indisponivel]),
     imagem: String(r[COL.imagem] || ''), busca: String(r[COL.busca] || ''), qtdRelatorio: Number(r[COL.qtdRelatorio]) || 0,
-    ativo: r[COL.ativo] === '' ? true : simNao(r[COL.ativo]), atualizado: iso(r[COL.atualizado]), imagemVersao: Number(r[COL.imagemVersao]) || 0
+    ativo: r[COL.ativo] === '' || r[COL.ativo] === undefined ? true : simNao(r[COL.ativo]), atualizado: iso(r[COL.atualizado]),
+    imagemVersao: Number(r[COL.imagemVersao]) || 0, oculto: simNao(r[COL.oculto])
   })).filter(it => it.id);
   const mapa = {}; itens.forEach(it => mapa[it.id] = it);
   return { sh, itens, mapa };
 }
 function linhaItem(it) {
   return [it.id, it.codigo, it.descricao, it.unidade, it.natureza, it.naturezaNome, it.conta || '', it.qtd, it.limite || 0,
-    it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0];
+    it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0, it.oculto ? 'SIM' : 'NÃO'];
 }
 function gravarItem(sh, it) {
-  if (it.linha) sh.getRange(it.linha, 1, 1, 16).setValues([linhaItem(it)]);
-  else { sh.getRange(sh.getLastRow() + 1, 1, 1, 16).setValues([linhaItem(it)]); it.linha = sh.getLastRow(); }
+  if (it.linha) sh.getRange(it.linha, 1, 1, NCOL).setValues([linhaItem(it)]);
+  else { sh.getRange(sh.getLastRow() + 1, 1, 1, NCOL).setValues([linhaItem(it)]); it.linha = sh.getLastRow(); }
 }
 function publico(it) {
   return { id: it.id, codigo: it.codigo, descricao: it.descricao, unidade: it.unidade, natureza: it.natureza, naturezaNome: it.naturezaNome, conta: it.conta,
-    qtd: it.qtd, limite: it.limite, indisponivel: it.indisponivel, imagem: it.imagem, imagemVersao: it.imagemVersao, busca: it.busca, qtdRelatorio: it.qtdRelatorio };
+    qtd: it.qtd, limite: it.limite, indisponivel: it.indisponivel, oculto: it.oculto, imagem: it.imagem, imagemVersao: it.imagemVersao, busca: it.busca, qtdRelatorio: it.qtdRelatorio };
+}
+
+/* Carrega sozinho o catálogo inicial e os materiais acrescentados (Catálogo GOV ES), sem depender do gestor. */
+function garantirCatalogo() {
+  const vazio = aba('catalogo').getLastRow() < 2;
+  if (!vazio && props().getProperty('CAT_ADICIONAL_V1')) return;
+  const lock = bloquear();
+  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); } finally { lock.releaseLock(); }
+}
+function carregarCatalogoInicial() {
+  const sh = aba('catalogo');
+  if (sh.getLastRow() > 1) return 0;
+  const agora = new Date();
+  const rows = CATALOGO_INICIAL.map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', '', r[8], r[7], 'SIM', agora, 0, 'NÃO']);
+  sh.getRange(2, 1, rows.length, NCOL).setValues(rows);
+  registrar([[agora, 'Catálogo carregado', '', '', '', 'Relatório de Itens em Estoque de 17/10/2026 (' + rows.length + ' materiais)']]);
+  novaVersao();
+  return rows.length;
+}
+function aplicarCatalogoAdicional() {
+  if (props().getProperty('CAT_ADICIONAL_V1')) return 0;
+  const cat = lerCatalogo(), agora = new Date();
+  const rows = CATALOGO_ADICIONAL.filter(r => !cat.mapa[r[0]])
+    .map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', r[9], r[8], 0, 'SIM', agora, 0, 'NÃO']);
+  if (rows.length) cat.sh.getRange(cat.sh.getLastRow() + 1, 1, rows.length, NCOL).setValues(rows);
+  let vinculadas = 0;
+  Object.keys(VINCULOS_IMAGEM).forEach(id => { const it = cat.mapa[id]; if (it && !it.imagem) { it.imagem = VINCULOS_IMAGEM[id]; gravarItem(cat.sh, it); vinculadas++; } });
+  registrar([[agora, 'Catálogo ampliado', '', '', '', 'Catálogo GOV ES: ' + rows.length + ' materiais incluídos e ' + vinculadas + ' imagens vinculadas a materiais existentes']]);
+  props().setProperty('CAT_ADICIONAL_V1', '1');
+  novaVersao();
+  return rows.length;
 }
 
 /* ---------- Pedidos ---------- */
@@ -154,73 +206,138 @@ function linhaPedido(p) {
 }
 function semLinha(p) { const c = Object.assign({}, p); delete c.linha; return c; }
 
-/* ======================= Sessão do gestor ======================= */
+/* ======================= Gestores (até 3 logins) ======================= */
+function hashSenha(salt, senha) {
+  const b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + senha, Utilities.Charset.UTF_8);
+  return b.map(x => ('0' + ((x + 256) % 256).toString(16)).slice(-2)).join('');
+}
+function validarSenha(s) { s = String(s || ''); if (s.length < 8) throw amigavel('A senha precisa ter pelo menos 8 caracteres.'); return s; }
+function novoGestor(usuario, nome, senha, principal) {
+  usuario = String(usuario || '').trim().toLowerCase();
+  nome = String(nome || '').trim().slice(0, 80);
+  if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) throw amigavel('O usuário deve ter de 3 a 30 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.');
+  if (nome.length < 3) throw amigavel('Informe o nome do gestor.');
+  const salt = Utilities.getUuid();
+  return { usuario, nome, principal: !!principal, salt, hash: hashSenha(salt, validarSenha(senha)), criadoEm: new Date().toISOString() };
+}
+function lerGestores() {
+  let g = [];
+  try { g = JSON.parse(props().getProperty('GESTORES') || '[]'); } catch (e) {}
+  if (!g.length && props().getProperty('SENHA_GESTOR')) {
+    // Versão anterior tinha uma senha única: vira o usuário "gestor" (principal) com a mesma senha.
+    try { g = [novoGestor('gestor', dadosContato().nome || 'Gestor principal', props().getProperty('SENHA_GESTOR'), true)]; gravarGestores(g); } catch (e) { g = []; }
+  }
+  return g;
+}
+function gravarGestores(g) { props().setProperty('GESTORES', JSON.stringify(g)); }
+const gestorPublico = g => ({ usuario: g.usuario, nome: g.nome, principal: !!g.principal, criadoEm: g.criadoEm });
+
 function sessoes() { try { return JSON.parse(props().getProperty('SESSOES') || '{}'); } catch (e) { return {}; } }
 function gravarSessoes(s) {
   const agora = Date.now();
-  Object.keys(s).forEach(k => { if (s[k] < agora) delete s[k]; });
-  const chaves = Object.keys(s).sort((a, b) => s[b] - s[a]);
-  chaves.slice(40).forEach(k => delete s[k]);   // no máximo 40 computadores conectados ao mesmo tempo
+  Object.keys(s).forEach(k => { if (!s[k] || typeof s[k] !== 'object' || s[k].e < agora) delete s[k]; });
+  Object.keys(s).sort((a, b) => s[b].e - s[a].e).slice(60).forEach(k => delete s[k]);
   props().setProperty('SESSOES', JSON.stringify(s));
 }
-function exigirSessao(token) {
-  const s = sessoes();
-  if (!token || !s[token] || s[token] < Date.now()) { const e = amigavel('Sua sessão expirou. Entre novamente.'); e.sessao = true; throw e; }
+function encerrarSessoesDe(usuario, exceto) {
+  const s = sessoes(); Object.keys(s).forEach(k => { if (s[k] && s[k].u === usuario && k !== exceto) delete s[k]; }); gravarSessoes(s);
 }
-function acaoSituacaoSenha() { return { senhaDefinida: !!props().getProperty('SENHA_GESTOR') }; }
-function acaoCriarSenha(req) {
-  // Só funciona enquanto nenhuma senha foi definida (primeiro acesso).
-  if (props().getProperty('SENHA_GESTOR')) throw amigavel('A senha do gestor já foi definida.');
-  definirSenha(req.senha);
-  return acaoLogin({ senha: req.senha, lembrar: req.lembrar });
-}
-function definirSenha(s) {
-  s = String(s || '');
-  if (s.length < 8) throw amigavel('A senha precisa ter pelo menos 8 caracteres.');
-  props().setProperty('SENHA_GESTOR', s);
-  props().setProperty('SESSOES', '{}');   // desconecta todos os computadores
-}
-function acaoLogin(req) {
-  const senha = props().getProperty('SENHA_GESTOR');
-  if (!senha) throw amigavel('A senha do gestor ainda não foi definida.');
-  const cache = CacheService.getScriptCache();
-  const falhas = Number(cache.get('falhas_login') || 0);
-  if (falhas >= 8) throw amigavel('Muitas tentativas com senha errada. Aguarde 10 minutos e tente de novo.');
-  if (String(req.senha || '') !== senha) {
-    cache.put('falhas_login', String(falhas + 1), 600);
-    Utilities.sleep(700);
-    throw amigavel('Senha incorreta.');
-  }
-  cache.remove('falhas_login');
+function abrirSessao(g, lembrar) {
   const token = Utilities.getUuid() + Utilities.getUuid();
   const s = sessoes();
-  s[token] = Date.now() + (req.lembrar ? DIAS_LEMBRAR * 864e5 : HORAS_SESSAO * 36e5);
+  s[token] = { u: g.usuario, e: Date.now() + (lembrar ? DIAS_LEMBRAR * 864e5 : HORAS_SESSAO * 36e5) };
   gravarSessoes(s);
-  return { token, expira: new Date(s[token]).toISOString() };
+  return { token, gestor: gestorPublico(g) };
+}
+function exigirSessao(token) {
+  const s = sessoes()[token];
+  const g = s && typeof s === 'object' && s.e > Date.now() ? lerGestores().find(x => x.usuario === s.u) : null;
+  if (!g) { const e = amigavel('Sua sessão expirou ou o acesso foi removido. Entre novamente.'); e.sessao = true; throw e; }
+  GESTOR = g; QUEM = g.nome + ' (' + g.usuario + ')';
+}
+function exigirPrincipal() { if (!GESTOR.principal) throw amigavel('Somente o gestor principal pode gerenciar os logins de gestor.'); }
+
+function acaoSituacaoAcesso() { return { temGestores: lerGestores().length > 0, maxGestores: MAX_GESTORES }; }
+function acaoCriarPrimeiroGestor(req) {
+  const lock = bloquear();
+  try {
+    if (lerGestores().length) throw amigavel('O primeiro gestor já foi cadastrado. Entre com usuário e senha.');
+    const g = novoGestor(req.usuario, req.nome, req.senha, true);
+    gravarGestores([g]); GESTOR = g; QUEM = g.nome + ' (' + g.usuario + ')';
+    registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Gestor principal (primeiro acesso)']]);
+    return abrirSessao(g, req.lembrar);
+  } finally { lock.releaseLock(); }
+}
+function acaoLogin(req) {
+  const usuario = String(req.usuario || '').trim().toLowerCase();
+  const cache = CacheService.getScriptCache(), chave = 'falhas_' + usuario;
+  const falhas = Number(cache.get(chave) || 0);
+  if (falhas >= 8) throw amigavel('Muitas tentativas com senha errada para este usuário. Aguarde 10 minutos.');
+  const g = lerGestores().find(x => x.usuario === usuario);
+  if (!g || hashSenha(g.salt, String(req.senha || '')) !== g.hash) {
+    cache.put(chave, String(falhas + 1), 600);
+    Utilities.sleep(600);
+    throw amigavel('Usuário ou senha incorretos.');
+  }
+  cache.remove(chave);
+  return abrirSessao(g, req.lembrar);
 }
 function acaoSair(req) { const s = sessoes(); delete s[req.token]; gravarSessoes(s); return {}; }
-function acaoTrocarSenha(req) {
-  if (String(req.atual || '') !== props().getProperty('SENHA_GESTOR')) throw amigavel('A senha atual não confere.');
-  definirSenha(req.nova);
-  registrar([[new Date(), 'Senha alterada', '', '', '', '', '', '', '', 'Todos os computadores foram desconectados']]);
-  return acaoLogin({ senha: req.nova, lembrar: req.lembrar });
+function acaoGestores() { return { gestores: lerGestores().map(gestorPublico), max: MAX_GESTORES }; }
+function acaoAdicionarGestor(req) {
+  exigirPrincipal();
+  const lock = bloquear();
+  try {
+    const lista = lerGestores();
+    if (lista.length >= MAX_GESTORES) throw amigavel('Limite de ' + MAX_GESTORES + ' gestores atingido. Remova um login antes de cadastrar outro.');
+    const g = novoGestor(req.usuario, req.nome, req.senha, false);
+    if (lista.some(x => x.usuario === g.usuario)) throw amigavel('Já existe um gestor com o usuário "' + g.usuario + '".');
+    lista.push(g); gravarGestores(lista);
+    registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')']]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  return acaoGestores();
 }
-function registrar(rows) { anexar('historico', rows); }
+function acaoRemoverGestor(req) {
+  exigirPrincipal();
+  const usuario = String(req.usuario || '');
+  if (usuario === GESTOR.usuario) throw amigavel('Você não pode remover o seu próprio login.');
+  const lock = bloquear();
+  try {
+    const lista = lerGestores(), g = lista.find(x => x.usuario === usuario);
+    if (!g) throw amigavel('Gestor não encontrado.');
+    gravarGestores(lista.filter(x => x.usuario !== usuario));
+    encerrarSessoesDe(usuario);
+    registrar([[new Date(), 'Gestor removido', '', '', '', g.nome + ' (' + g.usuario + ')']]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  return acaoGestores();
+}
+function acaoRedefinirSenha(req) {
+  exigirPrincipal();
+  const lista = lerGestores(), g = lista.find(x => x.usuario === String(req.usuario || ''));
+  if (!g) throw amigavel('Gestor não encontrado.');
+  g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(req.nova));
+  gravarGestores(lista); encerrarSessoesDe(g.usuario, req.token);
+  registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Sessões abertas desse gestor foram encerradas']]);
+  return {};
+}
+function acaoTrocarSenha(req) {
+  const lista = lerGestores(), g = lista.find(x => x.usuario === GESTOR.usuario);
+  if (hashSenha(g.salt, String(req.atual || '')) !== g.hash) throw amigavel('A senha atual não confere.');
+  g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(req.nova));
+  gravarGestores(lista); encerrarSessoesDe(g.usuario);
+  registrar([[new Date(), 'Senha alterada', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Os outros computadores desse gestor foram desconectados']]);
+  return abrirSessao(g, req.lembrar);
+}
 
 /* ======================= Ações públicas ======================= */
 function acaoVersao() { return { versao: versaoAtual() }; }
 
-/* Se o catálogo estiver vazio, carrega sozinho o catálogo inicial (qualquer máquina, sem depender do gestor). */
-function garantirCatalogo() {
-  if (lerCatalogo().itens.length) return;
-  const lock = bloquear();
-  try { carregarCatalogoInicial(); } finally { lock.releaseLock(); }
-}
-
 function acaoCatalogo() {
   garantirCatalogo();
   const { itens } = lerCatalogo();
-  return { versao: versaoAtual(), inicializado: itens.length > 0, itens: itens.filter(i => i.ativo).map(publico), gestor: dadosGestor() };
+  return { versao: versaoAtual(), inicializado: itens.length > 0, itens: itens.filter(i => i.ativo && !i.oculto).map(publico), gestor: dadosContato() };
 }
 
 function acaoImagens(req) {
@@ -242,6 +359,7 @@ function validarSolicitante(s) {
 
 function acaoSolicitar(req) {
   const sol = validarSolicitante(req.solicitante);
+  QUEM = sol.nome + ' (solicitante, ' + sol.setor + ')';
   const obs = String(req.obs || '').trim().slice(0, 1000);
   const pedidos = (req.itens || []).filter(i => Number(i.qtd) > 0);
   if (!pedidos.length) throw amigavel('Selecione pelo menos um item e informe a quantidade.');
@@ -253,7 +371,7 @@ function acaoSolicitar(req) {
     const vistos = {};
     const itens = pedidos.map(i => {
       const q = Number(i.qtd), e = mapa[i.id];
-      if (!e || !e.ativo) throw amigavel('Um dos materiais não está mais no catálogo. Atualize a página.');
+      if (!e || !e.ativo || e.oculto) throw amigavel('Um dos materiais não está mais disponível no catálogo. Atualize a página.');
       if (vistos[i.id]) throw amigavel('Material repetido no pedido: ' + e.descricao);
       vistos[i.id] = true;
       if (e.indisponivel) throw amigavel(e.codigo + ' – ' + e.descricao + ' está INDISPONÍVEL.');
@@ -274,7 +392,7 @@ function acaoSolicitar(req) {
     novaVersao();
   } finally { lock.releaseLock(); }
   const emailEnviado = avisar(pedido, true);
-  return { pedido, gestor: dadosGestor(), emailEnviado };
+  return { pedido, gestor: dadosContato(), emailEnviado };
 }
 
 function acaoConsultar(req) {
@@ -287,18 +405,19 @@ function acaoConsultar(req) {
     cache.put('consultas', String(tent + 1), 300);
     throw amigavel('Pedido não encontrado ou o e-mail não confere com o informado no pedido.');
   }
-  return { pedido: semLinha(p), gestor: dadosGestor() };
+  return { pedido: semLinha(p), gestor: dadosContato() };
 }
 
 /* ======================= Ações do gestor ======================= */
 function acaoPainel() {
   garantirCatalogo();
   const cat = lerCatalogo();
-  const hist = linhas(aba('historico')).slice(-1500).map(r => ({
+  const hist = linhas(aba('historico')).slice(-3000).map(r => ({
     dataISO: iso(r[0]), tipo: String(r[1]), pedido: String(r[2] || ''), id: String(r[3] || ''), codigo: String(r[4] || ''), descricao: String(r[5] || ''),
-    antes: r[6] === '' ? null : Number(r[6]), depois: r[7] === '' ? null : Number(r[7]), delta: r[8] === '' ? null : Number(r[8]), detalhes: String(r[9] || '')
+    antes: r[6] === '' ? null : Number(r[6]), depois: r[7] === '' ? null : Number(r[7]), delta: r[8] === '' ? null : Number(r[8]), detalhes: String(r[9] || ''), quem: String(r[10] || '')
   }));
-  return { versao: versaoAtual(), inicializado: cat.itens.length > 0, itens: cat.itens.filter(i => i.ativo).map(publico), pedidos: lerPedidos().pedidos.map(semLinha), historico: hist, gestor: dadosGestor() };
+  return { versao: versaoAtual(), inicializado: cat.itens.length > 0, itens: cat.itens.filter(i => i.ativo).map(publico), pedidos: lerPedidos().pedidos.map(semLinha),
+    historico: hist, gestor: dadosContato(), eu: gestorPublico(GESTOR), gestores: lerGestores().map(gestorPublico), maxGestores: MAX_GESTORES };
 }
 
 function acaoAtender(req) {
@@ -309,7 +428,7 @@ function acaoAtender(req) {
   try {
     const { sh: shP, pedidos } = lerPedidos();
     const p = pedidos.find(x => x.numero === String(req.numero));
-    if (!p) throw amigavel('Pedido não encontrado.');
+    if (!p) throw amigavel('Pedido não encontrado (pode ter sido excluído por outro gestor).');
     if (FINAIS.indexOf(p.status) >= 0) throw amigavel('O pedido ' + p.numero + ' já foi finalizado como "' + p.status + '".');
     const agora = new Date();
     const cat = lerCatalogo();
@@ -317,7 +436,7 @@ function acaoAtender(req) {
       if (q <= 0) return;
       const e = cat.mapa[l.id];
       if (e) { e.qtd += q; gravarItem(cat.sh, e); }
-      registrar([[agora, 'Devolução ao estoque', p.numero, l.id, l.codigo, l.descricao, e ? e.qtd - q : '', e ? e.qtd : '', q, 'Diferença não entregue do pedido']]);
+      registrar([[agora, 'Devolução ao estoque', p.numero, l.id, l.codigo, l.descricao, e ? e.qtd - q : '', e ? e.qtd : '', q, 'Quantidade não entregue do pedido']]);
     };
     let novo, texto;
     if (tipo === 'aprovar') {
@@ -347,7 +466,7 @@ function acaoAtender(req) {
     if (resposta) p.resposta = resposta;
     p.andamento.push({ dataISO: agora.toISOString(), status: novo, texto: texto + (resposta ? ' Mensagem do almoxarifado: ' + resposta : '') });
     shP.getRange(p.linha, 1, 1, 15).setValues([linhaPedido(p)]);
-    registrar([[agora, 'Pedido ' + novo.toLowerCase(), p.numero, '', '', '', '', '', '', (p.totalAtendido != null ? p.totalAtendido + ' de ' + p.totalUnidades + ' unidades atendidas. ' : '') + resposta]]);
+    registrar([[agora, 'Pedido ' + novo.toLowerCase(), p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '', (p.totalAtendido != null ? p.totalAtendido + ' de ' + p.totalUnidades + ' unidades atendidas. ' : '') + resposta]]);
     novaVersao();
     pedido = semLinha(p);
   } finally { lock.releaseLock(); }
@@ -355,9 +474,41 @@ function acaoAtender(req) {
   return { pedido };
 }
 
+function acaoExcluirPedido(req) {
+  const motivo = String(req.motivo || '').trim().slice(0, 500);
+  if (!motivo) throw amigavel('Informe o motivo da exclusão.');
+  const lock = bloquear();
+  let numero;
+  try {
+    const { sh, pedidos } = lerPedidos();
+    const p = pedidos.find(x => x.numero === String(req.numero));
+    if (!p) throw amigavel('Pedido não encontrado (pode já ter sido excluído por outro gestor).');
+    numero = p.numero;
+    const agora = new Date();
+    let devolvidas = 0;
+    if (ABERTAS.indexOf(p.status) >= 0) {
+      const cat = lerCatalogo(), rows = [];
+      p.itens.forEach(l => {
+        const e = cat.mapa[l.id]; if (!e) return;
+        e.qtd += l.qtd; gravarItem(cat.sh, e); devolvidas += l.qtd;
+        rows.push([agora, 'Devolução ao estoque', p.numero, l.id, l.codigo, l.descricao, e.qtd - l.qtd, e.qtd, l.qtd, 'Pedido excluído']);
+      });
+      registrar(rows);
+    }
+    sh.deleteRow(p.linha);
+    const resumo = p.itens.map(l => l.codigo + ' × ' + l.qtd).join('; ');
+    registrar([[agora, 'Pedido excluído', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '',
+      ('Excluído por ' + GESTOR.nome + ' (' + GESTOR.usuario + ') em ' + dataBR(agora) + '. Situação: ' + p.status + '. Pedido de ' + dataBR(new Date(p.dataISO)) +
+       ', ' + p.totalItens + ' materiais, ' + p.totalUnidades + ' unidades' + (devolvidas ? ' (devolvidas ao estoque)' : '') + '. Motivo: ' + motivo + '. Itens: ' + resumo).slice(0, 2000)]]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  return { numero };
+}
+
 function textoImagem(v) {
   v = String(v || '').trim();
   if (!v) return '';
+  if (/^cat:img\d{3}$/.test(v)) return v;
   if (/^https?:\/\//i.test(v)) return v.slice(0, 2000);
   throw amigavel('Endereço de imagem inválido.');
 }
@@ -368,7 +519,7 @@ function acaoSalvarItem(req) {
   const campos = {
     codigo: String(d.codigo || '').trim().slice(0, 40), descricao: String(d.descricao || '').trim().slice(0, 400), unidade: String(d.unidade || '').trim().slice(0, 60),
     natureza: String(d.natureza || '').trim().slice(0, 30), naturezaNome: String(d.naturezaNome || '').trim().slice(0, 120), conta: String(d.conta || '').trim().slice(0, 160),
-    limite: Math.max(0, Math.floor(Number(d.limite) || 0)), indisponivel: !!d.indisponivel, busca: String(d.busca || '').trim().slice(0, 200)
+    limite: Math.max(0, Math.floor(Number(d.limite) || 0)), indisponivel: !!d.indisponivel, oculto: !!d.oculto, busca: String(d.busca || '').trim().slice(0, 200)
   };
   if (!campos.codigo || !campos.descricao || !campos.unidade) throw amigavel('Preencha código, descrição e unidade.');
   if (!campos.natureza || !campos.naturezaNome) throw amigavel('Informe a natureza de despesa (código e nome).');
@@ -380,13 +531,9 @@ function acaoSalvarItem(req) {
     const cat = lerCatalogo();
     const agora = new Date();
     const novo = !d.id;
-    if (novo) {
-      it = Object.assign({ id: 'N' + agora.getTime().toString(36), qtd: qtd, qtdRelatorio: 0, imagem: '', imagemVersao: 0, ativo: true }, campos);
-    } else {
-      it = cat.mapa[d.id];
-      if (!it || !it.ativo) throw amigavel('Material não encontrado.');
-    }
-    // Imagem
+    if (novo) it = Object.assign({ id: 'N' + agora.getTime().toString(36), qtd: qtd, qtdRelatorio: 0, imagem: '', imagemVersao: 0, ativo: true }, campos);
+    else { it = cat.mapa[d.id]; if (!it || !it.ativo) throw amigavel('Material não encontrado.'); }
+    let imagemMudou = false;
     if (d.imagemDados) {
       const dados = String(d.imagemDados);
       if (!/^data:image\/(jpeg|png|webp);base64,/.test(dados)) throw amigavel('Formato de imagem não aceito.');
@@ -395,15 +542,16 @@ function acaoSalvarItem(req) {
       const i = lin.findIndex(r => String(r[0]) === it.id);
       if (i >= 0) shI.getRange(i + 2, 1, 1, 3).setValues([[it.id, dados, agora]]);
       else shI.appendRow([it.id, dados, agora]);
-      it.imagem = 'upload'; it.imagemVersao = (it.imagemVersao || 0) + 1;
-    } else if (d.imagem !== undefined && d.imagem !== 'upload') {
-      it.imagem = textoImagem(d.imagem);
+      it.imagem = 'upload'; it.imagemVersao = (it.imagemVersao || 0) + 1; imagemMudou = true;
+    } else if (d.imagem !== undefined && d.imagem !== 'upload' && String(d.imagem) !== it.imagem) {
+      it.imagem = textoImagem(d.imagem); imagemMudou = true;
     }
     const mudancas = [];
     if (!novo) {
-      const rot = { codigo: 'código', descricao: 'descrição', unidade: 'unidade', natureza: 'natureza', naturezaNome: 'nome da natureza', conta: 'conta contábil', limite: 'limite por pedido', indisponivel: 'indisponível', busca: 'termos da foto' };
-      Object.keys(campos).forEach(k => { if (String(it[k]) !== String(campos[k])) { mudancas.push(rot[k] + ': "' + (k === 'indisponivel' ? (it[k] ? 'sim' : 'não') : it[k]) + '" → "' + (k === 'indisponivel' ? (campos[k] ? 'sim' : 'não') : campos[k]) + '"'); it[k] = campos[k]; } });
-      if (d.imagemDados || (d.imagem !== undefined && d.imagem !== 'upload')) mudancas.push('imagem alterada');
+      const rot = { codigo: 'código', descricao: 'descrição', unidade: 'unidade', natureza: 'natureza', naturezaNome: 'nome da natureza', conta: 'conta contábil', limite: 'limite por pedido', indisponivel: 'indisponível', oculto: 'oculto', busca: 'termo de busca' };
+      const fmtv = (k, v) => (k === 'indisponivel' || k === 'oculto') ? (v ? 'sim' : 'não') : v;
+      Object.keys(campos).forEach(k => { if (String(it[k]) !== String(campos[k])) { mudancas.push(rot[k] + ': "' + fmtv(k, it[k]) + '" → "' + fmtv(k, campos[k]) + '"'); it[k] = campos[k]; } });
+      if (imagemMudou) mudancas.push('imagem alterada');
     }
     const antes = novo ? 0 : it.qtd;
     it.qtd = qtd;
@@ -438,17 +586,19 @@ function acaoAjustarEstoque(req) {
   return { alterados: n };
 }
 
-function acaoIndisponivel(req) {
+function alternar(req, campo, tipoSim, tipoNao) {
   const lock = bloquear(); let it;
   try {
     const cat = lerCatalogo(); it = cat.mapa[req.id];
     if (!it) throw amigavel('Material não encontrado.');
-    it.indisponivel = !!req.valor; gravarItem(cat.sh, it);
-    registrar([[new Date(), it.indisponivel ? 'Material indisponível' : 'Material disponível', '', it.id, it.codigo, it.descricao, '', '', '', String(req.motivo || '').slice(0, 300)]]);
+    it[campo] = !!req.valor; gravarItem(cat.sh, it);
+    registrar([[new Date(), it[campo] ? tipoSim : tipoNao, '', it.id, it.codigo, it.descricao, '', '', '', String(req.motivo || '').slice(0, 300)]]);
     novaVersao();
   } finally { lock.releaseLock(); }
   return { item: publico(it) };
 }
+function acaoIndisponivel(req) { return alternar(req, 'indisponivel', 'Material indisponível', 'Material disponível'); }
+function acaoVisibilidade(req) { return alternar(req, 'oculto', 'Material ocultado', 'Material visível'); }
 
 function acaoRemoverItem(req) {
   const lock = bloquear();
@@ -462,52 +612,41 @@ function acaoRemoverItem(req) {
   return {};
 }
 
-function acaoSalvarGestor(req) {
+function acaoSalvarContato(req) {
   const g = req.gestor || {};
   gravarConfig({ gestor_nome: String(g.nome || '').trim(), gestor_setor: String(g.setor || '').trim(), gestor_telefone: String(g.telefone || '').trim(), gestor_email: String(g.email || '').trim() });
-  registrar([[new Date(), 'Dados do gestor', '', '', '', '', '', '', '', String(g.nome || '')]]);
+  registrar([[new Date(), 'Contato do almoxarifado', '', '', '', String(g.nome || '')]]);
   novaVersao();
-  return { gestor: dadosGestor() };
+  return { gestor: dadosContato() };
 }
 
-function acaoInicializar() {
-  const lock = bloquear(); let n = 0;
-  try { n = carregarCatalogoInicial(); } finally { lock.releaseLock(); }
-  if (!n) throw amigavel('O catálogo já está carregado.');
-  return { itens: n };
-}
-function carregarCatalogoInicial() {
-  const sh = aba('catalogo');
-  if (sh.getLastRow() > 1) return 0;
-  const agora = new Date();
-  const rows = CATALOGO_INICIAL.map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', '', r[8], r[7], 'SIM', agora, 0]);
-  sh.getRange(2, 1, rows.length, 16).setValues(rows);
-  registrar([[agora, 'Catálogo carregado', '', '', '', 'Relatório de Itens em Estoque de 17/10/2026 (' + rows.length + ' materiais)', '', '', '', '']]);
-  novaVersao();
-  return rows.length;
-}
-
-/* ======================= E-mails ======================= */
+/* ======================= E-mails (somente consulta – não responder) ======================= */
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function avisar(p, novo) {
   if (!ENVIAR_EMAIL || typeof MailApp === 'undefined') return false;
   try {
-    const g = dadosGestor(), site = props().getProperty('SITE_URL') || '';
+    const g = dadosContato(), site = props().getProperty('SITE_URL') || '';
     const link = site ? site + 'solicitante.html?pedido=' + encodeURIComponent(p.numero) : '';
     const tabela = '<table border="1" cellpadding="5" style="border-collapse:collapse;font-size:13px" bordercolor="#D9E1DE"><tr style="background:#1E5240;color:#fff"><th>Código</th><th>Material</th><th>Unidade</th><th>Solicitado</th>' + (novo ? '' : '<th>Atendido</th>') + '</tr>' +
       p.itens.map(l => '<tr><td>' + esc(l.codigo) + '</td><td>' + esc(l.descricao) + '</td><td>' + esc(l.unidade) + '</td><td align="right">' + l.qtd + '</td>' + (novo ? '' : '<td align="right">' + (l.atendida == null ? '—' : l.atendida) + '</td>') + '</tr>').join('') + '</table>';
     const ultimo = p.andamento[p.andamento.length - 1];
     const html = '<div style="font-family:Arial,sans-serif;color:#17201D">' +
+      '<p style="background:#FBF0DC;border:1px solid #E6C68F;padding:8px 12px;font-size:13px"><b>E-mail automático somente para consulta. Não responda esta mensagem</b>: as respostas não são recebidas. Para acompanhar o pedido, use o link abaixo.</p>' +
       '<p>Olá, ' + esc(p.solicitante.nome.split(' ')[0]) + '.</p>' +
       (novo ? '<p>Recebemos o seu pedido <b>' + esc(p.numero) + '</b>. Guarde este número para acompanhar o andamento.</p>'
             : '<p>O pedido <b>' + esc(p.numero) + '</b> mudou para a situação <b>' + esc(p.status) + '</b>.</p><p>' + esc(ultimo ? ultimo.texto : '') + '</p>') +
       tabela +
       (link ? '<p><a href="' + link + '">Acompanhar o pedido</a> (informe o e-mail usado no pedido).</p>' : '') +
-      (g.nome ? '<p>Dúvidas: ' + esc(g.nome) + (g.telefone ? ' · ' + esc(g.telefone) : '') + (g.email ? ' · ' + esc(g.email) : '') + '</p>' : '') +
-      '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado IEMA.</p></div>';
-    const o = { to: p.solicitante.email, subject: (novo ? 'Pedido ' + p.numero + ' recebido' : 'Pedido ' + p.numero + ': ' + p.status) + ' – Almoxarifado IEMA', htmlBody: html, name: NOME_REMETENTE };
-    if (g.email) { o.replyTo = g.email; if (novo) o.cc = g.email; }
-    MailApp.sendEmail(o);
+      (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +
+      '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado IEMA. Não responda.</p></div>';
+    const o = { to: p.solicitante.email, subject: (novo ? 'Pedido ' + p.numero + ' recebido' : 'Pedido ' + p.numero + ': ' + p.status) + ' – Almoxarifado IEMA (não responda)', htmlBody: html, name: NOME_REMETENTE, noReply: true };
+    if (novo && g.email) o.bcc = g.email;   // cópia oculta ao almoxarifado: o solicitante não vê nem responde para ela
+    try { MailApp.sendEmail(o); }
+    catch (e1) {
+      // Contas Gmail comuns não aceitam o remetente "no-reply": a resposta é desviada para um endereço inexistente.
+      delete o.noReply; o.replyTo = 'nao-responda@nao-responda.invalid';
+      MailApp.sendEmail(o);
+    }
     return true;
   } catch (err) { console.error('Falha no e-mail: ' + err); return false; }
 }
@@ -516,30 +655,45 @@ function avisar(p, novo) {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Almoxarifado')
     .addItem('Configurar sistema (primeira vez)', 'configurarSistema')
-    .addItem('Definir ou trocar a senha do gestor', 'menuSenha')
-    .addItem('Desconectar o gestor de todos os computadores', 'menuDesconectar')
+    .addItem('Redefinir a senha de um gestor', 'menuRedefinirSenha')
+    .addItem('Desconectar todos os gestores', 'menuDesconectar')
     .addToUi();
 }
 function configurarSistema() {
   const ui = SpreadsheetApp.getUi();
   Object.keys(ABAS).forEach(aba);
-  const n = carregarCatalogoInicial();
+  carregarCatalogoInicial(); const n = aplicarCatalogoAdicional();
   if (ENVIAR_EMAIL) MailApp.getRemainingDailyQuota();   // pede a autorização de e-mail
-  if (!props().getProperty('SENHA_GESTOR')) menuSenha();
-  ui.alert('Sistema configurado', (n ? n + ' materiais carregados no catálogo.\n\n' : 'O catálogo já estava carregado.\n\n') +
-    'Próximo passo: no Apps Script, clique em Implantar > Nova implantação > App da Web (Executar como: Eu; Quem pode acessar: Qualquer pessoa) e copie a URL para o arquivo config.js no GitHub.', ui.ButtonSet.OK);
+  let msg = 'Catálogo pronto (' + lerCatalogo().itens.length + ' materiais' + (n ? ', incluindo ' + n + ' do Catálogo GOV ES' : '') + ').\n\n';
+  if (!lerGestores().length) {
+    const nome = ui.prompt('Gestor principal (1 de 3)', 'Nome do gestor principal:', ui.ButtonSet.OK_CANCEL);
+    if (nome.getSelectedButton() === ui.Button.OK) {
+      const usu = ui.prompt('Gestor principal', 'Usuário para entrar (ex.: cleilson):', ui.ButtonSet.OK_CANCEL);
+      const sen = usu.getSelectedButton() === ui.Button.OK ? ui.prompt('Gestor principal', 'Senha (mínimo 8 caracteres):', ui.ButtonSet.OK_CANCEL) : null;
+      if (sen && sen.getSelectedButton() === ui.Button.OK) {
+        try { gravarGestores([novoGestor(usu.getResponseText(), nome.getResponseText(), sen.getResponseText(), true)]); msg += 'Gestor principal cadastrado. Os outros 2 logins podem ser criados na área do gestor.\n\n'; }
+        catch (e) { msg += 'Gestor não cadastrado: ' + e.message + ' Ele pode ser criado no primeiro acesso à área do gestor.\n\n'; }
+      }
+    }
+  }
+  ui.alert('Sistema configurado', msg + 'Próximo passo: no Apps Script, clique em Implantar > Nova implantação > App da Web (Executar como: Eu; Quem pode acessar: Qualquer pessoa) e copie a URL para o arquivo config.js no GitHub.', ui.ButtonSet.OK);
 }
-function menuSenha() {
-  const ui = SpreadsheetApp.getUi();
-  const r = ui.prompt('Senha do gestor', 'Digite a senha do gestor (mínimo 8 caracteres). Ela vale em qualquer computador:', ui.ButtonSet.OK_CANCEL);
-  if (r.getSelectedButton() !== ui.Button.OK) return;
-  try { definirSenha(r.getResponseText().trim()); ui.alert('Senha do gestor definida. Todos os computadores conectados foram desconectados.'); }
+function menuRedefinirSenha() {
+  const ui = SpreadsheetApp.getUi(), lista = lerGestores();
+  if (!lista.length) { ui.alert('Ainda não há gestores. Use "Configurar sistema".'); return; }
+  const u = ui.prompt('Redefinir senha', 'Gestores: ' + lista.map(g => g.usuario + ' (' + g.nome + ')').join(', ') + '\n\nUsuário:', ui.ButtonSet.OK_CANCEL);
+  if (u.getSelectedButton() !== ui.Button.OK) return;
+  const g = lista.find(x => x.usuario === u.getResponseText().trim().toLowerCase());
+  if (!g) { ui.alert('Usuário não encontrado.'); return; }
+  const s = ui.prompt('Redefinir senha', 'Nova senha para ' + g.usuario + ' (mínimo 8 caracteres):', ui.ButtonSet.OK_CANCEL);
+  if (s.getSelectedButton() !== ui.Button.OK) return;
+  try { g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(s.getResponseText())); gravarGestores(lista); encerrarSessoesDe(g.usuario); QUEM = 'Planilha (dono)'; registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')']]); ui.alert('Senha redefinida.'); }
   catch (e) { ui.alert(e.message); }
 }
-function menuDesconectar() { props().setProperty('SESSOES', '{}'); SpreadsheetApp.getUi().alert('O gestor foi desconectado de todos os computadores.'); }
+function menuDesconectar() { props().setProperty('SESSOES', '{}'); SpreadsheetApp.getUi().alert('Todos os gestores foram desconectados.'); }
 
-/* ======================= Catálogo inicial ======================= */
-/* Relatório de Itens em Estoque – 17/10/2026. Colunas: id, código, descrição, unidade, natureza, nome da natureza, conta contábil, quantidade, termos da foto. */
+/* ======================= Catálogos de materiais ======================= */
+/* Relatório de Itens em Estoque – 17/10/2026. Colunas: id, código, descrição, unidade, natureza, nome da natureza, conta contábil, quantidade, termo de busca. */
 const CATALOGO_INICIAL = [
   ["333903007_0", "48288-1", "AÇUCAR CRISTAL BRANCO 5 KG", "SACO 5 QUILOGRAMAS", "333903007", "GÊNEROS DE ALIMENTAÇÃO", "", 350, "granulated sugar bag; sugar"],
   ["333903007_1", "168133-1", "ADOÇANTE DIETÉTICO LIQUIDO", "UNIDADE", "333903007", "GÊNEROS DE ALIMENTAÇÃO", "", 134, "liquid sweetener bottle; sweetener"],
@@ -678,3 +832,129 @@ const CATALOGO_INICIAL = [
   ["333903048_0", "0289346-1", "TELEFONE SEM FIO - ALCANCE: 300 M; FREQÜÊNCIA: MÍNIMO 1,90 GHZ; FUNÇÃO: IDENTIFICADOR DE CHAMADAS.", "UNIDADE", "333903048", "BENS MÓVEIS NÃO ATIVÁVEIS", "", 35, "cordless phone; cordless telephone"],
   ["333903048_1", "243067-1", "TERMOMETRO CLINICO INFRAVERMELHO SEM CONTATO", "UNIDADE", "333903048", "BENS MÓVEIS NÃO ATIVÁVEIS", "", 1, "infrared thermometer; forehead thermometer"]
 ];
+
+/* Catálogo GOV ES (BrSupply) – materiais ainda não existentes na lista. Sem código do fornecedor, NCM ou preço.
+   Colunas: id, código interno, descrição, unidade, natureza, nome da natureza, conta, quantidade inicial, termo de busca, imagem (arquivo imagens.js). */
+const CATALOGO_ADICIONAL = [
+  ["CAT_001", "CAT-001", "SACO PARA LIXO ALTA RESIST UP BAG ABNT PRETO 30L 50UN", "PACOTE 50 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Saco para Lixo Alta Resist Up Bag ABNT Preto 30L 50UN", "cat:img001"],
+  ["CAT_002", "CAT-002", "SACO PARA LIXO ALTA RESIST UP BAG ABNT PRETO 50L 50UN", "PACOTE 50 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Saco para Lixo Alta Resist Up Bag ABNT Preto 50L 50UN", "cat:img002"],
+  ["CAT_003", "CAT-003", "GUARDANAPO FOLHA SIMPLES KITCHEN 22,7X22,8CM 50UN", "PACOTE 50 UNIDADES", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Guardanapo Folha Simples Kitchen 22,7x22,8cm 50UN", "cat:img005"],
+  ["CAT_004", "CAT-004", "SACO PARA LIXO FORTE UP BAG PRETO 110L 50UN", "PACOTE 50 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Saco para Lixo Forte Up Bag Preto 110L 50UN", "cat:img006"],
+  ["CAT_005", "CAT-005", "JARRA GRADUADA SANREMO TRANSPARENTE 1L", "UNIDADE", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Jarra Graduada Sanremo Transparente 1L", "cat:img007"],
+  ["CAT_006", "CAT-006", "GARRAFA TÉRMICA THERM/WELLPRO INQUEBRÁVEL INOX 1,9L", "UNIDADE", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Garrafa Térmica Therm/WellPro Inquebrável Inox 1,9L", "cat:img008"],
+  ["CAT_007", "CAT-007", "PAPEL TOALHA KITCHEN MULTIUSO 2UN", "PACOTE 2 UNIDADES", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Papel Toalha Kitchen Multiuso 2UN", "cat:img009"],
+  ["CAT_008", "CAT-008", "COPO CAIRO LONG DRINK 350ML LUVA C/6UN", "CAIXA 6 UNIDADES", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Copo Cairo Long Drink 350ml Luva c/6UN", "cat:img010"],
+  ["CAT_009", "CAT-009", "XÍCARA DE CAPPUCCINO 200ML COM PIRES 16CM BRANCO CX 12UN", "CAIXA 12 UNIDADES", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Xícara de Cappuccino 200ml com Pires 16cm Branco CX 12UN", "cat:img011"],
+  ["CAT_010", "CAT-010", "XÍCARA DE CAFÉ ESPRESSO 80ML COM PIRES BRANCO CX 12UN", "CAIXA 12 UNIDADES", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Xícara de Café Espresso 80ml com Pires Branco CX 12UN", "cat:img012"],
+  ["CAT_011", "CAT-011", "GARRAFA TÉRMICA RUBI PRETA 1L", "UNIDADE", "333903021", "MATERIAL DE COPA E COZINHA", "", 0, "Garrafa Térmica Rubi Preta 1L", "cat:img013"],
+  ["CAT_012", "CAT-012", "SACO PARA LIXO ALTA RESISTENCIA UP BAG PRETO 60L 100UN", "PACOTE 100 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Saco para Lixo Alta Resistencia Up Bag Preto 60L 100UN", "cat:img014"],
+  ["CAT_013", "CAT-013", "LUVA LÁTEX MEDIX DESCARTÁVEL COM PÓ GG CX 100UN", "CAIXA 100 UNIDADES", "333903028", "MATERIAL DE PROTEÇÃO E SEGURANÇA", "", 0, "Luva Látex Medix Descartável com Pó GG CX 100UN", "cat:img015"],
+  ["CAT_014", "CAT-014", "LUVA LÁTEX MEDIX DESCARTÁVEL COM PÓ M CX 100UN", "CAIXA 100 UNIDADES", "333903028", "MATERIAL DE PROTEÇÃO E SEGURANÇA", "", 0, "Luva Látex Medix Descartável com Pó M CX 100UN", "cat:img016"],
+  ["CAT_015", "CAT-015", "LUVA LÁTEX MEDIX DESCARTÁVEL COM PÓ G CX 100UN", "CAIXA 100 UNIDADES", "333903028", "MATERIAL DE PROTEÇÃO E SEGURANÇA", "", 0, "Luva Látex Medix Descartável com Pó G CX 100UN", "cat:img017"],
+  ["CAT_016", "CAT-016", "LUVA LÁTEX MEDIX DESCARTÁVEL COM PÓ P CX 100UN", "CAIXA 100 UNIDADES", "333903028", "MATERIAL DE PROTEÇÃO E SEGURANÇA", "", 0, "Luva Látex Medix Descartável com Pó P CX 100UN", "cat:img018"],
+  ["CAT_017", "CAT-017", "FITA CORRETIVA BRANCA CFT1002 5MM X 6M", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Fita Corretiva Branca CFT1002 5mm x 6M", "cat:img019"],
+  ["CAT_018", "CAT-018", "CADERNO ESPIRAL CAPA DURA GO OFFICE 200X275MM 96FLS", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caderno Espiral Capa Dura Go Office 200x275mm 96fls", "cat:img020"],
+  ["CAT_019", "CAT-019", "CANETA MARCA TEXTO GO OFFICE AMARELA", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caneta Marca Texto Go Office Amarela", "cat:img022"],
+  ["CAT_020", "CAT-020", "CANETA MARCA TEXTO GO OFFICE VERDE", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caneta Marca Texto Go Office Verde", "cat:img023"],
+  ["CAT_021", "CAT-021", "CANETA MARCA TEXTO GO OFFICE ROSA", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caneta Marca Texto Go Office Rosa", "cat:img024"],
+  ["CAT_022", "CAT-022", "MARCADOR PARA QUADRO BRANCO GO OFFICE AZUL RECARREGÁVEL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Marcador para Quadro Branco Go Office Azul Recarregável", "cat:img026"],
+  ["CAT_023", "CAT-023", "MARCADOR PARA QUADRO BRANCO GO OFFICE PRETO RECARREGÁVEL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Marcador para Quadro Branco Go Office Preto Recarregável", "cat:img027"],
+  ["CAT_024", "CAT-024", "MARCADOR PARA QUADRO BRANCO GO OFFICE VERMELHO RECARREGÁVEL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Marcador para Quadro Branco Go Office Vermelho Recarregável", "cat:img028"],
+  ["CAT_025", "CAT-025", "MARCADOR PARA QUADRO BRANCO GO OFFICE VERDE RECARREGÁVEL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Marcador para Quadro Branco Go Office Verde Recarregável", "cat:img029"],
+  ["CAT_026", "CAT-026", "GRAMPO GO OFFICE 26/6 GALVANIZADO CX 5.000UN", "CAIXA 5.000 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Grampo Go Office 26/6 Galvanizado CX 5.000UN", "cat:img032"],
+  ["CAT_027", "CAT-027", "PERCEVEJOS LATONADOS GO OFFICE 10MM CX 100UN", "CAIXA 100 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Percevejos Latonados Go Office 10mm CX 100UN", "cat:img033"],
+  ["CAT_028", "CAT-028", "PRENDEDOR DE PAPEL GO OFFICE PRETO 25MM CX 12UN", "CAIXA 12 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Prendedor de Papel Go Office Preto 25mm CX 12UN", "cat:img034"],
+  ["CAT_029", "CAT-029", "PRENDEDOR DE PAPEL GO OFFICE PRETO 51MM CX 12UN", "CAIXA 12 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Prendedor de Papel Go Office Preto 51mm CX 12UN", "cat:img035"],
+  ["CAT_030", "CAT-030", "FITA CREPE SOOPER (GO OFFICE) 18MMX50M PCT 6UN", "PACOTE 6 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Fita Crepe Sooper (Go Office) 18mmx50m PCT 6UN", "cat:img036"],
+  ["CAT_031", "CAT-031", "CADERNO 1/4 COSTURADO CAPA DURA CREDEAL AZUL 140X202MM 96FLS", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caderno 1/4 Costurado Capa Dura Credeal Azul 140X202mm 96fls", "cat:img038"],
+  ["CAT_032", "CAT-032", "TESOURA GO OFFICE 21CM USO GERAL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Tesoura Go Office 21cm Uso Geral", "cat:img040"],
+  ["CAT_033", "CAT-033", "BORRACHA BRANCA COM CINTA PLÁSTICA GO OFFICE", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Borracha Branca com Cinta Plástica Go Office", "cat:img042"],
+  ["CAT_034", "CAT-034", "COLA LÍQUIDA BRANCA 90G GO OFFICE", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Cola Líquida Branca 90g Go Office", "cat:img043"],
+  ["CAT_035", "CAT-035", "BLOCO ADESIVO GO OFFICE 38X50MM AMARELO 4UN", "PACOTE 4 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Bloco Adesivo Go Office 38x50mm Amarelo 4UN", "cat:img048"],
+  ["CAT_036", "CAT-036", "BLOCO ADESIVO GO OFFICE 38X50MM NEON 4UN", "PACOTE 4 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Bloco Adesivo Go Office 38x50mm Neon 4UN", "cat:img049"],
+  ["CAT_037", "CAT-037", "FITA ADESIVA SOOPER (GO OFFICE) TRANSPARENTE 12MMX50M 6UN", "PACOTE 6 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Fita Adesiva Sooper (Go Office) Transparente 12mmx50m 6UN", "cat:img051"],
+  ["CAT_038", "CAT-038", "FITA ADESIVA SOOPER/GO OFFICE TRANSPARENTE 48MMX50M 4UN", "PACOTE 4 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Fita Adesiva Sooper/Go Office Transparente 48mmx50m 4UN", "cat:img052"],
+  ["CAT_039", "CAT-039", "CLIPS GALVANIZADO GO OFFICE 2/0 FIO 1,00MM TRAD. CX 100UN", "CAIXA 100 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Clips Galvanizado Go Office 2/0 Fio 1,00mm Trad. CX 100UN", "cat:img053"],
+  ["CAT_040", "CAT-040", "ESTILETE PLÁSTICO GO OFFICE 18MM LÂMINA LARGA", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Estilete Plástico Go Office 18mm Lâmina Larga", "cat:img054"],
+  ["CAT_041", "CAT-041", "BLOCO ADESIVO GO OFFICE 75X100MM AMARELO", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Bloco Adesivo Go Office 75x100mm Amarelo", "cat:img055"],
+  ["CAT_042", "CAT-042", "GRAMPEADOR METÁLICO GO OFFICE MÉDIO", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Grampeador Metálico Go Office Médio", "cat:img056"],
+  ["CAT_043", "CAT-043", "CALCULADORA DE MESA GO OFFICE 12 DÍGITOS", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Calculadora de Mesa Go Office 12 dígitos", "cat:img057"],
+  ["CAT_044", "CAT-044", "CLIPS GALVANIZADO GO OFFICE 4/0 FIO 1,00MM LEVE CX 50UN", "CAIXA 50 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Clips Galvanizado Go Office 4/0 Fio 1,00mm Leve CX 50UN", "cat:img058"],
+  ["CAT_045", "CAT-045", "ARQUIVO MORTO GO OFFICE 392X185X300MM BRANCO 10UN", "PACOTE 10 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Arquivo Morto Go Office 392x185x300mm Branco 10UN", "cat:img059"],
+  ["CAT_046", "CAT-046", "QUADRO BRANCO GO OFFICE SUPERFÍCIE U.V 120X90CM ALUMÍNIO", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Quadro Branco Go Office Superfície U.V 120x90cm Alumínio", "cat:img060"],
+  ["CAT_047", "CAT-047", "QUADRO BRANCO GO OFFICE SUPERFÍCIE U.V 90X60CM ALUMÍNIO", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Quadro Branco Go Office Superfície U.V 90x60cm Alumínio", "cat:img061"],
+  ["CAT_048", "CAT-048", "ARQUIVO MORTO GO OFFICE 360X130X250MM BRANCO 10UN", "PACOTE 10 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Arquivo Morto Go Office 360x130x250mm Branco 10UN", "cat:img063"],
+  ["CAT_049", "CAT-049", "PASTA ABA E ELÁSTICO GO OFFICE OFÍCIO 20MM CRISTAL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Pasta Aba e Elástico Go Office Ofício 20mm Cristal", "cat:img064"],
+  ["CAT_050", "CAT-050", "PASTA ABA E ELÁSTICO GO OFFICE OFÍCIO SEM LOMBO CRISTAL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Pasta Aba e Elástico Go Office Ofício sem Lombo Cristal", "cat:img065"],
+  ["CAT_051", "CAT-051", "PASTA AZ CHIES LE OFÍCIO CLASSIC PRETA REF 1062 C/1UN", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Pasta AZ Chies LE Ofício Classic Preta Ref 1062 c/1UN", "cat:img068"],
+  ["CAT_052", "CAT-052", "PORTA CANETA TRIPLO CRISTAL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Porta Caneta Triplo Cristal", "cat:img069"],
+  ["CAT_053", "CAT-053", "CLIPS GALVANIZADO GO OFFICE 4/0 FIO 1,10MM CX 50UN", "CAIXA 50 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Clips Galvanizado Go Office 4/0 Fio 1,10mm CX 50UN", "cat:img070"],
+  ["CAT_054", "CAT-054", "CANETA ESFEROGRÁFICA COMPACTOR ECONOMIC 1.0MM AZUL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caneta Esferográfica Compactor Economic 1.0mm Azul", "cat:img071"],
+  ["CAT_055", "CAT-055", "CANETA ESFEROGRÁFICA COMPACTOR ECONOMIC 1.0MM PRETA", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caneta Esferográfica Compactor Economic 1.0mm Preta", "cat:img072"],
+  ["CAT_056", "CAT-056", "CANETA ESFEROGRÁFICA COMPACTOR ECONOMIC 1.0MM VERMELHA", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Caneta Esferográfica Compactor Economic 1.0mm Vermelha", "cat:img073"],
+  ["CAT_057", "CAT-057", "PASTA CATÁLOGO OFÍCIO ACP PRETA 0,06M COM VISOR 100 ENV.", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Pasta Catálogo Ofício ACP Preta 0,06m com Visor 100 Env.", "cat:img075"],
+  ["CAT_058", "CAT-058", "ELÁSTICO DE BORRACHA PREMIER NO 18 PCT 120UN", "PACOTE 120 UNIDADES", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Elástico de Borracha Premier No 18 PCT 120UN", "cat:img077"],
+  ["CAT_059", "CAT-059", "LIVRO ATA SD ANIMATIVA 196X295MM 100FLS", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Livro Ata SD Animativa 196x295mm 100fls", "cat:img079"],
+  ["CAT_060", "CAT-060", "PERFURADOR GO OFFICE GO5867 30FLS", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Perfurador Go Office GO5867 30fls", "cat:img080"],
+  ["CAT_061", "CAT-061", "BLOCO ADESIVO GO OFFICE 75X100MM LARANJA FLUOR", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Bloco Adesivo Go Office 75x100mm Laranja Fluor", "cat:img081"],
+  ["CAT_062", "CAT-062", "BLOCO ADESIVO GO OFFICE 75X100MM ROSA PASTEL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Bloco Adesivo Go Office 75x100mm Rosa Pastel", "cat:img082"],
+  ["CAT_063", "CAT-063", "BLOCO ADESIVO GO OFFICE 75X100MM AZUL PASTEL", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Bloco Adesivo Go Office 75x100mm Azul Pastel", "cat:img083"],
+  ["CAT_064", "CAT-064", "PASTA AZ CHIES LE OFÍCIO LINHA ECONOMIC", "UNIDADE", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Pasta AZ Chies LE Ofício Linha Economic", "cat:img088"],
+  ["CAT_065", "CAT-065", "PAPEL VERGÊ OFF PAPER A4 180G BRANCO PCT 50FLS", "PACOTE 50 FOLHAS", "333903016", "MATERIAL DE EXPEDIENTE", "", 0, "Papel Vergê Off Paper A4 180g Branco PCT 50fls", "cat:img090"],
+  ["CAT_066", "CAT-066", "BATERIA ALCALINA GO TECH 9V 6LR61", "UNIDADE", "333903026", "MATERIAL ELÉTRICO E ELETRÔNICO", "", 0, "Bateria Alcalina Go Tech 9V 6LR61", "cat:img091"],
+  ["CAT_067", "CAT-067", "BATERIA DE LÍTIO GO TECH CR2032 3V MOEDA 5UN", "PACOTE 5 UNIDADES", "333903026", "MATERIAL ELÉTRICO E ELETRÔNICO", "", 0, "Bateria de Lítio Go Tech CR2032 3V Moeda 5UN", "cat:img094"],
+  ["CAT_068", "CAT-068", "CARREGADOR DE PILHAS AA/AAA/9V FLEX FX-C16-4P BIVOLT C/4PAA", "UNIDADE", "333903026", "MATERIAL ELÉTRICO E ELETRÔNICO", "", 0, "Carregador de Pilhas AA/AAA/9V Flex FX-C16-4P Bivolt C/4PAA", "cat:img095"],
+  ["CAT_069", "CAT-069", "PILHA RECARREGÁVEL AA 2900MAH FLEX FX-AA29B2 2UN", "PACOTE 2 UNIDADES", "333903026", "MATERIAL ELÉTRICO E ELETRÔNICO", "", 0, "Pilha Recarregável AA 2900Mah Flex FX-AA29B2 2UN", "cat:img096"],
+  ["CAT_070", "CAT-070", "CAFÉ EM PÓ PACAEMBU SUPERIOR VÁCUO 500G", "UNIDADE", "333903007", "GÊNEROS DE ALIMENTAÇÃO", "", 0, "Café em Pó Pacaembu Superior Vácuo 500g", "cat:img098"],
+  ["CAT_071", "CAT-071", "FIBRA PERFECT PRO LIMPEZA PESADA VERDE PCT 10UN", "PACOTE 10 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Fibra Perfect Pro Limpeza Pesada Verde PCT 10UN", "cat:img100"],
+  ["CAT_072", "CAT-072", "LIXEIRA PLÁSTICA BRANCA COM PEDAL WITE 15 LITROS", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Lixeira Plástica Branca com pedal Wite 15 litros", "cat:img101"],
+  ["CAT_073", "CAT-073", "ESPANADOR DE PÓ SINTÉTICO BETTANIN", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Espanador de Pó Sintético Bettanin", "cat:img102"],
+  ["CAT_074", "CAT-074", "BALDE PLÁSTICO SHANGRILA PRETO 15L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Balde Plástico Shangrila Preto 15L", "cat:img103"],
+  ["CAT_075", "CAT-075", "BARBANTE DE ALGODÃO CRU N°6", "UNIDADE", "333903019", "MATERIAL DE ACONDICIONAMENTO E EMBALAGEM", "", 0, "Barbante de Algodão Cru N°6", "cat:img104"],
+  ["CAT_076", "CAT-076", "PÁ DE LIXO COM CABO 80CM SANCHES", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Pá de Lixo com Cabo 80cm Sanches", "cat:img105"],
+  ["CAT_077", "CAT-077", "RODO ALUMÍNIO SANCHES 100CM COM CABO 1,30M", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Rodo Alumínio Sanches 100cm com Cabo 1,30m", "cat:img106"],
+  ["CAT_078", "CAT-078", "FLANELA EVERCLEAN (PROFI) 0,28X0,38M BRANCA PCT 6UN", "PACOTE 6 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Flanela Everclean (Profi) 0,28x0,38m Branca PCT 6UN", "cat:img107"],
+  ["CAT_079", "CAT-079", "DISCO POLIDOR BETTANIN AMARELO 410MM", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Disco Polidor Bettanin Amarelo 410mm", "cat:img108"],
+  ["CAT_080", "CAT-080", "DISCO POLIDOR BETTANIN AMARELO 510MM", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Disco Polidor Bettanin Amarelo 510mm", "cat:img109"],
+  ["CAT_081", "CAT-081", "ESCOVA USO GERAL BETTANIN", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Escova Uso Geral Bettanin", "cat:img110"],
+  ["CAT_082", "CAT-082", "LIXEIRA PLÁSTICA PRETO 15L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Lixeira Plástica Preto 15L", "cat:img111"],
+  ["CAT_083", "CAT-083", "ESCOVA SANTA MARIA OVAL", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Escova Santa Maria Oval", "cat:img112"],
+  ["CAT_084", "CAT-084", "ESCOVA SANTA MARIA VASO SANITÁRIO COM SUPORTE", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Escova Santa Maria Vaso Sanitário com Suporte", "cat:img113"],
+  ["CAT_085", "CAT-085", "DESENTUPIDOR DE PIA SANTA MARIA", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Desentupidor de Pia Santa Maria", "cat:img114"],
+  ["CAT_086", "CAT-086", "DESENTUPIDOR DE VASO SANITÁRIO SANTA MARIA", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Desentupidor de Vaso Sanitário Santa Maria", "cat:img115"],
+  ["CAT_087", "CAT-087", "RODO PLÁSTICO SANTA MARIA 0,40M SEM CABO", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Rodo Plástico Santa Maria 0,40m sem Cabo", "cat:img116"],
+  ["CAT_088", "CAT-088", "RODO PLÁSTICO SANTA MARIA 0,60M SEM CABO", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Rodo Plástico Santa Maria 0,60m sem Cabo", "cat:img117"],
+  ["CAT_089", "CAT-089", "LÃ DE AÇO ASSOLAN PCT 8UN", "PACOTE 8 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Lã de Aço Assolan PCT 8UN", "cat:img119"],
+  ["CAT_090", "CAT-090", "RODO LIMPA VIDROS PROFI 39 CM", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Rodo Limpa Vidros Profi 39 cm", "cat:img120"],
+  ["CAT_091", "CAT-091", "FITA ISOLANTE SCOTCH 3M 19MM X 10M PRETA", "UNIDADE", "333903026", "MATERIAL ELÉTRICO E ELETRÔNICO", "", 0, "Fita Isolante Scotch 3M 19mm x 10m Preta", "cat:img121"],
+  ["CAT_092", "CAT-092", "PANO DE CHÃO EVERCLEAN (PROFI) BR 140G 0,50X0,70M PCT 3UN", "PACOTE 3 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Pano de Chão Everclean (Profi) BR 140g 0,50x0,70m PCT 3UN", "cat:img122"],
+  ["CAT_093", "CAT-093", "PAPEL TOALHA INTERF SOFTPAPER BASIC FS 24G CX 2.000UN", "CAIXA 2.000 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Papel Toalha Interf Softpaper Basic FS 24g CX 2.000UN", "cat:img123"],
+  ["CAT_094", "CAT-094", "PAPEL HIGIÊNICO ROLO 250M SOFTPAPER VIP FD 28G CX 8UN", "CAIXA 8 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Papel Higiênico Rolo 250m Softpaper Vip FD 28g CX 8UN", "cat:img124"],
+  ["CAT_095", "CAT-095", "DISPENSER SOFTPAPER TOALHA BOBINA ALAVANCA", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Dispenser Softpaper Toalha Bobina Alavanca", "cat:img125"],
+  ["CAT_096", "CAT-096", "DISPENSER SABONETE LÍQUIDO 800ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Dispenser Sabonete Líquido 800ml", "cat:img126"],
+  ["CAT_097", "CAT-097", "PAPEL TOALHA BOBINA 200M SOFTPAPER VIP FS 30G FD 6UN", "FARDO 6 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Papel Toalha Bobina 200m Softpaper Vip FS 30g FD 6UN", "cat:img127"],
+  ["CAT_098", "CAT-098", "PAPEL HIGIÊNICO ELITE FOLHA DUPLA FD 4UN", "FARDO 4 UNIDADES", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Papel Higiênico Elite Folha Dupla FD 4UN", "cat:img128"],
+  ["CAT_099", "CAT-099", "SABÃO EM PÓ TIXAN YPÊ PRIMAVERA 4KG", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Sabão em Pó Tixan Ypê Primavera 4Kg", "cat:img129"],
+  ["CAT_100", "CAT-100", "SABÃO EM PÓ YPÊ PRIMAVERA 800G", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Sabão em Pó Ypê Primavera 800g", "cat:img130"],
+  ["CAT_101", "CAT-101", "DETERGENTE LAVA LOUÇAS ESFRELUX NEUTRO 500ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Detergente Lava Louças Esfrelux Neutro 500ml", "cat:img131"],
+  ["CAT_102", "CAT-102", "ÁLCOOL ISOPROPÍLICO 99,8% IMPLASTEC 1L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Álcool Isopropílico 99,8% Implastec 1L", "cat:img132"],
+  ["CAT_103", "CAT-103", "SABONETE LIQUIDO AUDAX KLYNE ERVA DOCE VERDE 5L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Sabonete Liquido Audax Klyne Erva Doce Verde 5L", "cat:img133"],
+  ["CAT_104", "CAT-104", "SABÃO EM BARRA YPÊ CÔCO 160G", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Sabão em Barra Ypê Côco 160g", "cat:img134"],
+  ["CAT_105", "CAT-105", "SABÃO EM BARRA YPÊ NEUTRO 160G", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Sabão em Barra Ypê Neutro 160g", "cat:img135"],
+  ["CAT_106", "CAT-106", "LIMPA VIDROS FACILITA 500ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Limpa Vidros Facilita 500ml", "cat:img136"],
+  ["CAT_107", "CAT-107", "LIMPADOR MULTIUSO AUDAX FACILITA TRADICIONAL 500ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Limpador Multiuso Audax Facilita Tradicional 500ml", "cat:img137"],
+  ["CAT_108", "CAT-108", "LUSTRA MÓVEIS AZULIM LAVANDA 200ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Lustra Móveis Azulim Lavanda 200ml", "cat:img138"],
+  ["CAT_109", "CAT-109", "ALCOOL GEL 70O PUMP ALL CLEAN 1L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Alcool Gel 70o Pump All Clean 1L", "cat:img139"],
+  ["CAT_110", "CAT-110", "HIPOCLORITO DE SÓDIO 5% 108 POWER BBN 5L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Hipoclorito de Sódio 5% 108 Power BBN 5L", "cat:img140"],
+  ["CAT_111", "CAT-111", "DESINFETANTE AUDAX FACILITA PINHO FRESH 2L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Desinfetante Audax Facilita Pinho Fresh 2L", "cat:img141"],
+  ["CAT_112", "CAT-112", "DESODORIZADOR BOM AR CAMPOS DE LAVANDA 360ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Desodorizador Bom Ar Campos de Lavanda 360ml", "cat:img142"],
+  ["CAT_113", "CAT-113", "CERA ACRÍLICA AUDAX BUTTERFLY 2EM1 5L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Cera Acrílica Audax Butterfly 2em1 5L", "cat:img143"],
+  ["CAT_114", "CAT-114", "ÁGUA SANITÁRIA YPÊ 1L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Água Sanitária Ypê 1L", "cat:img144"],
+  ["CAT_115", "CAT-115", "DESINFETANTE YPÊ EUCALIPTO 500ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Desinfetante Ypê Eucalipto 500ml", "cat:img145"],
+  ["CAT_116", "CAT-116", "POLIDOR DE METAIS SPARTAN BRASS POLISH 1L", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Polidor de Metais Spartan Brass Polish 1L", "cat:img146"],
+  ["CAT_117", "CAT-117", "DESINFETANTE USO GERAL CREO LINHAL 900ML", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Desinfetante Uso Geral Creo Linhal 900ML", "cat:img147"],
+  ["CAT_118", "CAT-118", "VASSOURA PIAÇAVA COM CABO PLASTIFICADO 130CM", "UNIDADE", "333903022", "MATERIAL DE LIMPEZA E PRODUÇÃO DE HIGIENIZAÇÃO", "", 0, "Vassoura Piaçava com Cabo Plastificado 130cm", "cat:img148"]
+];
+
+/* Materiais já existentes que são os mesmos itens do Catálogo GOV ES: recebem a imagem do catálogo. */
+const VINCULOS_IMAGEM = {"333903021_5": "cat:img003", "333903021_4": "cat:img004", "333903016_74": "cat:img021", "333903016_8": "cat:img025", "333903016_15": "cat:img030", "333903016_37": "cat:img031", "333903016_40": "cat:img037", "333903016_43": "cat:img039", "333903016_42": "cat:img041", "333903016_19": "cat:img044", "333903016_1": "cat:img045", "333903016_53": "cat:img046", "333903016_54": "cat:img047", "333903016_64": "cat:img050", "333903016_0": "cat:img062", "333903016_71": "cat:img066", "333903016_69": "cat:img067", "333903016_50": "cat:img074", "333903016_26": "cat:img076", "333903016_56": "cat:img078", "333903016_49": "cat:img084", "333903016_29": "cat:img085", "333903016_30": "cat:img086", "333903016_52": "cat:img087", "333903016_67": "cat:img089", "333903026_7": "cat:img092", "333903026_8": "cat:img092", "333903026_9": "cat:img093", "333903026_10": "cat:img093", "333903007_1": "cat:img097", "333903007_0": "cat:img099", "333903022_2": "cat:img118"};
