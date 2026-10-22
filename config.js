@@ -6,7 +6,7 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "https://script.google.com/macros/s/AKfycbyUN3zuoDMwqjsmi5iln1xtfBgaFhoamSVhCRug4aAQSNAaMjkki3J_BlH0dsQdsZS6Eg/exec",
+  API_URL: "",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
@@ -18,6 +18,13 @@ window.CONFIG = {
   GOVERNO: "Governo do Estado do Espírito Santo",
   ORGAO: "IEMA - Instituto Estadual de Meio Ambiente",
   ALMOXARIFADO: "Almoxarifado IEMA",
+
+  /* LGPD – Aviso de privacidade da página de pedidos.
+     Preencha com o contato do Encarregado pelo Tratamento de Dados Pessoais (DPO) do IEMA. */
+  ENCARREGADO_NOME: "",
+  ENCARREGADO_EMAIL: "",
+  /* Por quanto tempo os pedidos ficam guardados (texto mostrado no aviso). */
+  PRAZO_GUARDA: "pelo prazo previsto na Tabela de Temporalidade de Documentos aplicável ao IEMA",
 
   /* Lista suspensa de setores (siglas da planilha "Siglas dos Setores").
      Para incluir ou retirar um setor, edite esta lista. */

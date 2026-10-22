@@ -34,6 +34,8 @@ Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Am
   - a planilha Excel do pedido é baixada, com as imagens.
 - **Acompanhar pedido:** informe o número e o e-mail usado no pedido.
 - **E-mails automáticos** a cada pedido e a cada mudança de situação. São somente para consulta e não podem ser respondidos (veja "E-mails").
+- **Aviso de privacidade (LGPD)** na página. Explica quais dados são coletados, para quê, quem tem acesso, por quanto tempo ficam guardados e como falar com o encarregado.
+- **"Não lembrar meus dados neste computador"**: em computador compartilhado, apaga do navegador os dados do solicitante e a lista "Meus pedidos", e não guarda mais nada.
 
 **Gestor (`gestor.html`)**
 - **Até 3 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo** em computadores diferentes. As telas se atualizam sozinhas a cada 6 segundos.
@@ -53,7 +55,8 @@ Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Am
   - tipos: pedidos (resumo), pedidos por material, consumo por material, consumo por setor, posição do estoque, histórico e auditoria, pedidos excluídos;
   - filtros de período, setor, situação e natureza;
   - visualização na tela, **Excel**, **PDF** e impressão.
-- **Histórico:** tudo o que aconteceu, com filtros por tipo e por responsável. Nesta versão o histórico começa **zerado**. Depois disso, só o gestor principal pode zerar de novo, pelo botão **Zerar histórico**. Fica um registro com o nome de quem zerou e quando.
+- **Histórico:** tudo o que aconteceu, com filtros por tipo e por responsável. **O histórico não pode ser apagado pelo sistema**: não existe botão para zerar. As abas *Histórico* e *Pedidos* da planilha também ficam protegidas contra edição manual (veja "Backup").
+- **Backup:** o botão **Gerar backup** (em *Relatórios* e em *Histórico*) baixa três arquivos com as solicitações, o histórico e o estoque: **PDF**, **Excel** e **JSON**. Além disso, **todo dia 1º do mês** o sistema envia esses arquivos por e-mail (veja "Backup").
 - **Gestores e contato:**
   - o gestor principal cadastra até 2 outros logins, remove logins e redefine senhas;
   - cada gestor troca a própria senha;
@@ -107,6 +110,7 @@ O site já abre em **modo demonstração**, mas nesse modo cada computador tem u
    - autorize o acesso: *Continuar › sua conta › Avançado › Acessar (não seguro) › Permitir*;
    - cadastre o **gestor principal**: nome, usuário, senha e **e-mail** (usado para recuperar a senha);
    - o catálogo de 254 materiais é carregado automaticamente.
+   - o backup mensal por e-mail (dia 1º, para subad@ e almoxarifado@) é ativado, e as abas de registros são protegidas.
 5. No Apps Script, clique em **Implantar › Nova implantação**:
    - escolha **App da Web**;
    - em *Executar como*, escolha **Eu**;
@@ -120,7 +124,7 @@ Quando o aviso amarelo de "Modo demonstração" sumir das páginas, o sistema es
 
 ### Atualizar uma instalação que já existe
 
-1. No Apps Script, apague o código antigo, cole o `Code.gs` novo e salve.
+1. No Apps Script, apague o código antigo, cole o `Code.gs` novo e salve. Depois, **na planilha, use Almoxarifado › Ativar backup mensal por e-mail**. Isso autoriza as novas permissões (geração dos arquivos e envio) e ativa o backup do dia 1º. Sem essa autorização, o site pode deixar de responder após a atualização.
 2. Publique a versão nova: **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. A URL não muda.
 3. No GitHub, substitua os arquivos pelos 8 desta versão. Mantenha a sua linha `API_URL` no `config.js`.
 
@@ -148,6 +152,38 @@ Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
 - **Senha cadastrada presencialmente:** o gestor principal tem o botão **Cadastrar senha (presencial)** ao lado de cada gestor. O próprio gestor digita a nova senha no computador do principal, e as sessões abertas dele são encerradas.
 - **O próprio gestor principal esqueceu a senha e não tem acesso ao e-mail?** Use **Almoxarifado › Redefinir a senha de um gestor**, na planilha.
 - **Bloqueio por tentativas:** depois de 8 senhas erradas, aquele usuário fica bloqueado por 10 minutos.
+
+## Backup
+
+**Backup manual:** na área do gestor, aba *Relatórios* ou *Histórico*, clique em **Gerar backup (PDF, Excel e JSON)**. São baixados três arquivos com data e hora no nome:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `Backup_Almoxarifado_IEMA_AAAA-MM-DD_HHMM.pdf` | Relatório para leitura e impressão: pedidos, itens dos pedidos, histórico e estoque |
+| `….xlsx` | Abas Resumo, Pedidos, Itens dos pedidos, Histórico e Estoque |
+| `….json` | Cópia completa dos dados, para restauração ou migração |
+
+Se o navegador perguntar, permita baixar vários arquivos. Cada backup baixado fica registrado no histórico.
+
+**Backup automático mensal:**
+- **Quando e para quem:** todo **dia 1º, às 6h**, o sistema gera os mesmos três arquivos e envia por e-mail para **subad@iema.es.gov.br** e **almoxarifado@iema.es.gov.br**.
+- **Como ativar** (uma vez só): abra a planilha do sistema e use **Almoxarifado › Ativar backup mensal por e-mail (dia 1º)**. O Google pede autorização para gerar os arquivos e enviá-los.
+- **Testar:** use **Almoxarifado › Enviar backup por e-mail agora**, ou o botão de mesmo nome na área do gestor.
+- **Acompanhar:** a aba *Relatórios* mostra se o backup mensal está ativo e quando foi o último envio.
+- **Trocar os destinatários:** edite `BACKUP_EMAILS` no início do `Code.gs` e publique uma nova versão.
+
+**Proteção dos registros:** ao ativar o backup, as abas *Histórico* e *Pedidos* da planilha ficam protegidas. Só o dono da planilha consegue editá-las à mão; o sistema continua gravando normalmente.
+
+**Onde guardar:** os arquivos contêm dados pessoais. Guarde-os em local de acesso restrito, como uma pasta do Porta-arquivos do Comunica ES. **Nunca** coloque backups no repositório do GitHub, que é público.
+
+## LGPD
+
+- **Aviso de privacidade:** fica na página de pedidos, logo abaixo dos dados do solicitante, e também abre pelo link no rodapé.
+- **Contato do encarregado:** preencha `ENCARREGADO_NOME` e `ENCARREGADO_EMAIL` no `config.js` com o contato do Encarregado pelo Tratamento de Dados Pessoais (DPO) do IEMA. Enquanto estiverem vazios, o aviso orienta a procurar o canal do encarregado no site oficial do IEMA.
+- **Prazo de guarda:** `PRAZO_GUARDA` define o texto sobre por quanto tempo os dados ficam guardados. O padrão remete à Tabela de Temporalidade de Documentos.
+- **Dados no navegador:** o solicitante pode marcar "Não lembrar meus dados neste computador".
+- **Revisão:** valide o texto do aviso com o encarregado ou a assessoria jurídica do IEMA.
+- **Proteção contra fórmulas:** textos digitados nos formulários (nome, observação etc.) são sempre gravados na planilha como texto e nunca viram fórmulas.
 
 ## E-mails (somente consulta)
 
@@ -180,9 +216,11 @@ Confira se o arquivo `imagens.js` foi enviado ao repositório, na raiz, junto co
 | `ESTOQUE_BAIXO` | A partir de quantas unidades o material aparece como estoque baixo |
 | `ATUALIZAR_A_CADA` | Intervalo (segundos) da atualização em tempo real (padrão 6) |
 | `SETORES` | Lista suspensa de setores (siglas) |
+| `ENCARREGADO_NOME`, `ENCARREGADO_EMAIL` | Contato do Encarregado de Dados (DPO) do IEMA, mostrado no Aviso de privacidade |
+| `PRAZO_GUARDA` | Texto sobre o prazo de guarda dos dados no Aviso de privacidade |
 | `GOVERNO`, `ORGAO`, `ALMOXARIFADO` | Textos do cabeçalho, planilhas e relatórios |
 
-No início do `Code.gs`, `MAX_GESTORES` define o número de logins (3) e `ORGAO` o nome do órgão nos e-mails.
+No início do `Code.gs`: `MAX_GESTORES` define o número de logins (3), `BACKUP_EMAILS` os destinatários do backup mensal e `ORGAO` o nome do órgão nos e-mails.
 
 ## Planilha Google (banco de dados)
 

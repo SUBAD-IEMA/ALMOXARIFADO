@@ -19,6 +19,8 @@ const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é rece
 const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
 const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
 const MAX_GESTORES = 3;           // número máximo de logins de gestor
+/* Backup mensal automático (todo dia 1º, às 6h): PDF, Excel e JSON com solicitações, histórico e estoque. */
+const BACKUP_EMAILS = ['subad@iema.es.gov.br', 'almoxarifado@iema.es.gov.br'];
 const HORAS_SESSAO = 10;          // sessão comum
 const DIAS_LEMBRAR = 30;          // sessão com "manter conectado neste computador"
 
@@ -55,7 +57,7 @@ function doPost(e) {
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, zerarHistorico: acaoZerarHistorico };
+    alterarEmailGestor: acaoAlterarEmailGestor, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora };
   try {
     let f = publicas[req.acao];
     if (!f && doGestor[req.acao]) { exigirSessao(req.token); f = doGestor[req.acao]; }
@@ -100,6 +102,8 @@ function anexar(chave, rows) {
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
 function iso(v) { if (!v) return ''; if (v instanceof Date) return v.toISOString(); return String(v); }
+/* Texto digitado pelos usuários nunca vira fórmula na planilha (ex.: "=IMPORTXML(...)"). */
+function seguro(v) { return typeof v === 'string' && /^[=+\-@]/.test(v) ? "'" + v : v; }
 const props = () => PropertiesService.getScriptProperties();
 function versaoAtual() { return Number(props().getProperty('VERSAO') || 1); }
 function novaVersao() { props().setProperty('VERSAO', String(versaoAtual() + 1)); }
@@ -126,7 +130,7 @@ function dadosContato() {
   return { nome: c.gestor_nome || '', setor: c.gestor_setor || '', telefone: String(c.gestor_telefone || ''), email: c.gestor_email || '' };
 }
 function dataBR(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm'); }
-function registrar(rows) { anexar('historico', rows.map(r => r.length >= 11 ? r : r.concat(new Array(10 - r.length).fill(''), [QUEM]))); }
+function registrar(rows) { anexar('historico', rows.map(r => (r.length >= 11 ? r : r.concat(new Array(10 - r.length).fill(''), [QUEM])).map(seguro))); }
 
 /* ---------- Catálogo ---------- */
 function simNao(v) { return v === true || String(v).toUpperCase() === 'SIM'; }
@@ -144,7 +148,7 @@ function lerCatalogo() {
   return { sh, itens, mapa };
 }
 function linhaItem(it) {
-  return [it.id, it.codigo, it.descricao, it.unidade, it.natureza, it.naturezaNome, it.conta || '', it.qtd, it.limite || 0,
+  return [it.id, seguro(it.codigo), seguro(it.descricao), seguro(it.unidade), seguro(it.natureza), seguro(it.naturezaNome), seguro(it.conta || ''), it.qtd, it.limite || 0,
     it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0, it.oculto ? 'SIM' : 'NÃO'];
 }
 function gravarItem(sh, it) {
@@ -227,8 +231,8 @@ function lerPedidos() {
   return { sh, pedidos };
 }
 function linhaPedido(p) {
-  return [p.numero, new Date(p.dataISO), p.solicitante.nome, p.solicitante.setor, p.solicitante.telefone, p.solicitante.email, p.obs,
-    JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), p.resposta || '', JSON.stringify(p.andamento)];
+  return [p.numero, new Date(p.dataISO), seguro(p.solicitante.nome), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
+    JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), seguro(p.resposta || ''), JSON.stringify(p.andamento)];
 }
 function semLinha(p) { const c = Object.assign({}, p); delete c.linha; return c; }
 
@@ -362,16 +366,6 @@ function acaoAlterarEmailGestor(req) {
   registrar([[new Date(), 'E-mail de gestor alterado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Novo e-mail de recuperação: ' + mascararEmail(g.email)]]);
   novaVersao();
   return acaoGestores();
-}
-function acaoZerarHistorico() {
-  exigirPrincipal();
-  const lock = bloquear();
-  try {
-    limparHistorico();
-    registrar([[new Date(), 'Histórico zerado', '', '', '', '', '', '', '', 'Histórico apagado pelo gestor principal ' + GESTOR.nome + ' em ' + dataBR(new Date())]]);
-    novaVersao();
-  } finally { lock.releaseLock(); }
-  return {};
 }
 function acaoGestores() { return { gestores: lerGestores().map(gestorPublico), max: MAX_GESTORES }; }
 function acaoAdicionarGestor(req) {
@@ -507,7 +501,8 @@ function acaoPainel() {
     antes: r[6] === '' ? null : Number(r[6]), depois: r[7] === '' ? null : Number(r[7]), delta: r[8] === '' ? null : Number(r[8]), detalhes: String(r[9] || ''), quem: String(r[10] || '')
   }));
   return { versao: versaoAtual(), inicializado: cat.itens.length > 0, itens: cat.itens.filter(i => i.ativo).map(publico), pedidos: lerPedidos().pedidos.map(semLinha),
-    historico: hist, gestor: dadosContato(), eu: gestorPublico(GESTOR), gestores: lerGestores().map(gestorPublico), maxGestores: MAX_GESTORES };
+    historico: hist, gestor: dadosContato(), eu: gestorPublico(GESTOR), gestores: lerGestores().map(gestorPublico), maxGestores: MAX_GESTORES,
+    backup: { emails: BACKUP_EMAILS, ativo: props().getProperty('BACKUP_ATIVO') === '1', ultimo: props().getProperty('ULTIMO_BACKUP') || '' } };
 }
 
 function acaoAtender(req) {
@@ -707,10 +702,96 @@ function acaoRemoverItem(req) {
 
 function acaoSalvarContato(req) {
   const g = req.gestor || {};
-  gravarConfig({ gestor_nome: String(g.nome || '').trim(), gestor_setor: String(g.setor || '').trim(), gestor_telefone: String(g.telefone || '').trim(), gestor_email: String(g.email || '').trim() });
+  gravarConfig({ gestor_nome: seguro(String(g.nome || '').trim()), gestor_setor: seguro(String(g.setor || '').trim()), gestor_telefone: seguro(String(g.telefone || '').trim()), gestor_email: seguro(String(g.email || '').trim()) });
   registrar([[new Date(), 'Contato do almoxarifado', '', '', '', String(g.nome || '')]]);
   novaVersao();
   return { gestor: dadosContato() };
+}
+
+/* ======================= Backup (PDF, Excel e JSON) ======================= */
+function lerHistoricoCompleto() {
+  return linhas(aba('historico')).map(r => ({
+    dataISO: iso(r[0]), tipo: String(r[1]), pedido: String(r[2] || ''), id: String(r[3] || ''), codigo: String(r[4] || ''), descricao: String(r[5] || ''),
+    antes: r[6] === '' ? null : Number(r[6]), depois: r[7] === '' ? null : Number(r[7]), delta: r[8] === '' ? null : Number(r[8]), detalhes: String(r[9] || ''), quem: String(r[10] || '')
+  }));
+}
+function montarDadosBackup() {
+  const cat = lerCatalogo();
+  return { sistema: 'Pedidos de material – Almoxarifado – ' + ORGAO, formato: 'backup-almoxarifado-iema/1', geradoEm: new Date().toISOString(),
+    contato: dadosContato(), pedidos: lerPedidos().pedidos.map(semLinha), historico: lerHistoricoCompleto(),
+    estoque: cat.itens.filter(i => i.ativo).map(i => { const p = publico(i); delete p.imagemVersao; return p; }) };
+}
+/* Backup baixado pelo gestor (o navegador monta o PDF, o Excel e o JSON). */
+function acaoBackupDados() {
+  const d = montarDadosBackup();
+  registrar([[new Date(), 'Backup gerado', '', '', '', d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico', '', '', '', 'Arquivos PDF, Excel e JSON baixados pelo gestor']]);
+  return { dados: d };
+}
+function dataArq(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd'); }
+function tabelasBackup(d) {
+  const dt = s => s ? new Date(s) : '';
+  return {
+    'Pedidos': [['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Materiais', 'Solicitado', 'Atendido', 'Situação', 'Observação', 'Resposta do almoxarifado']]
+      .concat(d.pedidos.map(p => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, p.solicitante.telefone, p.solicitante.email, p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, p.obs || '', p.resposta || ''])),
+    'Itens dos pedidos': [['Pedido', 'Data', 'Solicitante', 'Setor', 'Código', 'Material', 'Unidade', 'Solicitado', 'Atendido', 'Situação']]
+      .concat([].concat.apply([], d.pedidos.map(p => p.itens.map(l => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, l.codigo, l.descricao, l.unidade, l.qtd, l.atendida == null ? '' : l.atendida, p.status])))),
+    'Histórico': [['Data', 'Tipo', 'Pedido', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável']]
+      .concat(d.historico.map(h => [dt(h.dataISO), h.tipo, h.pedido, h.codigo, h.descricao, h.antes == null ? '' : h.antes, h.depois == null ? '' : h.depois, h.delta == null ? '' : h.delta, h.detalhes, h.quem])),
+    'Estoque': [['Natureza', 'Nome da natureza', 'Código', 'Descrição', 'Unidade', 'Disponível', 'Limite por pedido', 'Indisponível', 'Visível']]
+      .concat(d.estoque.map(i => [i.natureza, i.naturezaNome, i.codigo, i.descricao, i.unidade, i.qtd, i.limite || '', i.indisponivel ? 'Sim' : 'Não', i.oculto ? 'Não' : 'Sim']))
+  };
+}
+/* Gera os 3 arquivos no servidor (planilha temporária exportada pelo Google em Excel e PDF) e envia por e-mail. */
+function gerarArquivosBackup() {
+  const d = montarDadosBackup(), t = tabelasBackup(d), base = 'Backup_Almoxarifado_IEMA_' + dataArq();
+  const tmp = SpreadsheetApp.create(base);
+  Object.keys(t).forEach((nome, i) => {
+    const sh = i === 0 ? tmp.getSheets()[0].setName(nome) : tmp.insertSheet(nome), rows = t[nome].map(r => r.map(seguro));
+    sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+    sh.getRange(1, 1, 1, rows[0].length).setFontWeight('bold').setBackground('#E2EDE8'); sh.setFrozenRows(1);
+  });
+  SpreadsheetApp.flush();
+  const id = tmp.getId(), auth = { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } };
+  const url = 'https://docs.google.com/spreadsheets/d/' + id + '/export?format=';
+  const xlsx = UrlFetchApp.fetch(url + 'xlsx', auth).getBlob().setName(base + '.xlsx');
+  const pdf = UrlFetchApp.fetch(url + 'pdf&size=A4&portrait=false&fitw=true&gridlines=false&sheetnames=true&printtitle=true', auth).getBlob().setName(base + '.pdf');
+  const json = Utilities.newBlob(JSON.stringify(d, null, 1), 'application/json', base + '.json');
+  DriveApp.getFileById(id).setTrashed(true);
+  return { d: d, arquivos: [pdf, xlsx, json] };
+}
+function backupMensal() {
+  QUEM = 'Sistema (backup automático)';
+  const r = gerarArquivosBackup(), agora = new Date();
+  const html = '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+    '<p>Segue o backup do sistema de pedidos de material, gerado em ' + dataBR(agora) + ':</p><ul>' +
+    '<li><b>PDF</b> – para leitura e impressão;</li><li><b>Excel</b> – abas Pedidos, Itens dos pedidos, Histórico e Estoque;</li><li><b>JSON</b> – cópia completa dos dados, para restauração.</li></ul>' +
+    '<p>Conteúdo: ' + r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico e ' + r.d.estoque.length + ' materiais.</p>' +
+    '<p>Sugestão: salve os anexos no Porta-arquivos do Comunica ES, numa pasta de acesso restrito. Os arquivos contêm dados pessoais (LGPD).</p>' +
+    '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>';
+  enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'Backup mensal do almoxarifado – ' + dataArq(agora) + ' – ' + ORGAO + ' (não responda)', htmlBody: html, name: NOME_REMETENTE, attachments: r.arquivos });
+  props().setProperty('ULTIMO_BACKUP', agora.toISOString());
+  registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'PDF, Excel e JSON: ' + r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico']]);
+  return r.d;
+}
+function acaoBackupEmailAgora() {
+  if (typeof UrlFetchApp === 'undefined' || typeof ScriptApp === 'undefined') throw amigavel('O envio por e-mail só funciona com o banco de dados ligado (Planilha Google).');
+  let d;
+  try { d = backupMensal(); }
+  catch (e) { throw amigavel('Não foi possível enviar o backup: ' + e.message + '. Na planilha, use o menu Almoxarifado > Ativar backup mensal por e-mail para autorizar.'); }
+  return { enviadoPara: BACKUP_EMAILS, pedidos: d.pedidos.length, historico: d.historico.length };
+}
+function instalarBackupMensal() {
+  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'backupMensal') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('backupMensal').timeBased().onMonthDay(1).atHour(6).inTimezone('America/Sao_Paulo').create();
+  DriveApp.getRootFolder(); UrlFetchApp.getRequest('https://docs.google.com');   // pede as autorizações necessárias
+  props().setProperty('BACKUP_ATIVO', '1');
+}
+/* Registros só podem ser editados à mão pelo dono da planilha (o sistema continua gravando normalmente). */
+function protegerAbas() {
+  ['historico', 'pedidos'].forEach(k => {
+    const sh = aba(k), pr = sh.protect().setDescription('Registros do sistema – somente o dono da planilha edita');
+    pr.removeEditors(pr.getEditors()); if (pr.canDomainEdit()) pr.setDomainEdit(false);
+  });
 }
 
 /* ======================= E-mails (somente consulta – não responder) ======================= */
@@ -753,6 +834,8 @@ function avisar(p, novo) {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Almoxarifado')
     .addItem('Configurar sistema (primeira vez)', 'configurarSistema')
+    .addItem('Ativar backup mensal por e-mail (dia 1º)', 'menuBackup')
+    .addItem('Enviar backup por e-mail agora', 'menuBackupAgora')
     .addItem('Redefinir a senha de um gestor', 'menuRedefinirSenha')
     .addItem('Desconectar todos os gestores', 'menuDesconectar')
     .addToUi();
@@ -762,6 +845,7 @@ function configurarSistema() {
   Object.keys(ABAS).forEach(aba);
   carregarCatalogoInicial(); const n = aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez();
   if (ENVIAR_EMAIL) MailApp.getRemainingDailyQuota();   // pede a autorização de e-mail
+  try { instalarBackupMensal(); protegerAbas(); } catch (e) {}
   let msg = 'Catálogo pronto (' + lerCatalogo().itens.length + ' materiais' + (n ? ', incluindo ' + n + ' do Catálogo GOV ES' : '') + ').\n\n';
   if (!lerGestores().length) {
     const nome = ui.prompt('Gestor principal (1 de 3)', 'Nome do gestor principal:', ui.ButtonSet.OK_CANCEL);
@@ -775,7 +859,7 @@ function configurarSistema() {
       }
     }
   }
-  ui.alert(ORGAO + ' – sistema configurado', msg + 'Próximo passo: no Apps Script, clique em Implantar > Nova implantação > App da Web (Executar como: Eu; Quem pode acessar: Qualquer pessoa) e copie a URL para o arquivo config.js no GitHub.', ui.ButtonSet.OK);
+  ui.alert(ORGAO + ' – sistema configurado', msg + 'Backup mensal ativado (dia 1º, para ' + BACKUP_EMAILS.join(' e ') + ').\n\nPróximo passo: no Apps Script, clique em Implantar > Nova implantação > App da Web (Executar como: Eu; Quem pode acessar: Qualquer pessoa) e copie a URL para o arquivo config.js no GitHub.', ui.ButtonSet.OK);
 }
 function menuRedefinirSenha() {
   const ui = SpreadsheetApp.getUi(), lista = lerGestores();
@@ -788,6 +872,16 @@ function menuRedefinirSenha() {
   if (s.getSelectedButton() !== ui.Button.OK) return;
   try { g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(s.getResponseText())); gravarGestores(lista); encerrarSessoesDe(g.usuario); QUEM = 'Planilha (dono)'; registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')']]); ui.alert('Senha redefinida.'); }
   catch (e) { ui.alert(e.message); }
+}
+function menuBackup() {
+  const ui = SpreadsheetApp.getUi();
+  try { instalarBackupMensal(); protegerAbas(); ui.alert('Backup mensal ativado', 'Todo dia 1º, às 6h, o PDF, o Excel e o JSON serão enviados para:\n' + BACKUP_EMAILS.join('\n') + '\n\nAs abas Histórico e Pedidos foram protegidas contra edição manual.', ui.ButtonSet.OK); }
+  catch (e) { ui.alert('Não foi possível ativar: ' + e.message); }
+}
+function menuBackupAgora() {
+  const ui = SpreadsheetApp.getUi();
+  try { const d = backupMensal(); ui.alert('Backup enviado para ' + BACKUP_EMAILS.join(', ') + ' (' + d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico).'); }
+  catch (e) { ui.alert('Não foi possível enviar: ' + e.message); }
 }
 function menuDesconectar() { props().setProperty('SESSOES', '{}'); SpreadsheetApp.getUi().alert('Todos os gestores foram desconectados.'); }
 
