@@ -19,8 +19,9 @@ const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é rece
 const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
 const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
 const MAX_GESTORES = 3;           // número máximo de logins de gestor
-/* Backup mensal automático (todo dia 1º, às 6h): PDF, Excel e JSON com solicitações, histórico e estoque. */
-const BACKUP_EMAILS = ['subad@iema.es.gov.br', 'almoxarifado@iema.es.gov.br'];
+/* Backup mensal automático (todo dia 1º, às 6h): PDF, Excel e JSON com solicitações, histórico e estoque.
+   Os e-mails já estão definidos; o backup se ativa sozinho no primeiro acesso de um gestor (não precisa do menu da planilha). */
+const BACKUP_EMAILS = ['almoxarifado@iema.es.gov.br', 'subad@iema.es.gov.br'];
 const HORAS_SESSAO = 10;          // sessão comum
 const DIAS_LEMBRAR = 30;          // sessão com "manter conectado neste computador"
 
@@ -57,7 +58,8 @@ function doPost(e) {
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora };
+    alterarEmailGestor: acaoAlterarEmailGestor, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
     if (!f && doGestor[req.acao]) { exigirSessao(req.token); f = doGestor[req.acao]; }
@@ -495,6 +497,7 @@ function acaoConsultar(req) {
 /* ======================= Ações do gestor ======================= */
 function acaoPainel() {
   garantirCatalogo();
+  ativarBackupAutomatico();
   const cat = lerCatalogo();
   const hist = linhas(aba('historico')).slice(-3000).map(r => ({
     dataISO: iso(r[0]), tipo: String(r[1]), pedido: String(r[2] || ''), id: String(r[3] || ''), codigo: String(r[4] || ''), descricao: String(r[5] || ''),
@@ -502,7 +505,7 @@ function acaoPainel() {
   }));
   return { versao: versaoAtual(), inicializado: cat.itens.length > 0, itens: cat.itens.filter(i => i.ativo).map(publico), pedidos: lerPedidos().pedidos.map(semLinha),
     historico: hist, gestor: dadosContato(), eu: gestorPublico(GESTOR), gestores: lerGestores().map(gestorPublico), maxGestores: MAX_GESTORES,
-    backup: { emails: BACKUP_EMAILS, ativo: props().getProperty('BACKUP_ATIVO') === '1', ultimo: props().getProperty('ULTIMO_BACKUP') || '' } };
+    backup: situacaoBackup() };
 }
 
 function acaoAtender(req) {
@@ -722,8 +725,9 @@ function montarDadosBackup() {
     estoque: cat.itens.filter(i => i.ativo).map(i => { const p = publico(i); delete p.imagemVersao; return p; }) };
 }
 /* Backup baixado pelo gestor (o navegador monta o PDF, o Excel e o JSON). */
-function acaoBackupDados() {
+function acaoBackupDados(req) {
   const d = montarDadosBackup();
+  if (req && req.paraEmail) return { dados: d };   // o envio por e-mail é registrado no histórico pelo próprio envio
   registrar([[new Date(), 'Backup gerado', '', '', '', d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico', '', '', '', 'Arquivos PDF, Excel e JSON baixados pelo gestor']]);
   return { dados: d };
 }
@@ -759,8 +763,36 @@ function gerarArquivosBackup() {
   DriveApp.getFileById(id).setTrashed(true);
   return { d: d, arquivos: [pdf, xlsx, json] };
 }
-function backupMensal() {
-  QUEM = 'Sistema (backup automático)';
+const mesSP = d => Utilities.formatDate(d, 'America/Sao_Paulo', 'yyyy-MM');
+function jaEnviadoEsteMes() { const u = props().getProperty('ULTIMO_BACKUP'); return !!u && mesSP(new Date(u)) === mesSP(new Date()); }
+function situacaoBackup() {
+  const agora = new Date(), dia = Number(Utilities.formatDate(agora, 'America/Sao_Paulo', 'd')), hora = Number(Utilities.formatDate(agora, 'America/Sao_Paulo', 'H'));
+  const temDados = aba('pedidos').getLastRow() > 1 || aba('historico').getLastRow() > 1;
+  return { emails: BACKUP_EMAILS, ativo: props().getProperty('BACKUP_ATIVO') === '1', ultimo: props().getProperty('ULTIMO_BACKUP') || '',
+    erro: props().getProperty('BACKUP_ERRO') || '', pendente: temDados && !jaEnviadoEsteMes() && (dia > 1 || hora >= 8),
+    google: typeof MailApp !== 'undefined' };
+}
+/* Ativa sozinho o envio do dia 1º (no máximo uma tentativa a cada 6 horas), sem precisar do menu da planilha. */
+function ativarBackupAutomatico() {
+  if (typeof ScriptApp === 'undefined' || props().getProperty('BACKUP_ATIVO') === '1') return;
+  const ult = Number(props().getProperty('BACKUP_TENTATIVA') || 0);
+  if (Date.now() - ult < 6 * 36e5) return;
+  props().setProperty('BACKUP_TENTATIVA', String(Date.now()));
+  try { instalarBackupMensal(); props().setProperty('BACKUP_ERRO', ''); try { protegerAbas(); } catch (e) {} }
+  catch (e) { props().setProperty('BACKUP_ERRO', String(e.message || e).slice(0, 300)); }
+}
+function acaoAtivarBackup() {
+  if (typeof ScriptApp === 'undefined') throw amigavel('O backup automático funciona depois de ligar a Planilha Google (modo demonstração).');
+  try { instalarBackupMensal(); props().setProperty('BACKUP_ERRO', ''); try { protegerAbas(); } catch (e) {} }
+  catch (e) { props().setProperty('BACKUP_ERRO', String(e.message || e).slice(0, 300)); throw amigavel('Não foi possível ativar o envio do dia 1º: ' + e.message + '. Publique a nova versão no Apps Script e clique em “Autorizar acesso” quando o Google pedir. Mesmo assim, o sistema envia o backup do mês pelo primeiro acesso de um gestor.'); }
+  registrar([[new Date(), 'Backup mensal ativado', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'Envio automático todo dia 1º às 6h']]);
+  return { backup: situacaoBackup() };
+}
+/* Chamada pelo acionador do dia 1º. */
+function backupMensal() { return enviarBackupMensal(true); }
+function enviarBackupMensal(automatico) {
+  if (automatico && jaEnviadoEsteMes()) return null;
+  QUEM = QUEM === 'Sistema' ? 'Sistema (backup automático)' : QUEM;
   const r = gerarArquivosBackup(), agora = new Date();
   const html = '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
     '<p>Segue o backup do sistema de pedidos de material, gerado em ' + dataBR(agora) + ':</p><ul>' +
@@ -773,12 +805,123 @@ function backupMensal() {
   registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'PDF, Excel e JSON: ' + r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico']]);
   return r.d;
 }
-function acaoBackupEmailAgora() {
-  if (typeof UrlFetchApp === 'undefined' || typeof ScriptApp === 'undefined') throw amigavel('O envio por e-mail só funciona com o banco de dados ligado (Planilha Google).');
+function htmlEmailBackup(qtd, agora) {
+  return '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+    '<p>Segue o backup do sistema de pedidos de material, gerado em ' + dataBR(agora) + ':</p><ul>' +
+    '<li><b>PDF</b> – para leitura e impressão;</li><li><b>Excel</b> – abas Resumo, Pedidos, Itens dos pedidos, Histórico e Estoque;</li><li><b>JSON</b> – cópia completa dos dados, para restauração (botão “Importar backup” na área do gestor).</li></ul>' +
+    (qtd ? '<p>Conteúdo: ' + qtd + '.</p>' : '') +
+    '<p>Sugestão: salve os anexos no Porta-arquivos do Comunica ES, numa pasta de acesso restrito. Os arquivos contêm dados pessoais (LGPD).</p>' +
+    '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>';
+}
+/* Botão "Enviar backup por e-mail agora" (e envio do mês pelo primeiro acesso de um gestor). */
+function acaoBackupEmailAgora(req) {
+  if (typeof MailApp === 'undefined') throw amigavel('O envio por e-mail funciona depois de ligar a Planilha Google (modo demonstração).');
+  if (typeof UrlFetchApp === 'undefined' || typeof ScriptApp === 'undefined') throw amigavel('GERAR_NO_NAVEGADOR');
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(30000)) throw amigavel('Já há um backup sendo enviado. Aguarde um instante.');
   let d;
-  try { d = backupMensal(); }
-  catch (e) { throw amigavel('Não foi possível enviar o backup: ' + e.message + '. Na planilha, use o menu Almoxarifado > Ativar backup mensal por e-mail para autorizar.'); }
+  try { d = enviarBackupMensal(!!req.automatico); }
+  catch (e) { throw amigavel('GERAR_NO_NAVEGADOR'); }
+  finally { lock.releaseLock(); }
+  if (!d) return { jaEnviado: true, enviadoPara: BACKUP_EMAILS };
   return { enviadoPara: BACKUP_EMAILS, pedidos: d.pedidos.length, historico: d.historico.length };
+}
+/* Plano B: os 3 arquivos são gerados no navegador do gestor e o servidor só envia o e-mail (usa apenas a permissão de e-mail). */
+function acaoBackupEnviarArquivos(req) {
+  if (typeof MailApp === 'undefined') throw amigavel('O envio por e-mail funciona depois de ligar a Planilha Google (modo demonstração).');
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(30000)) throw amigavel('Já há um backup sendo enviado. Aguarde um instante.');
+  try {
+    if (req.automatico && jaEnviadoEsteMes()) return { jaEnviado: true, enviadoPara: BACKUP_EMAILS };
+    const tipos = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', json: 'application/json' };
+    const anexos = (req.arquivos || []).slice(0, 3).map(a => {
+      const ext = String(a.nome || '').split('.').pop().toLowerCase();
+      if (!tipos[ext] || !/^Backup_Almoxarifado_IEMA_[\w-]+\.(pdf|xlsx|json)$/.test(a.nome)) throw amigavel('Arquivo de backup inválido.');
+      return Utilities.newBlob(Utilities.base64Decode(String(a.base64 || '')), tipos[ext], a.nome);
+    });
+    if (anexos.length !== 3) throw amigavel('O backup precisa ter os 3 arquivos (PDF, Excel e JSON).');
+    const agora = new Date();
+    enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'Backup ' + (req.automatico ? 'mensal ' : '') + 'do almoxarifado – ' + dataArq(agora) + ' – ' + ORGAO + ' (não responda)', htmlBody: htmlEmailBackup(String(req.resumo || '').slice(0, 200), agora), name: NOME_REMETENTE, attachments: anexos });
+    props().setProperty('ULTIMO_BACKUP', agora.toISOString());
+    registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'PDF, Excel e JSON gerados na área do gestor' + (req.automatico ? ' (envio do mês)' : '') + (req.resumo ? ': ' + String(req.resumo).slice(0, 200) : '')]]);
+    return { enviadoPara: BACKUP_EMAILS };
+  } finally { lock.releaseLock(); }
+}
+
+/* ======================= Importar backup (arquivo JSON) ======================= */
+/* Nada é apagado: pedidos e registros de histórico que já existem são mantidos e só entram os que faltam.
+   Os materiais do backup atualizam os dados e as quantidades dos materiais atuais (cada mudança de quantidade vai para o histórico). */
+function acaoImportarBackup(req) {
+  exigirPrincipal();
+  const d = req.dados || {}, op = req.opcoes || { pedidos: true, historico: true, estoque: true }, simular = !!req.simular;
+  if (d.formato !== 'backup-almoxarifado-iema/1' || !Array.isArray(d.pedidos) || !Array.isArray(d.historico) || !Array.isArray(d.estoque))
+    throw amigavel('Arquivo inválido. Use o arquivo .json gerado pelo botão “Gerar backup” ou recebido no e-mail de backup.');
+  const res = { geradoEm: d.geradoEm || '', pedidos: 0, historico: 0, materiaisNovos: 0, materiaisAtualizados: 0, ajustesQtd: 0 };
+  const lock = bloquear();
+  try {
+    const agora = new Date(), origem = 'Importação do backup de ' + (d.geradoEm ? dataBR(new Date(d.geradoEm)) : 'data desconhecida');
+    const txt = (v, n) => String(v == null ? '' : v).trim().slice(0, n || 400);
+    // Estoque e catálogo
+    if (op.estoque) {
+      const cat = lerCatalogo(), rows = [];
+      d.estoque.forEach(b => {
+        if (!b || !b.id) return;
+        const campos = { codigo: txt(b.codigo, 40), descricao: txt(b.descricao), unidade: txt(b.unidade, 60), natureza: txt(b.natureza, 30), naturezaNome: txt(b.naturezaNome, 120),
+          conta: txt(b.conta, 160), qtd: Math.max(0, Number(b.qtd) || 0), limite: Math.max(0, Math.floor(Number(b.limite) || 0)), indisponivel: !!b.indisponivel, oculto: !!b.oculto };
+        const img = /^cat:img\d{3}$/.test(b.imagem || '') || /^https?:\/\//i.test(b.imagem || '') ? String(b.imagem) : null;
+        let it = cat.mapa[String(b.id)];
+        if (!it) {
+          res.materiaisNovos++;
+          if (!simular) { it = Object.assign({ id: String(b.id), qtdRelatorio: Number(b.qtdRelatorio) || 0, imagem: img || '', imagemVersao: 0, ativo: true, busca: txt(b.busca, 200) }, campos); gravarItem(cat.sh, it);
+            rows.push([agora, 'Material restaurado', '', it.id, it.codigo, it.descricao, '', it.qtd, it.qtd, origem]); }
+          return;
+        }
+        const antes = it.qtd; let mudou = !it.ativo;
+        Object.keys(campos).forEach(k => { if (String(it[k]) !== String(campos[k])) mudou = true; });
+        if (img && img !== it.imagem) mudou = true;
+        if (!mudou) return;
+        res.materiaisAtualizados++; if (antes !== campos.qtd) res.ajustesQtd++;
+        if (simular) return;
+        Object.assign(it, campos); it.ativo = true; if (img) it.imagem = img;
+        gravarItem(cat.sh, it);
+        if (antes !== it.qtd) rows.push([agora, 'Ajuste de estoque', '', it.id, it.codigo, it.descricao, antes, it.qtd, it.qtd - antes, origem]);
+      });
+      if (!simular) registrar(rows);
+    }
+    // Pedidos que faltam
+    if (op.pedidos) {
+      const existentes = new Set(lerPedidos().pedidos.map(p => p.numero));
+      const novos = d.pedidos.filter(p => p && p.numero && !existentes.has(String(p.numero))).map(p => ({
+        numero: String(p.numero), dataISO: p.dataISO || agora.toISOString(),
+        solicitante: { nome: txt((p.solicitante || {}).nome, 120), setor: txt((p.solicitante || {}).setor, 120), telefone: txt((p.solicitante || {}).telefone, 30), email: txt((p.solicitante || {}).email, 120) },
+        obs: txt(p.obs, 1000), itens: (p.itens || []).map(l => ({ id: String(l.id), codigo: txt(l.codigo, 40), descricao: txt(l.descricao), unidade: txt(l.unidade, 60), qtd: Number(l.qtd) || 0, atendida: l.atendida == null ? null : Number(l.atendida) })),
+        totalUnidades: Number(p.totalUnidades) || 0, totalAtendido: p.totalAtendido == null ? null : Number(p.totalAtendido),
+        status: SITUACOES.indexOf(p.status) >= 0 ? p.status : 'Pendente', resposta: txt(p.resposta, 1000), andamento: Array.isArray(p.andamento) ? p.andamento : [] }));
+      res.pedidos = novos.length;
+      if (!simular && novos.length) {
+        anexar('pedidos', novos.map(linhaPedido));
+        novos.forEach(p => { const m = p.numero.match(/^(\d{4})-(\d+)$/); if (m && Number(props().getProperty('SEQ_' + m[1]) || 0) < Number(m[2])) props().setProperty('SEQ_' + m[1], String(Number(m[2]))); });
+      }
+    }
+    // Histórico: junta os registros que faltam, em ordem de data
+    if (op.historico) {
+      const sh = aba('historico'), atuais = linhas(sh).map(r => r.slice(0, 11));
+      const chave = r => [iso(r[0] instanceof Date ? r[0] : new Date(r[0])), r[1], r[2], r[3], r[9]].join('|');
+      const vistos = new Set(atuais.map(chave));
+      const novos = d.historico.filter(h => h && h.dataISO && h.tipo).map(h => [new Date(h.dataISO), txt(h.tipo, 80), txt(h.pedido, 20), txt(h.id, 40), txt(h.codigo, 40), txt(h.descricao),
+        h.antes == null ? '' : Number(h.antes), h.depois == null ? '' : Number(h.depois), h.delta == null ? '' : Number(h.delta), txt(h.detalhes, 2000), txt(h.quem, 120)]).filter(r => !vistos.has(chave(r)));
+      res.historico = novos.length;
+      if (!simular && novos.length) {
+        const todas = atuais.map(r => { const c = r.slice(); while (c.length < 11) c.push(''); return c; }).concat(novos)
+          .sort((a, b) => new Date(a[0]) - new Date(b[0])).map(r => r.map(seguro));
+        if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
+        sh.getRange(2, 1, todas.length, 11).setValues(todas);
+      }
+    }
+    if (!simular) {
+      registrar([[agora, 'Backup importado', '', '', '', origem, '', '', '', res.pedidos + ' pedidos, ' + res.historico + ' registros de histórico, ' + res.materiaisNovos + ' materiais restaurados e ' + res.materiaisAtualizados + ' atualizados']]);
+      novaVersao();
+    }
+  } finally { lock.releaseLock(); }
+  return { resultado: res, simulacao: simular };
 }
 function instalarBackupMensal() {
   ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'backupMensal') ScriptApp.deleteTrigger(t); });

@@ -124,8 +124,10 @@ Quando o aviso amarelo de "Modo demonstração" sumir das páginas, o sistema es
 
 ### Atualizar uma instalação que já existe
 
-1. No Apps Script, apague o código antigo, cole o `Code.gs` novo e salve. Depois, **na planilha, use Almoxarifado › Ativar backup mensal por e-mail**. Isso autoriza as novas permissões (geração dos arquivos e envio) e ativa o backup do dia 1º. Sem essa autorização, o site pode deixar de responder após a atualização.
+1. No Apps Script, apague o código antigo, cole o `Code.gs` novo e salve.
 2. Publique a versão nova: **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. A URL não muda.
+   - **Se o Google pedir autorização**, clique em **Autorizar acesso**, escolha a conta, depois **Avançado › Acessar (não seguro)** e por fim **Permitir**. O pedido aparece porque o backup usa novas permissões (gerar o PDF e o Excel e agendar o envio do dia 1º).
+   - Depois disso, abra a área do gestor: o backup mensal se ativa sozinho.
 3. No GitHub, substitua os arquivos pelos 8 desta versão. Mantenha a sua linha `API_URL` no `config.js`.
 
 Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
@@ -166,13 +168,24 @@ Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
 Se o navegador perguntar, permita baixar vários arquivos. Cada backup baixado fica registrado no histórico.
 
 **Backup automático mensal:**
-- **Quando e para quem:** todo **dia 1º, às 6h**, o sistema gera os mesmos três arquivos e envia por e-mail para **subad@iema.es.gov.br** e **almoxarifado@iema.es.gov.br**.
-- **Como ativar** (uma vez só): abra a planilha do sistema e use **Almoxarifado › Ativar backup mensal por e-mail (dia 1º)**. O Google pede autorização para gerar os arquivos e enviá-los.
-- **Testar:** use **Almoxarifado › Enviar backup por e-mail agora**, ou o botão de mesmo nome na área do gestor.
+- **Quando e para quem:** todo **dia 1º, às 6h**, o sistema gera o PDF, o Excel e o JSON e envia por e-mail para **almoxarifado@iema.es.gov.br** e **subad@iema.es.gov.br**. Os dois endereços já estão no código (`BACKUP_EMAILS`, no início do `Code.gs`).
+- **Ativação automática:** não é preciso usar o menu da planilha. O envio do dia 1º se ativa sozinho no primeiro acesso de um gestor depois da atualização. Se ainda aparecer "não ativado", clique em **Ativar backup mensal** na aba *Relatórios*.
+- **Garantia de envio:** se o envio do dia 1º não acontecer por algum motivo, o primeiro gestor que entrar a partir do dia 1º envia o backup do mês automaticamente. O sistema nunca envia duas vezes no mesmo mês.
+- **Envio manual:** o botão **Enviar backup por e-mail agora** envia na hora, a qualquer momento.
+- **Plano B automático:** se o Google ainda não tiver permissão para gerar os arquivos, o navegador do gestor gera o PDF, o Excel e o JSON, e o servidor só envia o e-mail.
 - **Acompanhar:** a aba *Relatórios* mostra se o backup mensal está ativo e quando foi o último envio.
-- **Trocar os destinatários:** edite `BACKUP_EMAILS` no início do `Code.gs` e publique uma nova versão.
 
-**Proteção dos registros:** ao ativar o backup, as abas *Histórico* e *Pedidos* da planilha ficam protegidas. Só o dono da planilha consegue editá-las à mão; o sistema continua gravando normalmente.
+**Importar backup:** botão **Importar backup (JSON)**, na aba *Relatórios*, disponível só para o gestor principal.
+1. Escolha o arquivo `.json` do backup, gerado pelo botão ou recebido no e-mail.
+2. O sistema mostra antes o que vai entrar: pedidos que faltam, registros de histórico que faltam e materiais com diferença no estoque.
+3. **Nada é apagado.** Pedidos e registros de histórico que já existem continuam como estão; entram só os que faltam. O histórico fica em ordem de data.
+4. Os materiais do backup atualizam os dados e as quantidades do estoque. Cada mudança de quantidade vai para o histórico.
+5. Por padrão, o sistema baixa antes um backup do estado atual, por segurança.
+6. A importação fica registrada no histórico. Importar o mesmo arquivo de novo não duplica nada.
+
+O PDF e o Excel servem para leitura. A restauração usa o arquivo **JSON**.
+
+**Proteção dos registros:** quando o backup mensal é ativado, as abas *Histórico* e *Pedidos* da planilha ficam protegidas. Só o dono da planilha consegue editá-las à mão; o sistema continua gravando normalmente.
 
 **Onde guardar:** os arquivos contêm dados pessoais. Guarde-os em local de acesso restrito, como uma pasta do Porta-arquivos do Comunica ES. **Nunca** coloque backups no repositório do GitHub, que é público.
 
@@ -204,6 +217,13 @@ Se o navegador perguntar, permita baixar vários arquivos. Cada backup baixado f
   - o tipo da implantação é **App da Web**;
   - "Quem pode acessar" está como **Qualquer pessoa**.
 - **Trocou o `Code.gs`?** Publique uma **nova versão** da implantação.
+
+**Depois de atualizar, a área do gestor mostra erro de autorização**
+Isso acontece quando o Google não pediu a autorização das novas permissões ao publicar a versão. Para resolver:
+1. No Apps Script, escolha a função **instalarBackupMensal** na lista ao lado de **Executar** e clique em **Executar**.
+2. Autorize o acesso.
+
+Isso é feito uma única vez.
 
 **As fotos não aparecem**
 Confira se o arquivo `imagens.js` foi enviado ao repositório, na raiz, junto com os outros.
