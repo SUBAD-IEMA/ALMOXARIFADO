@@ -16,7 +16,8 @@
 
 /* ======================= Opções ======================= */
 const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é recebido e quando muda de situação
-const NOME_REMETENTE = 'Almoxarifado IEMA (não responda)';
+const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
+const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
 const MAX_GESTORES = 3;           // número máximo de logins de gestor
 const HORAS_SESSAO = 10;          // sessão comum
 const DIAS_LEMBRAR = 30;          // sessão com "manter conectado neste computador"
@@ -27,7 +28,7 @@ const ABERTAS = ['Pendente', 'Aprovado'];
 const FINAIS = ['Parcialmente atendido', 'Atendido', 'Recusado'];
 const ABAS = {
   catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto'], 'A:B'],
-  imagens:  ['Imagens enviadas', ['id', 'Imagem (dados)', 'Atualizado em'], 'A:A'],
+  imagens:  ['Imagens enviadas', ['id', 'Imagem (parte 1)', 'Atualizado em', 'Parte 2', 'Parte 3', 'Parte 4', 'Parte 5', 'Parte 6'], 'A:A'],
   pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)'], 'A:A,E:E'],
   historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável'], 'C:E'],
   config:   ['Configuração', ['Chave', 'Valor'], 'A:B']
@@ -48,11 +49,13 @@ function doPost(e) {
   try { req = JSON.parse(e.postData.contents); } catch (err) { return saida({ ok: false, erro: 'Requisição inválida.' }); }
   QUEM = 'Sistema'; GESTOR = null;
   const publicas = { versao: acaoVersao, catalogo: acaoCatalogo, imagens: acaoImagens, solicitar: acaoSolicitar, consultar: acaoConsultar,
-    login: acaoLogin, situacaoAcesso: acaoSituacaoAcesso, criarPrimeiroGestor: acaoCriarPrimeiroGestor };
+    login: acaoLogin, situacaoAcesso: acaoSituacaoAcesso, criarPrimeiroGestor: acaoCriarPrimeiroGestor,
+    esqueciSenha: acaoEsqueciSenha, redefinirComCodigo: acaoRedefinirComCodigo };
   const doGestor = { sair: acaoSair, painel: acaoPainel, atender: acaoAtender, excluirPedido: acaoExcluirPedido,
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
-    removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha };
+    removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
+    alterarEmailGestor: acaoAlterarEmailGestor, zerarHistorico: acaoZerarHistorico };
   try {
     let f = publicas[req.acao];
     if (!f && doGestor[req.acao]) { exigirSessao(req.token); f = doGestor[req.acao]; }
@@ -156,9 +159,32 @@ function publico(it) {
 /* Carrega sozinho o catálogo inicial e os materiais acrescentados (Catálogo GOV ES), sem depender do gestor. */
 function garantirCatalogo() {
   const vazio = aba('catalogo').getLastRow() < 2;
-  if (!vazio && props().getProperty('CAT_ADICIONAL_V1')) return;
+  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5')) return;
   const lock = bloquear();
-  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); } finally { lock.releaseLock(); }
+  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); } finally { lock.releaseLock(); }
+}
+/* Versão 6: só os materiais do Catálogo GOV ES têm foto. As imagens aproximadas colocadas na versão 5
+   nos demais materiais são retiradas (os quadrinhos ficam em branco para o gestor inserir a imagem).
+   Imagens que o gestor já tenha trocado são mantidas. */
+function limparImagensV5() {
+  if (props().getProperty('IMG_V6')) return 0;
+  let n = 0;
+  if (props().getProperty('IMG_V5')) {
+    const cat = lerCatalogo();
+    Object.keys(IMAGENS_APROXIMADAS_V5).forEach(id => { const it = cat.mapa[id]; if (it && it.imagem === IMAGENS_APROXIMADAS_V5[id]) { it.imagem = ''; gravarItem(cat.sh, it); n++; } });
+  }
+  props().setProperty('IMG_V6', '1'); novaVersao();
+  return n;
+}
+/* Versão 5: o histórico começa zerado (uma única vez). Depois, só o gestor principal pode zerar de novo. */
+function zerarHistoricoUmaVez() {
+  if (props().getProperty('HIST_ZERADO_V5')) return;
+  limparHistorico();
+  props().setProperty('HIST_ZERADO_V5', '1'); novaVersao();
+}
+function limparHistorico() {
+  const sh = aba('historico'), n = sh.getLastRow();
+  if (n > 1) sh.deleteRows(2, n - 1);
 }
 function carregarCatalogoInicial() {
   const sh = aba('catalogo');
@@ -212,13 +238,18 @@ function hashSenha(salt, senha) {
   return b.map(x => ('0' + ((x + 256) % 256).toString(16)).slice(-2)).join('');
 }
 function validarSenha(s) { s = String(s || ''); if (s.length < 8) throw amigavel('A senha precisa ter pelo menos 8 caracteres.'); return s; }
-function novoGestor(usuario, nome, senha, principal) {
+function validarEmailGestor(e) {
+  e = String(e || '').trim().toLowerCase().slice(0, 120);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw amigavel('Informe um e-mail válido para o gestor (usado para recuperar a senha).');
+  return e;
+}
+function novoGestor(usuario, nome, senha, principal, email) {
   usuario = String(usuario || '').trim().toLowerCase();
   nome = String(nome || '').trim().slice(0, 80);
   if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) throw amigavel('O usuário deve ter de 3 a 30 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.');
   if (nome.length < 3) throw amigavel('Informe o nome do gestor.');
   const salt = Utilities.getUuid();
-  return { usuario, nome, principal: !!principal, salt, hash: hashSenha(salt, validarSenha(senha)), criadoEm: new Date().toISOString() };
+  return { usuario, nome, email: email === undefined ? '' : validarEmailGestor(email), principal: !!principal, salt, hash: hashSenha(salt, validarSenha(senha)), criadoEm: new Date().toISOString() };
 }
 function lerGestores() {
   let g = [];
@@ -230,7 +261,7 @@ function lerGestores() {
   return g;
 }
 function gravarGestores(g) { props().setProperty('GESTORES', JSON.stringify(g)); }
-const gestorPublico = g => ({ usuario: g.usuario, nome: g.nome, principal: !!g.principal, criadoEm: g.criadoEm });
+const gestorPublico = g => ({ usuario: g.usuario, nome: g.nome, email: g.email || '', principal: !!g.principal, criadoEm: g.criadoEm });
 
 function sessoes() { try { return JSON.parse(props().getProperty('SESSOES') || '{}'); } catch (e) { return {}; } }
 function gravarSessoes(s) {
@@ -259,10 +290,11 @@ function exigirPrincipal() { if (!GESTOR.principal) throw amigavel('Somente o ge
 
 function acaoSituacaoAcesso() { return { temGestores: lerGestores().length > 0, maxGestores: MAX_GESTORES }; }
 function acaoCriarPrimeiroGestor(req) {
+  garantirCatalogo();   // catálogo pronto e histórico zerado antes do primeiro registro
   const lock = bloquear();
   try {
     if (lerGestores().length) throw amigavel('O primeiro gestor já foi cadastrado. Entre com usuário e senha.');
-    const g = novoGestor(req.usuario, req.nome, req.senha, true);
+    const g = novoGestor(req.usuario, req.nome, req.senha, true, req.email || '');
     gravarGestores([g]); GESTOR = g; QUEM = g.nome + ' (' + g.usuario + ')';
     registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Gestor principal (primeiro acesso)']]);
     return abrirSessao(g, req.lembrar);
@@ -283,6 +315,64 @@ function acaoLogin(req) {
   return abrirSessao(g, req.lembrar);
 }
 function acaoSair(req) { const s = sessoes(); delete s[req.token]; gravarSessoes(s); return {}; }
+
+/* ---------- Esqueci minha senha: código enviado ao e-mail cadastrado ---------- */
+function mascararEmail(e) { const p = String(e).split('@'); return p[0].slice(0, 2) + '•••••@' + (p[1] || ''); }
+function acaoEsqueciSenha(req) {
+  const chave = String(req.usuario || '').trim().toLowerCase();
+  const g = lerGestores().find(x => x.usuario === chave || (x.email && x.email === chave));
+  if (!g) throw amigavel('Não encontramos um gestor com esse usuário ou e-mail.');
+  if (!g.email) throw amigavel('Este gestor não tem e-mail cadastrado. Peça ao gestor principal para cadastrar uma nova senha presencialmente.');
+  const cache = CacheService.getScriptCache();
+  if (cache.get('recup_espera_' + g.usuario)) throw amigavel('Um código acabou de ser enviado. Aguarde 1 minuto para pedir outro.');
+  const codigo = String(100000 + Math.floor(Math.random() * 900000));
+  const salt = Utilities.getUuid();
+  props().setProperty('RECUP_' + g.usuario, JSON.stringify({ s: salt, h: hashSenha(salt, codigo), e: Date.now() + 15 * 60000, t: 0 }));
+  cache.put('recup_espera_' + g.usuario, '1', 60);
+  QUEM = g.nome + ' (' + g.usuario + ')';
+  registrar([[new Date(), 'Recuperação de senha', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Código enviado para ' + mascararEmail(g.email)]]);
+  if (typeof MailApp === 'undefined') return { usuario: g.usuario, email: mascararEmail(g.email), codigoDemo: codigo };   // modo demonstração (sem e-mail)
+  const html = '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+    '<p>Olá, ' + esc(g.nome.split(' ')[0]) + '.</p><p>Use o código abaixo para criar uma nova senha na área do gestor. Ele vale por 15 minutos.</p>' +
+    '<p style="font-size:30px;font-weight:bold;letter-spacing:6px;background:#E2EDE8;padding:12px 18px;display:inline-block">' + codigo + '</p>' +
+    '<p>Se você não pediu a recuperação, ignore este e-mail: a sua senha atual continua valendo.</p>' +
+    '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>';
+  enviarEmail({ to: g.email, subject: 'Código para nova senha – ' + ORGAO + ' (não responda)', htmlBody: html, name: NOME_REMETENTE });
+  return { usuario: g.usuario, email: mascararEmail(g.email) };
+}
+function acaoRedefinirComCodigo(req) {
+  const usuario = String(req.usuario || '').trim().toLowerCase();
+  const lista = lerGestores(), g = lista.find(x => x.usuario === usuario);
+  let r = null; try { r = JSON.parse(props().getProperty('RECUP_' + usuario) || 'null'); } catch (e) {}
+  if (!g || !r || r.e < Date.now()) throw amigavel('Código vencido ou inexistente. Peça um novo código.');
+  if (r.t >= 5) throw amigavel('Muitas tentativas com código errado. Peça um novo código.');
+  if (hashSenha(r.s, String(req.codigo || '').trim()) !== r.h) { r.t++; props().setProperty('RECUP_' + usuario, JSON.stringify(r)); throw amigavel('Código incorreto.'); }
+  g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(req.nova));
+  gravarGestores(lista); props().setProperty('RECUP_' + usuario, ''); encerrarSessoesDe(usuario);
+  QUEM = g.nome + ' (' + g.usuario + ')';
+  registrar([[new Date(), 'Senha recuperada', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Nova senha criada com o código enviado por e-mail']]);
+  return abrirSessao(g, req.lembrar);
+}
+function acaoAlterarEmailGestor(req) {
+  const alvo = String(req.usuario || GESTOR.usuario);
+  if (alvo !== GESTOR.usuario) exigirPrincipal();
+  const lista = lerGestores(), g = lista.find(x => x.usuario === alvo);
+  if (!g) throw amigavel('Gestor não encontrado.');
+  g.email = validarEmailGestor(req.email); gravarGestores(lista);
+  registrar([[new Date(), 'E-mail de gestor alterado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Novo e-mail de recuperação: ' + mascararEmail(g.email)]]);
+  novaVersao();
+  return acaoGestores();
+}
+function acaoZerarHistorico() {
+  exigirPrincipal();
+  const lock = bloquear();
+  try {
+    limparHistorico();
+    registrar([[new Date(), 'Histórico zerado', '', '', '', '', '', '', '', 'Histórico apagado pelo gestor principal ' + GESTOR.nome + ' em ' + dataBR(new Date())]]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  return {};
+}
 function acaoGestores() { return { gestores: lerGestores().map(gestorPublico), max: MAX_GESTORES }; }
 function acaoAdicionarGestor(req) {
   exigirPrincipal();
@@ -290,7 +380,7 @@ function acaoAdicionarGestor(req) {
   try {
     const lista = lerGestores();
     if (lista.length >= MAX_GESTORES) throw amigavel('Limite de ' + MAX_GESTORES + ' gestores atingido. Remova um login antes de cadastrar outro.');
-    const g = novoGestor(req.usuario, req.nome, req.senha, false);
+    const g = novoGestor(req.usuario, req.nome, req.senha, false, req.email || '');
     if (lista.some(x => x.usuario === g.usuario)) throw amigavel('Já existe um gestor com o usuário "' + g.usuario + '".');
     lista.push(g); gravarGestores(lista);
     registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')']]);
@@ -319,7 +409,7 @@ function acaoRedefinirSenha(req) {
   if (!g) throw amigavel('Gestor não encontrado.');
   g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(req.nova));
   gravarGestores(lista); encerrarSessoesDe(g.usuario, req.token);
-  registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Sessões abertas desse gestor foram encerradas']]);
+  registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Nova senha cadastrada presencialmente pelo gestor principal; sessões abertas desse gestor foram encerradas']]);
   return {};
 }
 function acaoTrocarSenha(req) {
@@ -343,7 +433,7 @@ function acaoCatalogo() {
 function acaoImagens(req) {
   const ids = (req.ids || []).map(String);
   const out = {};
-  linhas(aba('imagens')).forEach(r => { if (ids.indexOf(String(r[0])) >= 0) out[r[0]] = String(r[1]); });
+  linhas(aba('imagens')).forEach(r => { if (ids.indexOf(String(r[0])) >= 0) out[r[0]] = [r[1]].concat(r.slice(3)).map(x => String(x || '')).join(''); });
   return { imagens: out };
 }
 
@@ -537,11 +627,14 @@ function acaoSalvarItem(req) {
     if (d.imagemDados) {
       const dados = String(d.imagemDados);
       if (!/^data:image\/(jpeg|png|webp);base64,/.test(dados)) throw amigavel('Formato de imagem não aceito.');
-      if (dados.length > 49000) throw amigavel('Imagem grande demais. Tente outra foto.');
+      if (dados.length > 6 * 49000) throw amigavel('Imagem grande demais. Tente outra foto.');
+      const partes = []; for (let p = 0; p < dados.length; p += 49000) partes.push(dados.slice(p, p + 49000));
+      while (partes.length < 6) partes.push('');
+      const linhaI = [it.id, partes[0], agora].concat(partes.slice(1));
       const shI = aba('imagens'), lin = linhas(shI);
       const i = lin.findIndex(r => String(r[0]) === it.id);
-      if (i >= 0) shI.getRange(i + 2, 1, 1, 3).setValues([[it.id, dados, agora]]);
-      else shI.appendRow([it.id, dados, agora]);
+      if (i >= 0) shI.getRange(i + 2, 1, 1, 8).setValues([linhaI]);
+      else shI.getRange(shI.getLastRow() + 1, 1, 1, 8).setValues([linhaI]);
       it.imagem = 'upload'; it.imagemVersao = (it.imagemVersao || 0) + 1; imagemMudou = true;
     } else if (d.imagem !== undefined && d.imagem !== 'upload' && String(d.imagem) !== it.imagem) {
       it.imagem = textoImagem(d.imagem); imagemMudou = true;
@@ -622,6 +715,15 @@ function acaoSalvarContato(req) {
 
 /* ======================= E-mails (somente consulta – não responder) ======================= */
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function enviarEmail(o) {
+  o.noReply = true;
+  try { MailApp.sendEmail(o); }
+  catch (e1) {
+    // Contas Gmail comuns não aceitam o remetente "no-reply": a resposta é desviada para um endereço inexistente.
+    delete o.noReply; o.replyTo = 'nao-responda@nao-responda.invalid';
+    MailApp.sendEmail(o);
+  }
+}
 function avisar(p, novo) {
   if (!ENVIAR_EMAIL || typeof MailApp === 'undefined') return false;
   try {
@@ -631,6 +733,7 @@ function avisar(p, novo) {
       p.itens.map(l => '<tr><td>' + esc(l.codigo) + '</td><td>' + esc(l.descricao) + '</td><td>' + esc(l.unidade) + '</td><td align="right">' + l.qtd + '</td>' + (novo ? '' : '<td align="right">' + (l.atendida == null ? '—' : l.atendida) + '</td>') + '</tr>').join('') + '</table>';
     const ultimo = p.andamento[p.andamento.length - 1];
     const html = '<div style="font-family:Arial,sans-serif;color:#17201D">' +
+      '<p style="font-size:12px;color:#5B6964;margin:0 0 8px">' + ORGAO + ' · Almoxarifado</p>' +
       '<p style="background:#FBF0DC;border:1px solid #E6C68F;padding:8px 12px;font-size:13px"><b>E-mail automático somente para consulta. Não responda esta mensagem</b>: as respostas não são recebidas. Para acompanhar o pedido, use o link abaixo.</p>' +
       '<p>Olá, ' + esc(p.solicitante.nome.split(' ')[0]) + '.</p>' +
       (novo ? '<p>Recebemos o seu pedido <b>' + esc(p.numero) + '</b>. Guarde este número para acompanhar o andamento.</p>'
@@ -638,15 +741,10 @@ function avisar(p, novo) {
       tabela +
       (link ? '<p><a href="' + link + '">Acompanhar o pedido</a> (informe o e-mail usado no pedido).</p>' : '') +
       (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +
-      '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado IEMA. Não responda.</p></div>';
-    const o = { to: p.solicitante.email, subject: (novo ? 'Pedido ' + p.numero + ' recebido' : 'Pedido ' + p.numero + ': ' + p.status) + ' – Almoxarifado IEMA (não responda)', htmlBody: html, name: NOME_REMETENTE, noReply: true };
+      '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado – ' + ORGAO + '. Não responda.</p></div>';
+    const o = { to: p.solicitante.email, subject: (novo ? 'Pedido ' + p.numero + ' recebido' : 'Pedido ' + p.numero + ': ' + p.status) + ' – ' + ORGAO + ' (não responda)', htmlBody: html, name: NOME_REMETENTE };
     if (novo && g.email) o.bcc = g.email;   // cópia oculta ao almoxarifado: o solicitante não vê nem responde para ela
-    try { MailApp.sendEmail(o); }
-    catch (e1) {
-      // Contas Gmail comuns não aceitam o remetente "no-reply": a resposta é desviada para um endereço inexistente.
-      delete o.noReply; o.replyTo = 'nao-responda@nao-responda.invalid';
-      MailApp.sendEmail(o);
-    }
+    enviarEmail(o);
     return true;
   } catch (err) { console.error('Falha no e-mail: ' + err); return false; }
 }
@@ -662,7 +760,7 @@ function onOpen() {
 function configurarSistema() {
   const ui = SpreadsheetApp.getUi();
   Object.keys(ABAS).forEach(aba);
-  carregarCatalogoInicial(); const n = aplicarCatalogoAdicional();
+  carregarCatalogoInicial(); const n = aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez();
   if (ENVIAR_EMAIL) MailApp.getRemainingDailyQuota();   // pede a autorização de e-mail
   let msg = 'Catálogo pronto (' + lerCatalogo().itens.length + ' materiais' + (n ? ', incluindo ' + n + ' do Catálogo GOV ES' : '') + ').\n\n';
   if (!lerGestores().length) {
@@ -671,12 +769,13 @@ function configurarSistema() {
       const usu = ui.prompt('Gestor principal', 'Usuário para entrar (ex.: cleilson):', ui.ButtonSet.OK_CANCEL);
       const sen = usu.getSelectedButton() === ui.Button.OK ? ui.prompt('Gestor principal', 'Senha (mínimo 8 caracteres):', ui.ButtonSet.OK_CANCEL) : null;
       if (sen && sen.getSelectedButton() === ui.Button.OK) {
-        try { gravarGestores([novoGestor(usu.getResponseText(), nome.getResponseText(), sen.getResponseText(), true)]); msg += 'Gestor principal cadastrado. Os outros 2 logins podem ser criados na área do gestor.\n\n'; }
+        const em = ui.prompt('Gestor principal', 'E-mail do gestor (para recuperar a senha):', ui.ButtonSet.OK_CANCEL);
+        try { gravarGestores([novoGestor(usu.getResponseText(), nome.getResponseText(), sen.getResponseText(), true, em.getResponseText())]); msg += 'Gestor principal cadastrado. Os outros 2 logins podem ser criados na área do gestor.\n\n'; }
         catch (e) { msg += 'Gestor não cadastrado: ' + e.message + ' Ele pode ser criado no primeiro acesso à área do gestor.\n\n'; }
       }
     }
   }
-  ui.alert('Sistema configurado', msg + 'Próximo passo: no Apps Script, clique em Implantar > Nova implantação > App da Web (Executar como: Eu; Quem pode acessar: Qualquer pessoa) e copie a URL para o arquivo config.js no GitHub.', ui.ButtonSet.OK);
+  ui.alert(ORGAO + ' – sistema configurado', msg + 'Próximo passo: no Apps Script, clique em Implantar > Nova implantação > App da Web (Executar como: Eu; Quem pode acessar: Qualquer pessoa) e copie a URL para o arquivo config.js no GitHub.', ui.ButtonSet.OK);
 }
 function menuRedefinirSenha() {
   const ui = SpreadsheetApp.getUi(), lista = lerGestores();
@@ -958,3 +1057,6 @@ const CATALOGO_ADICIONAL = [
 
 /* Materiais já existentes que são os mesmos itens do Catálogo GOV ES: recebem a imagem do catálogo. */
 const VINCULOS_IMAGEM = {"333903021_5": "cat:img003", "333903021_4": "cat:img004", "333903016_74": "cat:img021", "333903016_8": "cat:img025", "333903016_15": "cat:img030", "333903016_37": "cat:img031", "333903016_40": "cat:img037", "333903016_43": "cat:img039", "333903016_42": "cat:img041", "333903016_19": "cat:img044", "333903016_1": "cat:img045", "333903016_53": "cat:img046", "333903016_54": "cat:img047", "333903016_64": "cat:img050", "333903016_0": "cat:img062", "333903016_71": "cat:img066", "333903016_69": "cat:img067", "333903016_50": "cat:img074", "333903016_26": "cat:img076", "333903016_56": "cat:img078", "333903016_49": "cat:img084", "333903016_29": "cat:img085", "333903016_30": "cat:img086", "333903016_52": "cat:img087", "333903016_67": "cat:img089", "333903026_7": "cat:img092", "333903026_8": "cat:img092", "333903026_9": "cat:img093", "333903026_10": "cat:img093", "333903007_1": "cat:img097", "333903007_0": "cat:img099", "333903022_2": "cat:img118"};
+
+/* Imagens aproximadas colocadas pela versão 5 (usadas só para retirá-las nas instalações já atualizadas). */
+const IMAGENS_APROXIMADAS_V5 = {"333903009_0": "cat:ilu001", "333903011_0": "cat:ilu002", "333903016_2": "cat:ilu003", "333903016_3": "cat:ilu004", "333903016_4": "cat:img077", "333903016_5": "cat:ilu005", "333903016_6": "cat:img022", "333903016_7": "cat:ilu006", "333903016_9": "cat:ilu007", "333903016_10": "cat:ilu008", "333903016_11": "cat:ilu009", "333903016_12": "cat:ilu010", "333903016_13": "cat:ilu011", "333903016_14": "cat:ilu012", "333903016_16": "cat:img030", "333903016_17": "cat:img053", "333903016_18": "cat:img030", "333903016_20": "cat:ilu013", "333903016_21": "cat:ilu014", "333903016_22": "cat:ilu014", "333903016_23": "cat:ilu014", "333903016_24": "cat:ilu014", "333903016_25": "cat:ilu014", "333903016_27": "cat:ilu015", "333903016_28": "cat:img086", "333903016_31": "cat:img054", "333903016_32": "cat:ilu016", "333903016_33": "cat:ilu016", "333903016_34": "cat:ilu016", "333903016_35": "cat:ilu017", "333903016_36": "cat:ilu016", "333903016_38": "cat:ilu018", "333903016_39": "cat:ilu018", "333903016_41": "cat:img051", "333903016_44": "cat:img039", "333903016_45": "cat:img032", "333903016_46": "cat:img032", "333903016_47": "cat:img032", "333903016_48": "cat:img032", "333903016_51": "cat:ilu019", "333903016_55": "cat:img046", "333903016_57": "cat:img025", "333903016_58": "cat:img026", "333903016_59": "cat:img050", "333903016_60": "cat:ilu020", "333903016_61": "cat:img090", "333903016_62": "cat:ilu021", "333903016_63": "cat:img050", "333903016_65": "cat:img088", "333903016_66": "cat:img088", "333903016_68": "cat:ilu008", "333903016_70": "cat:img064", "333903016_72": "cat:img064", "333903016_73": "cat:ilu022", "333903016_75": "cat:img021", "333903016_76": "cat:ilu023", "333903016_77": "cat:img066", "333903016_78": "cat:ilu024", "333903019_0": "cat:ilu025", "333903019_1": "cat:ilu026", "333903019_2": "cat:ilu019", "333903019_3": "cat:ilu027", "333903021_0": "cat:ilu028", "333903021_1": "cat:ilu029", "333903021_2": "cat:ilu030", "333903021_3": "cat:ilu031", "333903021_6": "cat:ilu032", "333903021_7": "cat:ilu033", "333903021_8": "cat:img007", "333903021_9": "cat:img111", "333903021_10": "cat:ilu034", "333903021_11": "cat:img107", "333903021_12": "cat:img012", "333903021_13": "cat:img011", "333903022_0": "cat:img132", "333903022_1": "cat:img126", "333903023_0": "cat:ilu035", "333903024_0": "cat:ilu036", "333903024_1": "cat:ilu037", "333903024_2": "cat:ilu038", "333903024_3": "cat:ilu039", "333903026_0": "cat:ilu040", "333903026_1": "cat:ilu040", "333903026_2": "cat:ilu040", "333903026_3": "cat:ilu040", "333903026_4": "cat:ilu041", "333903026_5": "cat:ilu042", "333903026_6": "cat:ilu042", "333903026_11": "cat:img096", "333903026_12": "cat:ilu043", "333903026_13": "cat:ilu043", "333903026_14": "cat:ilu044", "333903026_15": "cat:ilu044", "333903026_16": "cat:ilu044", "333903028_0": "cat:ilu045", "333903028_1": "cat:ilu046", "333903028_2": "cat:ilu047", "333903028_3": "cat:ilu048", "333903028_4": "cat:ilu049", "333903028_5": "cat:ilu050", "333903028_6": "cat:ilu047", "333903028_7": "cat:ilu051", "333903048_0": "cat:ilu052", "333903048_1": "cat:ilu053"};

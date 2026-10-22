@@ -6,7 +6,7 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "https://script.google.com/macros/s/AKfycbzO5WicE9EZIt6EuZspvjUWMT-ftNWgDDQ4Fhblw_AZWTaujuEwEvuHWkUNermAWoA6XQ/exec",
+  API_URL: "",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
@@ -16,7 +16,7 @@ window.CONFIG = {
 
   /* Textos do cabeçalho e das planilhas. */
   GOVERNO: "Governo do Estado do Espírito Santo",
-  ORGAO: "IEMA – Instituto Estadual de Meio Ambiente e Recursos Hídricos",
+  ORGAO: "IEMA - Instituto Estadual de Meio Ambiente",
   ALMOXARIFADO: "Almoxarifado IEMA",
 
   /* Lista suspensa de setores (siglas da planilha "Siglas dos Setores").
