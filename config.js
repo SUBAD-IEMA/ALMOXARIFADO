@@ -6,7 +6,7 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "",
+  API_URL: "https://script.google.com/macros/s/AKfycby_Pb8w_xQ2KW6MGgAAoWrGIMKtpapGRiF0BShJkTKvJnlaYWQSK1nFuy9chTYlkJ_fBg/exec",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
