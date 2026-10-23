@@ -428,7 +428,7 @@ tr.item.indisponivel td.qty{opacity:1}
 #tbl thead th.num{width:92px}
 #tbl td.code{white-space:nowrap}
 #tbl td.qty .limite{white-space:normal}
-@media (max-width:1320px){ .layout{grid-template-columns:minmax(0,1fr) 280px} #tbl td.desc{min-width:160px} }
+@media (min-width:1101px) and (max-width:1320px){ .layout{grid-template-columns:minmax(0,1fr) 280px} #tbl td.desc{min-width:160px} }
 
 /* ===================== Versão 4: fotos do catálogo, gestores, relatórios ===================== */
 .thumb img.foto,.mini .tn.foto{object-fit:contain;background:#fff}
@@ -523,6 +523,217 @@ tr.item.consulta td.adj .stepper{opacity:.45}
 .switch.azul input:checked + .trilho{background:var(--azul)}
 .consulta-tag{color:var(--azul)}
 .pgrid .so-consulta{display:inline-block;width:max-content}
+
+/* ===================== Versão 10: telas responsivas (celular, tablet e desktop) ===================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img{max-width:100%}
+.barra-movel{display:none}
+@media (max-width:1100px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ---------- Tablet e celular (até 900 px): tabelas viram cartões ---------- */
+@media (max-width:900px){
+  .table-wrap:has(table.cartoes),.table-wrap:has(table.t-cat){background:transparent;border:0;overflow:visible}
+  table.cartoes,table.t-cat{min-width:0}
+  table.cartoes thead,table.t-cat thead{display:none}
+  table.cartoes,table.cartoes tbody,table.cartoes tfoot,table.t-cat,table.t-cat tbody{display:block;width:100%}
+  table.cartoes tr{display:block;background:var(--surface);border:1px solid var(--rule);border-radius:10px;margin:0 0 10px;padding:10px 14px;box-shadow:var(--shadow)}
+  table.cartoes td{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;border:0;padding:5px 0;text-align:right;white-space:normal!important;min-width:0;max-width:none}
+  table.cartoes td::before{content:attr(data-label);flex:none;max-width:42%;text-align:left;font-size:12.5px;font-weight:600;color:var(--muted)}
+  table.cartoes td[data-label=""]::before{display:none}
+  table.cartoes td[data-label=""]{justify-content:flex-start;text-align:left}
+  table.cartoes td.empty,table.cartoes td[colspan]{display:block;text-align:center}
+  table.cartoes td > *{min-width:0;overflow-wrap:anywhere}
+  table.cartoes tfoot tr{background:var(--surface-2)}
+  /* Pedidos do gestor: número e situação em destaque; toque abre o detalhe */
+  table.t-pedidos tr.pedido td:first-child{font-size:16px;border-bottom:1px solid var(--rule);padding-bottom:8px;margin-bottom:4px}
+  table.t-pedidos .row-actions{opacity:1;justify-content:flex-end}
+  table.t-pedidos tr.pedido.novo td:first-child{box-shadow:none}
+  table.t-pedidos tr.pedido.novo{border-left:4px solid var(--amber)}
+  table.t-pedidos .who b,table.t-pedidos .who small{text-align:right}
+  /* Catálogo do gestor em cartões */
+  table.t-cat tr.group{display:block;margin:14px 0 6px}
+  table.t-cat tr.group td{display:block;border-radius:8px}
+  table.t-cat tr.item{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:4px 12px;align-items:center;background:var(--surface);border:1px solid var(--rule);border-radius:10px;margin:0 0 10px;padding:12px;box-shadow:var(--shadow)}
+  table.t-cat tr.item td{display:block;border:0;padding:0;min-width:0;max-width:none;white-space:normal}
+  table.t-cat tr.item td:nth-child(1){grid-column:1;grid-row:1 / span 3}
+  table.t-cat tr.item td:nth-child(2){grid-column:2;grid-row:1;font-weight:700}
+  table.t-cat tr.item td:nth-child(11){grid-column:3;grid-row:1}
+  table.t-cat tr.item td:nth-child(3){grid-column:2 / span 2;grid-row:2}
+  table.t-cat tr.item td:nth-child(4){grid-column:2 / span 2;grid-row:3}
+  table.t-cat tr.item td:nth-child(5),table.t-cat tr.item td:nth-child(6){grid-row:4;text-align:left;font-size:13px}
+  table.t-cat tr.item td:nth-child(5){grid-column:1 / span 2}
+  table.t-cat tr.item td:nth-child(6){grid-column:3;text-align:right}
+  table.t-cat tr.item td:nth-child(5)::before,table.t-cat tr.item td:nth-child(6)::before{content:attr(data-label) ": ";color:var(--muted);font-weight:600}
+  table.t-cat tr.item td:nth-child(7){grid-column:1 / -1;grid-row:5;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:10px;margin-top:4px}
+  table.t-cat tr.item td:nth-child(7)::before{content:"Quantidade disponível";font-size:13px;font-weight:600;color:var(--muted)}
+  table.t-cat tr.item td:nth-child(7) .over-msg{flex-basis:100%;text-align:right}
+  table.t-cat tr.item td:nth-child(7){flex-wrap:wrap}
+  table.t-cat tr.item td:nth-child(8),table.t-cat tr.item td:nth-child(9),table.t-cat tr.item td:nth-child(10){grid-row:6;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;color:var(--muted);font-weight:600;text-align:center}
+  table.t-cat tr.item td:nth-child(8){grid-column:1}
+  table.t-cat tr.item td:nth-child(9){grid-column:2}
+  table.t-cat tr.item td:nth-child(10){grid-column:3}
+  table.t-cat tr.item td:nth-child(8)::after,table.t-cat tr.item td:nth-child(9)::after,table.t-cat tr.item td:nth-child(10)::after{content:attr(data-label)}
+  table.t-cat tr.item td.desc .full{-webkit-line-clamp:3}
+  table.t-cat tr.item.dirty{border-color:var(--amber)}
+  table.t-cat tr.item.dirty td{background:transparent}
+  /* Gráficos e indicadores */
+  .chart-box{height:230px}
+  .split{grid-template-columns:1fr}
+  .listcard{overflow-x:visible}
+}
+
+/* ---------- Celular (até 760 px) ---------- */
+@media (max-width:760px){
+  body{font-size:15px}
+  .masthead h1{font-size:clamp(26px,8vw,40px);line-height:1.08}
+  .masthead-inner{gap:14px}
+  .meta{font-size:12.5px;gap:3px 12px}
+  .summary{transform:translateY(-12px)}
+  .stat{padding:12px 14px}
+  .stat b{font-size:22px}
+  /* Barras de ferramentas e filtros: não fixas, campos na largura toda */
+  .toolbar{position:static;padding:10px 0;gap:8px}
+  .toolbar .search,.toolbar select{flex:1 1 100%;max-width:none;width:100%}
+  .toolbar .btn{flex:1 1 auto;justify-content:center}
+  .toolbar .check{flex:1 1 100%}
+  .filtros{padding:10px 12px;gap:8px}
+  .filtros .field{flex:1 1 100%;min-width:0}
+  .filtros .acao{flex:1 1 100%}
+  .rel-acoes .btn,.backup-card .rel-acoes .btn{flex:1 1 100%;justify-content:center}
+  .card{padding:14px 14px}
+  .card-head{flex-direction:column;gap:4px}
+  .fields{grid-template-columns:1fr}
+  .tabs{margin-left:-14px;margin-right:-14px;padding:0 14px;scroll-snap-type:x proximity}
+  .tab{scroll-snap-align:start;padding:11px 12px}
+  .kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi{padding:12px}
+  .kpi b{font-size:22px}
+  .charts{grid-template-columns:1fr}
+  /* Diálogos ocupam a tela; botões grandes e empilhados */
+  .modal{padding:8px;align-items:flex-end}
+  .modal-card,.dialog,.dialog.largo{width:100%;max-width:100%;max-height:calc(100dvh - 16px);border-radius:14px}
+  .dialog header{padding:16px 16px 4px}
+  .dialog .body{padding:8px 16px}
+  .dialog footer{flex-direction:column-reverse;align-items:stretch;padding:12px 16px 16px}
+  .dialog footer .btn{width:100%;justify-content:center;margin:0!important}
+  .kv{grid-template-columns:1fr;gap:0}
+  .kv dt{margin-top:6px;font-size:12.5px}
+  .grid2,.grid3,.consulta-form,.img-dlg{grid-template-columns:1fr}
+  /* Listas dentro dos diálogos e do detalhe do pedido viram cartões */
+  table.mini thead{display:none}
+  table.mini,table.mini tbody,table.mini tr,table.mini td{display:block;width:100%}
+  table.mini tr{border:1px solid var(--rule);border-radius:8px;padding:6px 10px;margin:0 0 8px}
+  table.mini td{border:0;padding:3px 0;display:flex;justify-content:space-between;gap:12px;text-align:right}
+  table.mini td::before{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:600;text-align:left;flex:none}
+  table.mini td[data-label=""]::before{display:none}
+  table.mini td.tn-cell{display:none}
+  table.mini td input[type=number]{width:96px;height:40px}
+  /* Detalhe do pedido (gestor): folha que sobe do rodapé */
+  .hovercard{left:0!important;right:0;bottom:0;top:auto!important;width:100%;max-height:82dvh;border-radius:16px 16px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .hovercard .hc-actions .btn{flex:1 1 calc(50% - 8px);justify-content:center;margin:0!important}
+  /* Área de toque confortável (mín. 44 px) */
+  .btn{min-height:44px}
+  .btn.sm{min-height:38px}
+  .stepper button{min-width:40px;min-height:40px}
+  input[type=checkbox]{width:22px;height:22px}
+  .switch .trilho{width:46px;height:28px}
+  .switch .trilho::after{width:22px;height:22px}
+  .switch input:checked + .trilho::after{transform:translateX(18px)}
+  .savebar input{flex:1 1 100%}
+  .savebar .btn{flex:1 1 auto;justify-content:center}
+  .gest{align-items:flex-start}
+  .gest .bts{width:100%}
+  .gest .bts .btn{flex:1 1 auto;justify-content:center}
+  .rel-tipos{grid-template-columns:1fr}
+  footer{padding-bottom:12px}
+
+  /* Barra fixa "Enviar pedido" no rodapé do celular */
+  .barra-movel{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--rule-strong);box-shadow:0 -6px 18px rgba(0,0,0,.10)}
+  .barra-movel .bm-resumo{font-size:14px}
+  .barra-movel .btn{flex:none}
+  .barra-movel.tem-itens{border-top:3px solid var(--amber)}
+  body:has(.barra-movel){padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .toolbar #btn-enviar{display:none}
+}
+
+/* ---------- Celulares pequenos (até 380 px) ---------- */
+@media (max-width:380px){
+  .wrap{padding:0 10px}
+  .tabs{margin-left:0;margin-right:0;padding:0}
+  .marca-logo{height:60px}
+  .marca-txt b{font-size:14.5px}
+  .summary{grid-template-columns:1fr 1fr}
+  #tbl tr.item{grid-template-columns:28px 60px minmax(0,1fr) auto;padding:10px}
+  #tbl tr.item td:nth-child(2) .thumb{width:60px;height:60px}
+  .kpis{grid-template-columns:1fr}
+}
+
+/* ---------- Telas com toque: sem efeitos que dependem do mouse ---------- */
+@media (hover:none){
+  .row-actions{opacity:1}
+  .thumb-edit:hover::after{display:none}
+}
+@media (max-width:900px){
+  table.cartoes td,table.t-cat tr.item td{background:transparent!important}
+  table.t-pedidos td.who{display:grid;grid-template-columns:minmax(0,42%) minmax(0,1fr);column-gap:14px}
+  table.t-pedidos td.who::before{grid-row:1 / span 2}
+  table.t-pedidos td.who b,table.t-pedidos td.who small{grid-column:2;text-align:right;overflow-wrap:anywhere}
+}
+@media (max-width:760px){
+  table.mini td{flex-wrap:wrap}
+  table.mini td small{flex-basis:100%;text-align:right}
+  }
+
+/* Solicitante: cada material vira um cartão (celular e tablet) */
+@media (max-width:900px){
+  /* ---------- Solicitante: cada material vira um cartão ---------- */
+  #tbl{min-width:0}
+  .layout .table-wrap{background:transparent;border:0;overflow:visible}
+  #tbl thead{display:none}
+  #tbl,#tbl tbody{display:block;width:100%}
+  #tbl tr.group{display:block;margin:14px 0 6px}
+  #tbl tr.group td{display:block;border-radius:8px}
+  #tbl tr.item{display:grid;grid-template-columns:30px 72px minmax(0,1fr) auto;grid-template-areas:"sel img cod qtd" "sel img desc desc" "sel img uni uni" "adj adj adj saldo";gap:4px 10px;align-items:center;background:var(--surface);border:1px solid var(--rule);border-radius:12px;margin:0 0 10px;padding:12px;box-shadow:var(--shadow)}
+  #tbl tr.item td{display:block;border:0;padding:0!important;min-width:0!important;max-width:none!important;background:transparent!important;white-space:normal}
+  #tbl tr.item td:nth-child(1){grid-area:sel;align-self:start;padding-top:4px!important}
+  #tbl tr.item td:nth-child(2){grid-area:img}
+  #tbl tr.item td:nth-child(2) .thumb{width:72px;height:72px}
+  #tbl tr.item td:nth-child(3){grid-area:cod;font-size:13px}
+  #tbl tr.item td:nth-child(4){grid-area:desc;font-size:14.5px;font-weight:600;line-height:1.3}
+  #tbl tr.item td:nth-child(5){grid-area:uni;font-size:12.5px}
+  #tbl tr.item td:nth-child(6){grid-area:qtd;text-align:right;white-space:nowrap}
+  #tbl tr.item td:nth-child(7){grid-area:adj;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:10px!important;margin-top:6px}
+  #tbl tr.item td:nth-child(7)::before{content:"Quantidade";font-size:13px;font-weight:600;color:var(--muted)}
+  #tbl tr.item td:nth-child(7) .over-msg{flex-basis:100%;text-align:left}
+  #tbl tr.item td:nth-child(8){grid-area:saldo;align-self:end;text-align:right;border-top:1px solid var(--rule);padding-top:10px!important;margin-top:6px;font-size:13px}
+  #tbl tr.item td:nth-child(8)::before{content:"Saldo";display:block;font-size:11.5px;font-weight:600;color:var(--muted)}
+  #tbl tr.item td.desc .full{display:block;-webkit-line-clamp:4}
+  #tbl tr.item td.desc .tag{display:inline-block;margin-top:4px}
+  #tbl .stepper input{width:64px}
+  #tbl tr.item.edited{border-color:var(--amber);background:color-mix(in srgb,var(--amber-soft) 40%,var(--surface))}
+  #tbl tr.subtotal,#tbl tr.grand{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 14px;border-radius:10px;margin:0 0 14px;padding:10px 12px}
+  #tbl tr.subtotal{background:var(--surface-2)}
+  #tbl tr.grand{background:var(--pine);color:var(--pine-ink)}
+  #tbl tr.subtotal td,#tbl tr.grand td{display:block;border:0;padding:0;background:transparent;font-size:13px}
+  #tbl tr.subtotal td:first-child,#tbl tr.grand td:first-child{flex-basis:100%;font-weight:700}
+  #tbl tr.subtotal td:not(:first-child)::before,#tbl tr.grand td:not(:first-child)::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;opacity:.75}
+  #tbl tr.item td.desc .full{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:normal}
+  #tbl tr.item td{background:transparent!important}
+}
+/* Tablet (600 a 900 px): cartões em duas colunas */
+@media (min-width:600px) and (max-width:900px){
+  #tbl tbody,table.t-cat tbody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;align-items:stretch}
+  #tbl tr.group,#tbl tr.subtotal,#tbl tr.grand,#tbl tr#empty-row,table.t-cat tr.group{grid-column:1 / -1}
+  #tbl tr.item,table.t-cat tr.item{margin-bottom:12px}
+}
+
+/* Gráficos e quadros sempre cabem na largura disponível */
+.charts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.chart-card,.kpi,.listcard{min-width:0}
+@media (max-width:1000px){ .charts{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){ html,body{overflow-x:clip} }
 
 </style>
 </head>
@@ -631,7 +842,7 @@ tr.item.consulta td.adj .stepper{opacity:.45}
         <button class="btn" type="button" id="btn-xls-ped">Exportar Excel</button>
       </div>
       <p class="saved-note" style="margin:10px 0">Passe o mouse sobre um pedido para ver tudo, atender ou excluir. No celular, toque no pedido.</p>
-      <div class="table-wrap"><table>
+      <div class="table-wrap"><table class="cartoes t-pedidos">
         <thead><tr><th>Pedido</th><th>Data</th><th>Solicitante</th><th>Setor</th><th>Telefone</th><th class="num">Materiais</th><th class="num">Unidades</th><th>Situação</th><th class="num">Baixar</th></tr></thead>
         <tbody id="tb-ped"></tbody>
       </table></div>
@@ -648,7 +859,7 @@ tr.item.consulta td.adj .stepper{opacity:.45}
         <button class="btn primary" type="button" id="btn-novo">+ Novo material</button>
       </div>
       <p class="saved-note" style="margin:10px 0"><b>Visível</b> desligado: o material some da página de pedidos. <b>Só visualizar</b> ligado: o material aparece com a quantidade, mas ninguém consegue pedir (marcado como SOMENTE CONSULTA). <b>Indisponível</b> ligado: o material aparece marcado como INDISPONÍVEL.</p>
-      <div class="table-wrap"><table>
+      <div class="table-wrap"><table class="t-cat">
         <thead><tr><th>Imagem</th><th>Código</th><th>Descrição</th><th>Unidade</th><th class="num">Reservado</th><th class="num">Limite</th><th class="num">Disponível</th><th>Visível</th><th title="Aparece na página, mas não pode ser pedido">Só visualizar</th><th>Indisponível</th><th></th></tr></thead>
         <tbody id="tb-cat"></tbody>
       </table></div>
@@ -703,7 +914,7 @@ tr.item.consulta td.adj .stepper{opacity:.45}
         <button class="btn" type="button" id="btn-xls-hist">Exportar Excel</button>
         <button class="btn" type="button" id="btn-backup-hist">Gerar backup (PDF, Excel e JSON)</button>
       </div>
-      <div class="table-wrap" style="margin-top:16px"><table>
+      <div class="table-wrap" style="margin-top:16px"><table class="cartoes t-hist">
         <thead><tr><th>Data</th><th>Tipo</th><th>Pedido</th><th>Código</th><th>Descrição</th><th class="num">Antes</th><th class="num">Depois</th><th class="num">Variação</th><th>Detalhes</th><th>Responsável</th></tr></thead>
         <tbody id="tb-hist"></tbody>
       </table></div>
@@ -830,6 +1041,22 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     const C = window.CONFIG || {};
     document.querySelectorAll("[data-cfg]").forEach(el => { if(C[el.dataset.cfg]) el.textContent = C[el.dataset.cfg]; });
   }
+
+  /* Telas pequenas: cada célula recebe o nome da sua coluna (data-label), para as tabelas virarem cartões "rótulo: valor".
+     Funciona sozinho em todas as tabelas com cabeçalho, inclusive as que são redesenhadas depois. */
+  function rotularTabelas(){
+    document.querySelectorAll("table").forEach(t => {
+      const ths = t.tHead ? [...t.tHead.rows[0].cells] : []; if(!ths.length) return;
+      const nomes = []; ths.forEach(th => { for(let k = 0; k < (th.colSpan || 1); k++) nomes.push(th.textContent.trim()); });
+      [...t.tBodies].concat(t.tFoot ? [t.tFoot] : []).forEach(tb => [...tb.rows].forEach(tr => {
+        let i = 0;
+        [...tr.cells].forEach(td => { if(!td.hasAttribute("data-label")) td.setAttribute("data-label", td.colSpan > 1 ? "" : (nomes[i] || "")); i += td.colSpan || 1; });
+      }));
+    });
+  }
+  let tRot;
+  new MutationObserver(() => { clearTimeout(tRot); tRot = setTimeout(rotularTabelas, 30); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("DOMContentLoaded", rotularTabelas);
 
   window.U = { $, esc, fmt, norm, dataHora, pill, emailOk, mascaraTelefone, toast, abrirDialogo, fecharDialogo, ocupado, livre, confirmar, aplicarTextos, SITUACAO_CLASSE };
 })();
@@ -2047,10 +2274,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(graficos[id]) graficos[id].destroy();
     graficos[id] = new Chart(cv, {
       type: "bar",
-      data: { labels: rotulos.map(r => r.length > 34 ? r.slice(0, 33) + "…" : r), datasets: [{ data: valores, backgroundColor: cores || cor("--pine"), borderRadius: 4, maxBarThickness: 28 }] },
+      data: { labels: rotulos.map(r => { const n = innerWidth < 640 ? 18 : 34; return r.length > n ? r.slice(0, n - 1) + "…" : r; }), datasets: [{ data: valores, backgroundColor: cores || cor("--pine"), borderRadius: 4, maxBarThickness: 28 }] },
       options: { responsive: true, maintainAspectRatio: false, animation: false, indexAxis: horizontal ? "y" : "x",
         plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => rotulos[i[0].dataIndex], label: c => " " + fmt(c.parsed[horizontal ? "x" : "y"]) + " " + unidade } } },
-        scales: { x: { grid: { color: horizontal ? cor("--rule") : "transparent" }, ticks: { precision: 0, maxRotation: 0, autoSkip: rotulos.length > 8 } }, y: { grid: { color: horizontal ? "transparent" : cor("--rule") }, ticks: { precision: 0 }, beginAtZero: true } } }
+        scales: { x: { grid: { color: horizontal ? cor("--rule") : "transparent" }, ticks: { precision: 0, maxRotation: innerWidth < 640 && !horizontal ? 60 : 0, autoSkip: rotulos.length > 8 || innerWidth < 480, font: { size: innerWidth < 640 ? 10 : 12 } } }, y: { grid: { color: horizontal ? "transparent" : cor("--rule") }, ticks: { precision: 0, font: { size: innerWidth < 640 ? 10 : 12 } }, beginAtZero: true } } }
     });
   }
   function filtroPainel(){ const i = intervaloPainel(); return Object.assign(i, { setor: $("#fg-setor").value, sit: $("#fg-sit").value, nat: $("#fg-nat").value }); }
@@ -2501,7 +2728,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function mostrarRelatorio(rel){
     const v = x => x == null || x === "" ? "" : typeof x === "number" ? fmt(x) : esc(x);
     $("#rel-saida").innerHTML = `<div class="rel-cab"><h3>${esc(rel.titulo)}</h3><small>Filtros: ${esc(rel.filtros)} · ${rel.linhas.length} ${rel.linhas.length === 1 ? "linha" : "linhas"}</small></div>
-      <div class="table-wrap"><table class="rel"><thead><tr>${rel.colunas.map(c => `<th${c.num ? ' class="num"' : ""}>${esc(c.t)}</th>`).join("")}</tr></thead>
+      <div class="table-wrap"><table class="rel cartoes"><thead><tr>${rel.colunas.map(c => `<th${c.num ? ' class="num"' : ""}>${esc(c.t)}</th>`).join("")}</tr></thead>
       <tbody>${rel.linhas.length ? rel.linhas.slice(0, 1000).map(l => `<tr>${l.map((x, i) => `<td${rel.colunas[i].num ? ' class="num"' : ""}>${v(x)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${rel.colunas.length}" class="empty">Nenhum dado para os filtros escolhidos.</td></tr>`}</tbody>
       ${rel.total && rel.linhas.length ? `<tfoot><tr>${rel.total.map((x, i) => `<td${rel.colunas[i].num ? ' class="num"' : ""}>${v(x)}</td>`).join("")}</tr></tfoot>` : ""}</table></div>
       ${rel.linhas.length > 1000 ? `<p class="saved-note">Mostrando as primeiras 1.000 linhas. O Excel e o PDF trazem todas.</p>` : ""}`;
@@ -2756,6 +2983,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <br><span class="hint-txt">No GitHub: cole a linha, clique em <b>Commit changes</b> e aguarde 1–2 minutos. Depois recarregue esta página e entre com o usuário e a senha do gestor.</span></div></div>`;
     $("#as-copiar").onclick = () => { navigator.clipboard.writeText(linha).then(() => toast("Linha copiada"), () => toast("Selecione e copie a linha manualmente")); };
   };
+
+  let tGraf, larguraAnt = innerWidth;
+  window.addEventListener("resize", () => { clearTimeout(tGraf); tGraf = setTimeout(() => { if(Math.abs(innerWidth - larguraAnt) > 60 && token && !$("#p-geral").hidden){ larguraAnt = innerWidth; renderGeral(); } }, 250); });
 
   /* ---------- Início ---------- */
   if(API.modoDemo) window.addEventListener("storage", e => { if(e.key === API.chaveDemo && token) verificar(); });

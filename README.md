@@ -20,6 +20,18 @@ Não há pastas. Envie os 8 arquivos lado a lado na raiz do repositório.
 
 Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Ambiente**, e o logotipo oficial (Governo do Estado do Espírito Santo, Secretaria do Meio Ambiente e Recursos Hídricos e IEMA). O nome também aparece no título das abas do navegador, nas planilhas Excel, nos PDFs e nos e-mails.
 
+## Celular, tablet e computador
+
+As três páginas se ajustam sozinhas ao tamanho da tela, sem rolagem para os lados. Funcionam em celular (a partir de 320 px), tablet em pé ou deitado e computador.
+
+| Tela | Como fica |
+|---|---|
+| **Computador** (acima de 1100 px) | Layout completo, com tabelas e o painel lateral de imagem do solicitante |
+| **Tablet** (600 a 900 px) | Materiais e catálogo em **cartões, duas colunas**; pedidos, histórico e relatórios em cartões |
+| **Celular** (até 760 px) | Cartões em uma coluna; barra fixa **"Enviar pedido"** no rodapé, com o total de itens e unidades; filtros e botões na largura toda; diálogos em tela cheia; detalhe do pedido do gestor como uma folha que sobe do rodapé; áreas de toque maiores |
+
+Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na imagem de um material abre a imagem ampliada, e tocar num pedido (gestor) abre o detalhe com todos os botões.
+
 ## O que o sistema faz
 
 **Solicitante (`solicitante.html`)**
