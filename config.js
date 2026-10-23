@@ -6,7 +6,7 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "https://script.google.com/macros/s/AKfycby_Pb8w_xQ2KW6MGgAAoWrGIMKtpapGRiF0BShJkTKvJnlaYWQSK1nFuy9chTYlkJ_fBg/exec",
+  API_URL: "",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
@@ -18,6 +18,10 @@ window.CONFIG = {
   GOVERNO: "Governo do Estado do Espírito Santo",
   ORGAO: "IEMA - Instituto Estadual de Meio Ambiente",
   ALMOXARIFADO: "Almoxarifado IEMA",
+
+  /* Pedidos só com e-mail institucional deste domínio (qualquer nome antes do @).
+     A mesma regra está no Code.gs (DOMINIO_EMAIL), que é quem realmente bloqueia. */
+  DOMINIO_EMAIL: "iema.es.gov.br",
 
   /* LGPD – Aviso de privacidade da página de pedidos.
      Preencha com o contato do Encarregado pelo Tratamento de Dados Pessoais (DPO) do IEMA. */

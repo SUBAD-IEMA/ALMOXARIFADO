@@ -26,6 +26,8 @@ Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Am
 - A página segue o modelo do Relatório de Itens em Estoque: materiais agrupados por natureza de despesa, com totais. No cabeçalho aparece só a data e hora de acesso.
 - Os materiais do catálogo do fornecedor mostram a foto do produto; os demais ficam em branco até o almoxarifado inserir a imagem. Ao passar o mouse sobre o quadrinho, o painel lateral mostra a imagem em alta resolução e os detalhes do material.
 - Nome completo, setor (lista suspensa de siglas), telefone e e-mail são obrigatórios.
+- **Só e-mail institucional:** o pedido só é aceito com e-mail terminado em **@iema.es.gov.br**. O nome antes do @ pode ser qualquer um (ex.: `maria.souza@iema.es.gov.br`). Outros domínios são recusados, inclusive variações como `@iema.es.gov.br.com` ou `@sub.iema.es.gov.br`. A regra vale na página e também no servidor (`DOMINIO_EMAIL` no `Code.gs` e no `config.js`).
+- Materiais marcados pelo gestor como **só visualização** aparecem com a quantidade e a marca SOMENTE CONSULTA, mas não podem ser pedidos.
 - Não aceita materiais indisponíveis nem quantidade acima do disponível ou do limite por pedido.
 - Os materiais ocultados pelo gestor não aparecem.
 - Ao clicar em **Enviar pedido**:
@@ -47,6 +49,7 @@ Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Am
 - **Visão geral:** indicadores e gráficos com **filtros** de período (incluindo datas escolhidas), setor, situação e natureza de despesa.
 - **Catálogo e estoque:**
   - **Visível**: desligado, o material some da página de pedidos;
+  - **Só visualizar**: ligado, o material aparece na página com a quantidade, mas **não pode ser pedido**. A caixinha e a quantidade ficam travadas e aparece a marca SOMENTE CONSULTA;
   - **Indisponível**: ligado, o material aparece marcado como INDISPONÍVEL;
   - alterar quantidades (com motivo);
   - cadastrar, editar ou remover materiais;
@@ -236,6 +239,7 @@ Confira se o arquivo `imagens.js` foi enviado ao repositório, na raiz, junto co
 | `ESTOQUE_BAIXO` | A partir de quantas unidades o material aparece como estoque baixo |
 | `ATUALIZAR_A_CADA` | Intervalo (segundos) da atualização em tempo real (padrão 6) |
 | `SETORES` | Lista suspensa de setores (siglas) |
+| `DOMINIO_EMAIL` | Domínio de e-mail aceito nos pedidos (`iema.es.gov.br`) |
 | `ENCARREGADO_NOME`, `ENCARREGADO_EMAIL` | Contato do Encarregado de Dados (DPO) do IEMA, mostrado no Aviso de privacidade |
 | `PRAZO_GUARDA` | Texto sobre o prazo de guarda dos dados no Aviso de privacidade |
 | `GOVERNO`, `ORGAO`, `ALMOXARIFADO` | Textos do cabeçalho, planilhas e relatórios |

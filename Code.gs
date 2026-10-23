@@ -19,6 +19,8 @@ const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é rece
 const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
 const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
 const MAX_GESTORES = 3;           // número máximo de logins de gestor
+/* Pedidos só são aceitos com e-mail institucional deste domínio (qualquer nome antes do @). */
+const DOMINIO_EMAIL = 'iema.es.gov.br';
 /* Backup mensal automático (todo dia 1º, às 6h): PDF, Excel e JSON com solicitações, histórico e estoque.
    Os e-mails já estão definidos; o backup se ativa sozinho no primeiro acesso de um gestor (não precisa do menu da planilha). */
 const BACKUP_EMAILS = ['almoxarifado@iema.es.gov.br', 'subad@iema.es.gov.br'];
@@ -30,14 +32,14 @@ const SITUACOES = ['Pendente', 'Aprovado', 'Parcialmente atendido', 'Atendido', 
 const ABERTAS = ['Pendente', 'Aprovado'];
 const FINAIS = ['Parcialmente atendido', 'Atendido', 'Recusado'];
 const ABAS = {
-  catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto'], 'A:B'],
+  catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto', 'Só visualização'], 'A:B'],
   imagens:  ['Imagens enviadas', ['id', 'Imagem (parte 1)', 'Atualizado em', 'Parte 2', 'Parte 3', 'Parte 4', 'Parte 5', 'Parte 6'], 'A:A'],
   pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)'], 'A:A,E:E'],
   historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável'], 'C:E'],
   config:   ['Configuração', ['Chave', 'Valor'], 'A:B']
 };
-const NCOL = 17;
-const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15, oculto: 16 };
+const NCOL = 18;
+const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15, oculto: 16, soVisualizar: 17 };
 
 let QUEM = 'Sistema';     // quem está fazendo a operação (vai para a coluna "Responsável" do histórico)
 let GESTOR = null;        // gestor conectado (ações do gestor)
@@ -55,7 +57,7 @@ function doPost(e) {
     login: acaoLogin, situacaoAcesso: acaoSituacaoAcesso, criarPrimeiroGestor: acaoCriarPrimeiroGestor,
     esqueciSenha: acaoEsqueciSenha, redefinirComCodigo: acaoRedefinirComCodigo };
   const doGestor = { sair: acaoSair, painel: acaoPainel, atender: acaoAtender, excluirPedido: acaoExcluirPedido,
-    salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade,
+    salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
     alterarEmailGestor: acaoAlterarEmailGestor, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
@@ -144,14 +146,14 @@ function lerCatalogo() {
     qtd: Number(r[COL.qtd]) || 0, limite: Number(r[COL.limite]) || 0, indisponivel: simNao(r[COL.indisponivel]),
     imagem: String(r[COL.imagem] || ''), busca: String(r[COL.busca] || ''), qtdRelatorio: Number(r[COL.qtdRelatorio]) || 0,
     ativo: r[COL.ativo] === '' || r[COL.ativo] === undefined ? true : simNao(r[COL.ativo]), atualizado: iso(r[COL.atualizado]),
-    imagemVersao: Number(r[COL.imagemVersao]) || 0, oculto: simNao(r[COL.oculto])
+    imagemVersao: Number(r[COL.imagemVersao]) || 0, oculto: simNao(r[COL.oculto]), soVisualizar: simNao(r[COL.soVisualizar])
   })).filter(it => it.id);
   const mapa = {}; itens.forEach(it => mapa[it.id] = it);
   return { sh, itens, mapa };
 }
 function linhaItem(it) {
   return [it.id, seguro(it.codigo), seguro(it.descricao), seguro(it.unidade), seguro(it.natureza), seguro(it.naturezaNome), seguro(it.conta || ''), it.qtd, it.limite || 0,
-    it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0, it.oculto ? 'SIM' : 'NÃO'];
+    it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0, it.oculto ? 'SIM' : 'NÃO', it.soVisualizar ? 'SIM' : 'NÃO'];
 }
 function gravarItem(sh, it) {
   if (it.linha) sh.getRange(it.linha, 1, 1, NCOL).setValues([linhaItem(it)]);
@@ -159,7 +161,7 @@ function gravarItem(sh, it) {
 }
 function publico(it) {
   return { id: it.id, codigo: it.codigo, descricao: it.descricao, unidade: it.unidade, natureza: it.natureza, naturezaNome: it.naturezaNome, conta: it.conta,
-    qtd: it.qtd, limite: it.limite, indisponivel: it.indisponivel, oculto: it.oculto, imagem: it.imagem, imagemVersao: it.imagemVersao, busca: it.busca, qtdRelatorio: it.qtdRelatorio };
+    qtd: it.qtd, limite: it.limite, indisponivel: it.indisponivel, oculto: it.oculto, soVisualizar: !!it.soVisualizar, imagem: it.imagem, imagemVersao: it.imagemVersao, busca: it.busca, qtdRelatorio: it.qtdRelatorio };
 }
 
 /* Carrega sozinho o catálogo inicial e os materiais acrescentados (Catálogo GOV ES), sem depender do gestor. */
@@ -196,7 +198,7 @@ function carregarCatalogoInicial() {
   const sh = aba('catalogo');
   if (sh.getLastRow() > 1) return 0;
   const agora = new Date();
-  const rows = CATALOGO_INICIAL.map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', '', r[8], r[7], 'SIM', agora, 0, 'NÃO']);
+  const rows = CATALOGO_INICIAL.map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', '', r[8], r[7], 'SIM', agora, 0, 'NÃO', 'NÃO']);
   sh.getRange(2, 1, rows.length, NCOL).setValues(rows);
   registrar([[agora, 'Catálogo carregado', '', '', '', 'Relatório de Itens em Estoque de 17/10/2026 (' + rows.length + ' materiais)']]);
   novaVersao();
@@ -206,7 +208,7 @@ function aplicarCatalogoAdicional() {
   if (props().getProperty('CAT_ADICIONAL_V1')) return 0;
   const cat = lerCatalogo(), agora = new Date();
   const rows = CATALOGO_ADICIONAL.filter(r => !cat.mapa[r[0]])
-    .map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', r[9], r[8], 0, 'SIM', agora, 0, 'NÃO']);
+    .map(r => [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], 0, 'NÃO', r[9], r[8], 0, 'SIM', agora, 0, 'NÃO', 'NÃO']);
   if (rows.length) cat.sh.getRange(cat.sh.getLastRow() + 1, 1, rows.length, NCOL).setValues(rows);
   let vinculadas = 0;
   Object.keys(VINCULOS_IMAGEM).forEach(id => { const it = cat.mapa[id]; if (it && !it.imagem) { it.imagem = VINCULOS_IMAGEM[id]; gravarItem(cat.sh, it); vinculadas++; } });
@@ -433,13 +435,17 @@ function acaoImagens(req) {
   return { imagens: out };
 }
 
+function emailInstitucional(e) {
+  const dom = DOMINIO_EMAIL.replace(/\./g, '\\.');
+  return new RegExp('^[^\\s@]+@' + dom + '$', 'i').test(String(e || '').trim());
+}
 function validarSolicitante(s) {
   s = s || {};
   const r = { nome: String(s.nome || '').trim().slice(0, 120), setor: String(s.setor || '').trim().slice(0, 120), telefone: String(s.telefone || '').trim().slice(0, 30), email: String(s.email || '').trim().toLowerCase().slice(0, 120) };
   if (r.nome.split(/\s+/).length < 2) throw amigavel('Informe o nome completo do solicitante.');
   if (!r.setor) throw amigavel('Informe o setor do solicitante.');
   if (r.telefone.replace(/\D/g, '').length < 10) throw amigavel('Informe um telefone para contato com DDD.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) throw amigavel('Informe um e-mail válido.');
+  if (!emailInstitucional(r.email)) throw amigavel('Use o seu e-mail institucional terminado em @' + DOMINIO_EMAIL + '.');
   return r;
 }
 
@@ -461,6 +467,7 @@ function acaoSolicitar(req) {
       if (vistos[i.id]) throw amigavel('Material repetido no pedido: ' + e.descricao);
       vistos[i.id] = true;
       if (e.indisponivel) throw amigavel(e.codigo + ' – ' + e.descricao + ' está INDISPONÍVEL.');
+      if (e.soVisualizar) throw amigavel(e.codigo + ' – ' + e.descricao + ' está disponível somente para consulta e não pode ser pedido pela página.');
       if (!Number.isInteger(q) || q <= 0) throw amigavel('Quantidade inválida para ' + e.descricao + '.');
       if (q > e.qtd) throw amigavel('Estoque insuficiente para ' + e.codigo + ' – ' + e.descricao + ': disponível ' + e.qtd + ', solicitado ' + q + '.');
       if (e.limite > 0 && q > e.limite) throw amigavel('O limite por pedido de ' + e.codigo + ' – ' + e.descricao + ' é ' + e.limite + '.');
@@ -607,7 +614,7 @@ function acaoSalvarItem(req) {
   const campos = {
     codigo: String(d.codigo || '').trim().slice(0, 40), descricao: String(d.descricao || '').trim().slice(0, 400), unidade: String(d.unidade || '').trim().slice(0, 60),
     natureza: String(d.natureza || '').trim().slice(0, 30), naturezaNome: String(d.naturezaNome || '').trim().slice(0, 120), conta: String(d.conta || '').trim().slice(0, 160),
-    limite: Math.max(0, Math.floor(Number(d.limite) || 0)), indisponivel: !!d.indisponivel, oculto: !!d.oculto, busca: String(d.busca || '').trim().slice(0, 200)
+    limite: Math.max(0, Math.floor(Number(d.limite) || 0)), indisponivel: !!d.indisponivel, oculto: !!d.oculto, soVisualizar: !!d.soVisualizar, busca: String(d.busca || '').trim().slice(0, 200)
   };
   if (!campos.codigo || !campos.descricao || !campos.unidade) throw amigavel('Preencha código, descrição e unidade.');
   if (!campos.natureza || !campos.naturezaNome) throw amigavel('Informe a natureza de despesa (código e nome).');
@@ -639,8 +646,8 @@ function acaoSalvarItem(req) {
     }
     const mudancas = [];
     if (!novo) {
-      const rot = { codigo: 'código', descricao: 'descrição', unidade: 'unidade', natureza: 'natureza', naturezaNome: 'nome da natureza', conta: 'conta contábil', limite: 'limite por pedido', indisponivel: 'indisponível', oculto: 'oculto', busca: 'termo de busca' };
-      const fmtv = (k, v) => (k === 'indisponivel' || k === 'oculto') ? (v ? 'sim' : 'não') : v;
+      const rot = { codigo: 'código', descricao: 'descrição', unidade: 'unidade', natureza: 'natureza', naturezaNome: 'nome da natureza', conta: 'conta contábil', limite: 'limite por pedido', indisponivel: 'indisponível', oculto: 'oculto', soVisualizar: 'só visualização', busca: 'termo de busca' };
+      const fmtv = (k, v) => (k === 'indisponivel' || k === 'oculto' || k === 'soVisualizar') ? (v ? 'sim' : 'não') : v;
       Object.keys(campos).forEach(k => { if (String(it[k]) !== String(campos[k])) { mudancas.push(rot[k] + ': "' + fmtv(k, it[k]) + '" → "' + fmtv(k, campos[k]) + '"'); it[k] = campos[k]; } });
       if (imagemMudou) mudancas.push('imagem alterada');
     }
@@ -690,6 +697,7 @@ function alternar(req, campo, tipoSim, tipoNao) {
 }
 function acaoIndisponivel(req) { return alternar(req, 'indisponivel', 'Material indisponível', 'Material disponível'); }
 function acaoVisibilidade(req) { return alternar(req, 'oculto', 'Material ocultado', 'Material visível'); }
+function acaoSoVisualizar(req) { return alternar(req, 'soVisualizar', 'Material só para visualização', 'Material liberado para pedido'); }
 
 function acaoRemoverItem(req) {
   const lock = bloquear();
@@ -741,8 +749,8 @@ function tabelasBackup(d) {
       .concat([].concat.apply([], d.pedidos.map(p => p.itens.map(l => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, l.codigo, l.descricao, l.unidade, l.qtd, l.atendida == null ? '' : l.atendida, p.status])))),
     'Histórico': [['Data', 'Tipo', 'Pedido', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável']]
       .concat(d.historico.map(h => [dt(h.dataISO), h.tipo, h.pedido, h.codigo, h.descricao, h.antes == null ? '' : h.antes, h.depois == null ? '' : h.depois, h.delta == null ? '' : h.delta, h.detalhes, h.quem])),
-    'Estoque': [['Natureza', 'Nome da natureza', 'Código', 'Descrição', 'Unidade', 'Disponível', 'Limite por pedido', 'Indisponível', 'Visível']]
-      .concat(d.estoque.map(i => [i.natureza, i.naturezaNome, i.codigo, i.descricao, i.unidade, i.qtd, i.limite || '', i.indisponivel ? 'Sim' : 'Não', i.oculto ? 'Não' : 'Sim']))
+    'Estoque': [['Natureza', 'Nome da natureza', 'Código', 'Descrição', 'Unidade', 'Disponível', 'Limite por pedido', 'Indisponível', 'Visível', 'Só visualização']]
+      .concat(d.estoque.map(i => [i.natureza, i.naturezaNome, i.codigo, i.descricao, i.unidade, i.qtd, i.limite || '', i.indisponivel ? 'Sim' : 'Não', i.oculto ? 'Não' : 'Sim', i.soVisualizar ? 'Sim' : 'Não']))
   };
 }
 /* Gera os 3 arquivos no servidor (planilha temporária exportada pelo Google em Excel e PDF) e envia por e-mail. */
@@ -865,7 +873,7 @@ function acaoImportarBackup(req) {
       d.estoque.forEach(b => {
         if (!b || !b.id) return;
         const campos = { codigo: txt(b.codigo, 40), descricao: txt(b.descricao), unidade: txt(b.unidade, 60), natureza: txt(b.natureza, 30), naturezaNome: txt(b.naturezaNome, 120),
-          conta: txt(b.conta, 160), qtd: Math.max(0, Number(b.qtd) || 0), limite: Math.max(0, Math.floor(Number(b.limite) || 0)), indisponivel: !!b.indisponivel, oculto: !!b.oculto };
+          conta: txt(b.conta, 160), qtd: Math.max(0, Number(b.qtd) || 0), limite: Math.max(0, Math.floor(Number(b.limite) || 0)), indisponivel: !!b.indisponivel, oculto: !!b.oculto, soVisualizar: !!b.soVisualizar };
         const img = /^cat:img\d{3}$/.test(b.imagem || '') || /^https?:\/\//i.test(b.imagem || '') ? String(b.imagem) : null;
         let it = cat.mapa[String(b.id)];
         if (!it) {
