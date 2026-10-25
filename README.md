@@ -9,7 +9,7 @@
 |---|---|
 | `index.html` | Página inicial: fazer pedido, acompanhar pedido, área do gestor |
 | `solicitante.html` | Catálogo, pedido (dados obrigatórios), planilha Excel e acompanhamento. Sem login |
-| `gestor.html` | Área do gestor: até 3 logins, pedidos, painel, catálogo, relatórios, histórico |
+| `gestor.html` | Área do gestor: até 5 logins com perfis de acesso, pedidos, painel, catálogo, relatórios, histórico |
 | `imagens.js` | Miniaturas das fotos do Catálogo GOV ES (carregam com a página) |
 | `imagens-hd.js` | Imagens em alta resolução (400×400), carregadas em segundo plano para o painel lateral e a ampliação |
 | `config.js` | Configuração. É o único arquivo a editar (`API_URL`) |
@@ -19,6 +19,43 @@
 Não há pastas. Envie os 8 arquivos lado a lado na raiz do repositório.
 
 Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Ambiente**, e o logotipo oficial (Governo do Estado do Espírito Santo, Secretaria do Meio Ambiente e Recursos Hídricos e IEMA). O nome também aparece no título das abas do navegador, nas planilhas Excel, nos PDFs e nos e-mails.
+
+## Perfis de acesso dos gestores
+
+Na aba **Gestores e contato**, quem tem a permissão **Usuários e perfis** (o gestor principal sempre tem) cadastra até 5 gestores. Para cada um, escolhe o **tipo de perfil** e pode ajustar as permissões marcando as caixinhas. Se as caixinhas marcadas não corresponderem a nenhum perfil pronto, o perfil vira **Personalizado**. Se corresponderem, recebe o nome do perfil.
+
+**Todos os perfis sempre podem visualizar**, em tempo real, o painel, os pedidos, o catálogo, o saldo e a disponibilidade dos materiais.
+
+| Permissão | O que libera |
+|---|---|
+| Atender pedidos | Aprovar, atender, atender em parte e recusar |
+| Excluir pedidos | Excluir com motivo (devolve o estoque reservado) |
+| Ajustar estoque | Alterar as quantidades disponíveis |
+| Editar catálogo | Cadastrar, editar e remover materiais; imagens; Visível, Só visualizar e Indisponível |
+| Relatórios e exportações | Gerar relatórios e baixar Excel e PDF |
+| Histórico e auditoria | Ver o histórico completo, com responsável |
+| Backup | Gerar e enviar o backup |
+| Importar backup | Restaurar dados de um arquivo de backup |
+| Configurações e regras | Contato do almoxarifado, alerta de estoque mínimo, backup mensal |
+| Usuários e perfis | Cadastrar, editar e remover gestores; perfis; senhas |
+
+| Perfil pronto | Permissões |
+|---|---|
+| **Administrador do Sistema** | Todas: controle total do estoque, catálogo, pedidos, relatórios, auditoria, backup, regras de negócio e gestão de usuários e perfis |
+| **Gestor operacional** | Tudo do dia a dia, sem gerenciar usuários nem importar backup (é o perfil dado aos gestores cadastrados antes desta versão) |
+| **Almoxarife (estoque e catálogo)** | Atender pedidos, ajustar estoque, editar catálogo, relatórios |
+| **Atendimento de pedidos** | Atender pedidos e relatórios; não mexe no estoque nem no catálogo |
+| **Auditor** | Histórico, relatórios e backup; não altera nada |
+| **Visualizador (leitura)** | Só consulta: painel, pedidos, estoque e histórico em tempo real. **Bloqueado para qualquer alteração, inserção ou exclusão** |
+| **Personalizado** | As caixinhas que você marcar |
+
+**Segurança das permissões:**
+- **Conferência no servidor:** além de esconder os botões, o servidor confere a permissão em **cada ação**. Quem não tem permissão recebe a mensagem "Seu perfil não tem permissão para…".
+- **Dados restritos:** sem a permissão de auditoria, o histórico nem é enviado ao navegador. Sem a permissão de usuários, o gestor vê só o próprio cadastro.
+- **Limites para todos:** ninguém altera o próprio perfil, e ninguém altera, remove ou troca a senha do gestor principal.
+- **Registro:** cada cadastro e cada mudança de perfil ficam no histórico, com o antes e o depois.
+
+**Regra de negócio, alerta de estoque mínimo:** em *Gestores e contato › Regras do estoque*, quem tem **Configurações e regras** define a partir de quantas unidades um material aparece como estoque baixo no painel e no catálogo.
 
 ## Celular, tablet e computador
 
@@ -52,7 +89,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **"Não lembrar meus dados neste computador"**: em computador compartilhado, apaga do navegador os dados do solicitante e a lista "Meus pedidos", e não guarda mais nada.
 
 **Gestor (`gestor.html`)**
-- **Até 3 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo** em computadores diferentes. As telas se atualizam sozinhas a cada 6 segundos.
+- **Até 5 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo**. Cada um tem um **perfil de acesso** (veja "Perfis de acesso"). As telas se atualizam sozinhas a cada 6 segundos.
 - Cada ação fica no histórico com o nome de quem fez.
 - **Pedidos:**
   - aprovar, atender tudo, atender em parte ou recusar;
@@ -133,7 +170,7 @@ O site já abre em **modo demonstração**, mas nesse modo cada computador tem u
    - clique em **Implantar** e copie a URL, que termina em `/exec`.
 6. Abra `gestor.html`, cole a URL no quadro **Ligar ao banco de dados**, clique em **Testar** e depois em **Abrir config.js no GitHub**. Troque a linha `API_URL: "",` e clique em **Commit changes**.
 7. Aguarde 1 a 2 minutos. Entre na área do gestor com o usuário e a senha do gestor principal.
-8. Na aba **Gestores e contato**, cadastre os outros 2 gestores, se houver, e preencha o contato do almoxarifado.
+8. Na aba **Gestores e contato**, cadastre os outros gestores (até 4, cada um com o seu perfil), preencha o contato do almoxarifado e, se quiser, o alerta de estoque mínimo.
 
 Quando o aviso amarelo de "Modo demonstração" sumir das páginas, o sistema está compartilhado por todas as máquinas.
 
@@ -148,6 +185,8 @@ Quando o aviso amarelo de "Modo demonstração" sumir das páginas, o sistema es
 Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
 - os 118 materiais novos e as fotos são incluídos sozinhos;
 - **a senha única antiga vira o usuário `gestor`**, com a mesma senha. Entre com ele e cadastre os demais logins.
+- **gestores já cadastrados** (além do principal) recebem o perfil **Gestor operacional**, com as mesmas permissões que tinham antes. O gestor principal pode mudar o perfil de cada um em *Gestores e contato › Editar perfil*.
+- **todos os gestores precisam entrar de novo** uma vez, porque as sessões passam a seguir a regra de 15 minutos de inatividade. A opção "Manter conectado por 30 dias" deixou de existir.
 - as imagens aproximadas colocadas pela versão anterior nos materiais fora do Catálogo GOV ES são retiradas, e esses quadrinhos ficam em branco. As imagens que o gestor já tinha inserido ou trocado são mantidas.
 - **o histórico é zerado uma única vez**;
 - gestores cadastrados antes desta versão não têm e-mail. Cada um deve cadastrar o seu em *Gestores e contato › Meu e-mail de recuperação*, ou o gestor principal pode usar **Alterar e-mail**.
@@ -156,9 +195,12 @@ Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
 
 ## Gestores e senhas
 
-- **Até 3 logins.** O primeiro é o **gestor principal**: cadastra e remove logins e redefine senhas. Todos atendem pedidos, alteram o catálogo e geram relatórios, inclusive ao mesmo tempo.
-- **Senhas seguras:** ficam no servidor (Google) como código cifrado. Nunca aparecem no HTML nem no GitHub.
-- **Manter conectado:** ao entrar, marque **Manter conectado neste computador** para não precisar digitar a senha por 30 dias. Sem essa opção, a sessão dura 10 horas.
+- **Até 5 logins.** O primeiro é o **gestor principal (master)**: tem todas as permissões e não pode ser alterado nem removido por ninguém.
+- **Encerramento por inatividade (regra de segurança):** depois de **15 minutos** sem mexer na página (mouse, teclado, toque ou rolagem), a sessão do gestor é encerrada.
+  - **Aviso:** no último minuto aparece o aviso com contagem regressiva e o botão **Manter conectado**. Nesse minuto, só o botão renova o tempo, para confirmar que há alguém de fato na frente da tela.
+  - **No servidor:** a regra também vale lá. As atualizações automáticas da tela não contam como uso, então uma sessão esquecida aberta expira mesmo que o computador continue ligado.
+  - **Duração máxima:** mesmo com uso, a sessão termina após 10 horas.
+  - **Página do solicitante:** a mesma regra vale lá. Após 15 minutos sem uso, a página é reiniciada e os dados digitados e os itens escolhidos são apagados da tela.
 - **Login removido:** quem teve o login removido perde o acesso na hora, em todos os computadores.
 - **Esqueci minha senha**, na tela de entrada:
   1. Informe o usuário ou o e-mail do gestor.

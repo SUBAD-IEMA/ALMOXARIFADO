@@ -18,14 +18,14 @@
 const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é recebido e quando muda de situação
 const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
 const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
-const MAX_GESTORES = 3;           // número máximo de logins de gestor
+const MAX_GESTORES = 5;           // número máximo de logins de gestor (incluindo o gestor principal/master)
+const INATIVIDADE_MIN = 15;       // regra de segurança: sessão do gestor encerra após 15 minutos sem atividade
 /* Pedidos só são aceitos com e-mail institucional deste domínio (qualquer nome antes do @). */
 const DOMINIO_EMAIL = 'iema.es.gov.br';
 /* Backup mensal automático (todo dia 1º, às 6h): PDF, Excel e JSON com solicitações, histórico e estoque.
    Os e-mails já estão definidos; o backup se ativa sozinho no primeiro acesso de um gestor (não precisa do menu da planilha). */
 const BACKUP_EMAILS = ['almoxarifado@iema.es.gov.br', 'subad@iema.es.gov.br'];
-const HORAS_SESSAO = 10;          // sessão comum
-const DIAS_LEMBRAR = 30;          // sessão com "manter conectado neste computador"
+const HORAS_SESSAO = 10;          // duração máxima de uma sessão, mesmo com atividade
 
 /* ======================= Estrutura ======================= */
 const SITUACOES = ['Pendente', 'Aprovado', 'Parcialmente atendido', 'Atendido', 'Recusado'];
@@ -40,6 +40,54 @@ const ABAS = {
 };
 const NCOL = 18;
 const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15, oculto: 16, soVisualizar: 17 };
+
+/* ======================= Perfis de acesso dos gestores ======================= */
+/* Todo gestor sempre pode VISUALIZAR o painel, os pedidos, o catálogo e o estoque em tempo real.
+   As permissões abaixo liberam as ações; o gestor principal (master) tem todas. */
+const PERMISSOES = ['pedidos_atender', 'pedidos_excluir', 'estoque_ajustar', 'catalogo_editar', 'relatorios', 'auditoria', 'backup', 'backup_importar', 'configuracoes', 'usuarios'];
+const PERMISSOES_ESCRITA = ['pedidos_atender', 'pedidos_excluir', 'estoque_ajustar', 'catalogo_editar', 'backup_importar', 'configuracoes', 'usuarios'];
+const PERFIS = {
+  admin:        { nome: 'Administrador do Sistema', p: PERMISSOES },
+  operacional:  { nome: 'Gestor operacional', p: ['pedidos_atender', 'pedidos_excluir', 'estoque_ajustar', 'catalogo_editar', 'relatorios', 'auditoria', 'backup', 'configuracoes'] },
+  estoque:      { nome: 'Almoxarife (estoque e catálogo)', p: ['pedidos_atender', 'estoque_ajustar', 'catalogo_editar', 'relatorios'] },
+  pedidos:      { nome: 'Atendimento de pedidos', p: ['pedidos_atender', 'relatorios'] },
+  auditor:      { nome: 'Auditor', p: ['relatorios', 'auditoria', 'backup'] },
+  leitura:      { nome: 'Visualizador (leitura)', p: ['auditoria'] },
+  personalizado:{ nome: 'Personalizado', p: [] }
+};
+/* Ação do sistema -> permissão exigida (conferida no servidor, não só na tela). */
+const PERMISSAO_ACAO = { atender: 'pedidos_atender', excluirPedido: 'pedidos_excluir', ajustarEstoque: 'estoque_ajustar',
+  salvarItem: 'catalogo_editar', indisponivel: 'catalogo_editar', visibilidade: 'catalogo_editar', soVisualizar: 'catalogo_editar', removerItem: 'catalogo_editar',
+  salvarContato: 'configuracoes', salvarRegras: 'configuracoes', ativarBackup: 'configuracoes',
+  backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
+  adicionarGestor: 'usuarios', removerGestor: 'usuarios', redefinirSenha: 'usuarios', editarGestor: 'usuarios' };
+function permissoesDe(g) {
+  const o = {};
+  // Gestores de versões anteriores (sem perfil) mantêm o que podiam fazer: perfil "Gestor operacional".
+  const lista = g.principal ? PERMISSOES : (Array.isArray(g.permissoes) ? g.permissoes : PERFIS.operacional.p);
+  PERMISSOES.forEach(k => o[k] = lista.indexOf(k) >= 0);
+  return o;
+}
+function perfilDe(g) {
+  if (g.principal) return { id: 'master', nome: 'Gestor principal (master)' };
+  const id = PERFIS[g.perfil] ? g.perfil : (Array.isArray(g.permissoes) ? 'personalizado' : 'operacional');
+  return { id: id, nome: PERFIS[id].nome };
+}
+function pode(p) { return !!GESTOR && (GESTOR.principal || permissoesDe(GESTOR)[p]); }
+const NOMES_PERMISSAO = { pedidos_atender: 'atender pedidos', pedidos_excluir: 'excluir pedidos', estoque_ajustar: 'ajustar quantidades do estoque',
+  catalogo_editar: 'editar o catálogo', relatorios: 'gerar relatórios', auditoria: 'ver o histórico', backup: 'gerar ou enviar backup',
+  backup_importar: 'importar backup', configuracoes: 'alterar configurações', usuarios: 'gerenciar usuários e perfis' };
+function exigirPermissao(p) {
+  if (!pode(p)) throw amigavel('Seu perfil (' + perfilDe(GESTOR).nome + ') não tem permissão para ' + (NOMES_PERMISSAO[p] || p) + '. Fale com o gestor principal.');
+}
+function normalizarPerfil(perfil, permissoes) {
+  let lista = Array.isArray(permissoes) ? permissoes : ((PERFIS[perfil] || PERFIS.personalizado).p);
+  lista = PERMISSOES.filter(k => lista.indexOf(k) >= 0);
+  let id = PERFIS[perfil] ? perfil : 'personalizado';
+  if (id !== 'personalizado' && PERFIS[id].p.join() !== lista.join()) id = 'personalizado';
+  if (id === 'personalizado') Object.keys(PERFIS).forEach(k => { if (k !== 'personalizado' && id === 'personalizado' && PERFIS[k].p.join() === lista.join()) id = k; });
+  return { perfil: id, permissoes: lista };
+}
 
 let QUEM = 'Sistema';     // quem está fazendo a operação (vai para a coluna "Responsável" do histórico)
 let GESTOR = null;        // gestor conectado (ações do gestor)
@@ -60,11 +108,11 @@ function doPost(e) {
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
     backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
-    if (!f && doGestor[req.acao]) { exigirSessao(req.token); f = doGestor[req.acao]; }
+    if (!f && doGestor[req.acao]) { exigirSessao(req.token, !!req.auto); if (PERMISSAO_ACAO[req.acao]) exigirPermissao(PERMISSAO_ACAO[req.acao]); f = doGestor[req.acao]; }
     if (!f) throw amigavel('Ação desconhecida: ' + req.acao);
     if (req.site && /^https?:\/\//.test(req.site)) lembrarSite(req.site);
     return saida(Object.assign({ ok: true }, f(req) || {}));
@@ -269,32 +317,37 @@ function lerGestores() {
   return g;
 }
 function gravarGestores(g) { props().setProperty('GESTORES', JSON.stringify(g)); }
-const gestorPublico = g => ({ usuario: g.usuario, nome: g.nome, email: g.email || '', principal: !!g.principal, criadoEm: g.criadoEm });
+const gestorPublico = g => { const p = permissoesDe(g); return { usuario: g.usuario, nome: g.nome, email: g.email || '', principal: !!g.principal, criadoEm: g.criadoEm,
+  perfil: perfilDe(g), permissoes: p, somenteLeitura: !PERMISSOES_ESCRITA.some(k => p[k]) }; };
 
-function sessoes() { try { return JSON.parse(props().getProperty('SESSOES') || '{}'); } catch (e) { return {}; } }
-function gravarSessoes(s) {
+/* Cada sessão fica numa propriedade própria (SESS_<token>): vários gestores ao mesmo tempo não sobrescrevem a sessão um do outro.
+   e = fim absoluto da sessão; a = último uso feito pelo gestor (as atualizações automáticas da tela não contam). */
+const LIMITE_INATIVO_MS = INATIVIDADE_MIN * 60000 + 90000;   // 15 min + 1,5 min de tolerância de rede
+function lerSessao(token) { try { return JSON.parse(props().getProperty('SESS_' + token) || 'null'); } catch (e) { return null; } }
+function chavesSessao() { return props().getKeys().filter(k => k.indexOf('SESS_') === 0); }
+function limparSessoesVencidas() {
   const agora = Date.now();
-  Object.keys(s).forEach(k => { if (!s[k] || typeof s[k] !== 'object' || s[k].e < agora) delete s[k]; });
-  Object.keys(s).sort((a, b) => s[b].e - s[a].e).slice(60).forEach(k => delete s[k]);
-  props().setProperty('SESSOES', JSON.stringify(s));
+  chavesSessao().forEach(k => { let s = null; try { s = JSON.parse(props().getProperty(k) || 'null'); } catch (e) {} if (!s || s.e < agora || agora - s.a > LIMITE_INATIVO_MS) props().deleteProperty(k); });
 }
 function encerrarSessoesDe(usuario, exceto) {
-  const s = sessoes(); Object.keys(s).forEach(k => { if (s[k] && s[k].u === usuario && k !== exceto) delete s[k]; }); gravarSessoes(s);
+  chavesSessao().forEach(k => { if (k === 'SESS_' + exceto) return; let s = null; try { s = JSON.parse(props().getProperty(k) || 'null'); } catch (e) {} if (!s || s.u === usuario) props().deleteProperty(k); });
 }
-function abrirSessao(g, lembrar) {
-  const token = Utilities.getUuid() + Utilities.getUuid();
-  const s = sessoes();
-  s[token] = { u: g.usuario, e: Date.now() + (lembrar ? DIAS_LEMBRAR * 864e5 : HORAS_SESSAO * 36e5) };
-  gravarSessoes(s);
-  return { token, gestor: gestorPublico(g) };
+function abrirSessao(g) {
+  limparSessoesVencidas();
+  const token = Utilities.getUuid() + Utilities.getUuid(), agora = Date.now();
+  props().setProperty('SESS_' + token, JSON.stringify({ u: g.usuario, e: agora + HORAS_SESSAO * 36e5, a: agora }));
+  return { token, gestor: gestorPublico(g), inatividadeMin: INATIVIDADE_MIN };
 }
-function exigirSessao(token) {
-  const s = sessoes()[token];
-  const g = s && typeof s === 'object' && s.e > Date.now() ? lerGestores().find(x => x.usuario === s.u) : null;
-  if (!g) { const e = amigavel('Sua sessão expirou ou o acesso foi removido. Entre novamente.'); e.sessao = true; throw e; }
+function exigirSessao(token, automatico) {
+  const s = token ? lerSessao(token) : null, agora = Date.now();
+  let motivo = 'Sua sessão expirou ou o acesso foi removido. Entre novamente.';
+  if (s && agora - s.a > LIMITE_INATIVO_MS) motivo = 'Sessão encerrada por segurança após ' + INATIVIDADE_MIN + ' minutos sem atividade. Entre novamente.';
+  const g = s && s.e > agora && agora - s.a <= LIMITE_INATIVO_MS ? lerGestores().find(x => x.usuario === s.u) : null;
+  if (!g) { if (token) props().deleteProperty('SESS_' + token); const e = amigavel(motivo); e.sessao = true; throw e; }
+  if (!automatico && agora - s.a > 20000) { s.a = agora; props().setProperty('SESS_' + token, JSON.stringify(s)); }
   GESTOR = g; QUEM = g.nome + ' (' + g.usuario + ')';
 }
-function exigirPrincipal() { if (!GESTOR.principal) throw amigavel('Somente o gestor principal pode gerenciar os logins de gestor.'); }
+function acaoManterConectado() { return { inatividadeMin: INATIVIDADE_MIN }; }
 
 function acaoSituacaoAcesso() { return { temGestores: lerGestores().length > 0, maxGestores: MAX_GESTORES }; }
 function acaoCriarPrimeiroGestor(req) {
@@ -305,7 +358,7 @@ function acaoCriarPrimeiroGestor(req) {
     const g = novoGestor(req.usuario, req.nome, req.senha, true, req.email || '');
     gravarGestores([g]); GESTOR = g; QUEM = g.nome + ' (' + g.usuario + ')';
     registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Gestor principal (primeiro acesso)']]);
-    return abrirSessao(g, req.lembrar);
+    return abrirSessao(g);
   } finally { lock.releaseLock(); }
 }
 function acaoLogin(req) {
@@ -320,9 +373,9 @@ function acaoLogin(req) {
     throw amigavel('Usuário ou senha incorretos.');
   }
   cache.remove(chave);
-  return abrirSessao(g, req.lembrar);
+  return abrirSessao(g);
 }
-function acaoSair(req) { const s = sessoes(); delete s[req.token]; gravarSessoes(s); return {}; }
+function acaoSair(req) { if (req.token) props().deleteProperty('SESS_' + req.token); return {}; }
 
 /* ---------- Esqueci minha senha: código enviado ao e-mail cadastrado ---------- */
 function mascararEmail(e) { const p = String(e).split('@'); return p[0].slice(0, 2) + '•••••@' + (p[1] || ''); }
@@ -359,11 +412,11 @@ function acaoRedefinirComCodigo(req) {
   gravarGestores(lista); props().setProperty('RECUP_' + usuario, ''); encerrarSessoesDe(usuario);
   QUEM = g.nome + ' (' + g.usuario + ')';
   registrar([[new Date(), 'Senha recuperada', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Nova senha criada com o código enviado por e-mail']]);
-  return abrirSessao(g, req.lembrar);
+  return abrirSessao(g);
 }
 function acaoAlterarEmailGestor(req) {
   const alvo = String(req.usuario || GESTOR.usuario);
-  if (alvo !== GESTOR.usuario) exigirPrincipal();
+  if (alvo !== GESTOR.usuario) { exigirPermissao('usuarios'); if ((lerGestores().find(x => x.usuario === alvo) || {}).principal) throw amigavel('Somente o próprio gestor principal pode alterar o e-mail dele.'); }
   const lista = lerGestores(), g = lista.find(x => x.usuario === alvo);
   if (!g) throw amigavel('Gestor não encontrado.');
   g.email = validarEmailGestor(req.email); gravarGestores(lista);
@@ -371,29 +424,30 @@ function acaoAlterarEmailGestor(req) {
   novaVersao();
   return acaoGestores();
 }
-function acaoGestores() { return { gestores: lerGestores().map(gestorPublico), max: MAX_GESTORES }; }
+function acaoGestores() { return { gestores: lerGestores().map(gestorPublico), max: MAX_GESTORES, perfis: PERFIS }; }
 function acaoAdicionarGestor(req) {
-  exigirPrincipal();
   const lock = bloquear();
   try {
     const lista = lerGestores();
     if (lista.length >= MAX_GESTORES) throw amigavel('Limite de ' + MAX_GESTORES + ' gestores atingido. Remova um login antes de cadastrar outro.');
     const g = novoGestor(req.usuario, req.nome, req.senha, false, req.email || '');
     if (lista.some(x => x.usuario === g.usuario)) throw amigavel('Já existe um gestor com o usuário "' + g.usuario + '".');
+    const pf = normalizarPerfil(req.perfil || 'leitura', req.permissoes);
+    g.perfil = pf.perfil; g.permissoes = pf.permissoes;
     lista.push(g); gravarGestores(lista);
-    registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')']]);
+    registrar([[new Date(), 'Gestor cadastrado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Perfil: ' + perfilDe(g).nome + ' – permissões: ' + (pf.permissoes.join(', ') || 'somente visualização')]]);
     novaVersao();
   } finally { lock.releaseLock(); }
   return acaoGestores();
 }
 function acaoRemoverGestor(req) {
-  exigirPrincipal();
   const usuario = String(req.usuario || '');
   if (usuario === GESTOR.usuario) throw amigavel('Você não pode remover o seu próprio login.');
   const lock = bloquear();
   try {
     const lista = lerGestores(), g = lista.find(x => x.usuario === usuario);
     if (!g) throw amigavel('Gestor não encontrado.');
+    if (g.principal) throw amigavel('O gestor principal (master) não pode ser removido.');
     gravarGestores(lista.filter(x => x.usuario !== usuario));
     encerrarSessoesDe(usuario);
     registrar([[new Date(), 'Gestor removido', '', '', '', g.nome + ' (' + g.usuario + ')']]);
@@ -402,13 +456,31 @@ function acaoRemoverGestor(req) {
   return acaoGestores();
 }
 function acaoRedefinirSenha(req) {
-  exigirPrincipal();
   const lista = lerGestores(), g = lista.find(x => x.usuario === String(req.usuario || ''));
   if (!g) throw amigavel('Gestor não encontrado.');
+  if (g.principal && !GESTOR.principal) throw amigavel('Somente o próprio gestor principal pode trocar a senha dele.');
   g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(req.nova));
   gravarGestores(lista); encerrarSessoesDe(g.usuario, req.token);
-  registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Nova senha cadastrada presencialmente pelo gestor principal; sessões abertas desse gestor foram encerradas']]);
+  registrar([[new Date(), 'Senha redefinida', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Nova senha cadastrada presencialmente por ' + GESTOR.nome + '; sessões abertas desse gestor foram encerradas']]);
   return {};
+}
+/* Muda o tipo de perfil e as permissões de um gestor (o gestor principal não pode ser alterado). */
+function acaoEditarGestor(req) {
+  const lock = bloquear();
+  try {
+    const lista = lerGestores(), g = lista.find(x => x.usuario === String(req.usuario || ''));
+    if (!g) throw amigavel('Gestor não encontrado.');
+    if (g.principal) throw amigavel('O perfil do gestor principal (master) não pode ser alterado: ele tem todas as permissões.');
+    if (g.usuario === GESTOR.usuario) throw amigavel('Você não pode alterar o seu próprio perfil. Peça a outro gestor com permissão ou ao gestor principal.');
+    const antes = perfilDe(g).nome + ' (' + (permissoesDe(g) && PERMISSOES.filter(k => permissoesDe(g)[k]).join(', ') || 'somente visualização') + ')';
+    const pf = normalizarPerfil(req.perfil, req.permissoes);
+    g.perfil = pf.perfil; g.permissoes = pf.permissoes;
+    if (req.nome && String(req.nome).trim().length >= 3) g.nome = String(req.nome).trim().slice(0, 80);
+    gravarGestores(lista);
+    registrar([[new Date(), 'Perfil de gestor alterado', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Antes: ' + antes + ' → agora: ' + perfilDe(g).nome + ' (' + (pf.permissoes.join(', ') || 'somente visualização') + ')']]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  return acaoGestores();
 }
 function acaoTrocarSenha(req) {
   const lista = lerGestores(), g = lista.find(x => x.usuario === GESTOR.usuario);
@@ -416,7 +488,7 @@ function acaoTrocarSenha(req) {
   g.salt = Utilities.getUuid(); g.hash = hashSenha(g.salt, validarSenha(req.nova));
   gravarGestores(lista); encerrarSessoesDe(g.usuario);
   registrar([[new Date(), 'Senha alterada', '', '', '', g.nome + ' (' + g.usuario + ')', '', '', '', 'Os outros computadores desse gestor foram desconectados']]);
-  return abrirSessao(g, req.lembrar);
+  return abrirSessao(g);
 }
 
 /* ======================= Ações públicas ======================= */
@@ -425,7 +497,7 @@ function acaoVersao() { return { versao: versaoAtual() }; }
 function acaoCatalogo() {
   garantirCatalogo();
   const { itens } = lerCatalogo();
-  return { versao: versaoAtual(), inicializado: itens.length > 0, itens: itens.filter(i => i.ativo && !i.oculto).map(publico), gestor: dadosContato() };
+  return { versao: versaoAtual(), inicializado: itens.length > 0, itens: itens.filter(i => i.ativo && !i.oculto).map(publico), gestor: dadosContato(), regras: dadosRegras() };
 }
 
 function acaoImagens(req) {
@@ -511,7 +583,9 @@ function acaoPainel() {
     antes: r[6] === '' ? null : Number(r[6]), depois: r[7] === '' ? null : Number(r[7]), delta: r[8] === '' ? null : Number(r[8]), detalhes: String(r[9] || ''), quem: String(r[10] || '')
   }));
   return { versao: versaoAtual(), inicializado: cat.itens.length > 0, itens: cat.itens.filter(i => i.ativo).map(publico), pedidos: lerPedidos().pedidos.map(semLinha),
-    historico: hist, gestor: dadosContato(), eu: gestorPublico(GESTOR), gestores: lerGestores().map(gestorPublico), maxGestores: MAX_GESTORES,
+    historico: pode('auditoria') ? hist : [], gestor: dadosContato(), eu: gestorPublico(GESTOR),
+    gestores: pode('usuarios') ? lerGestores().map(gestorPublico) : [gestorPublico(GESTOR)], totalGestores: lerGestores().length, maxGestores: MAX_GESTORES,
+    perfis: PERFIS, permissoesLista: PERMISSOES, regras: dadosRegras(), inatividadeMin: INATIVIDADE_MIN,
     backup: situacaoBackup() };
 }
 
@@ -652,6 +726,7 @@ function acaoSalvarItem(req) {
       if (imagemMudou) mudancas.push('imagem alterada');
     }
     const antes = novo ? 0 : it.qtd;
+    if (antes !== qtd) exigirPermissao('estoque_ajustar');
     it.qtd = qtd;
     gravarItem(cat.sh, it);
     if (novo) registrar([[agora, 'Material cadastrado', '', it.id, it.codigo, it.descricao, '', qtd, qtd, motivo || 'Cadastro de novo material']]);
@@ -711,6 +786,16 @@ function acaoRemoverItem(req) {
   return {};
 }
 
+function dadosRegras() { const c = lerConfig(), m = Number(c.estoque_minimo); return { estoqueMinimo: c.estoque_minimo === undefined || c.estoque_minimo === '' || isNaN(m) ? null : m }; }
+function acaoSalvarRegras(req) {
+  const m = Math.floor(Number(req.estoqueMinimo));
+  if (!(m >= 0) || m > 100000) throw amigavel('Informe um estoque mínimo entre 0 e 100.000.');
+  const antes = dadosRegras().estoqueMinimo;
+  gravarConfig({ estoque_minimo: m });
+  registrar([[new Date(), 'Regra alterada', '', '', '', 'Alerta de estoque mínimo', antes == null ? '' : antes, m, antes == null ? '' : m - antes, 'Materiais com ' + m + ' unidades ou menos aparecem como estoque baixo']]);
+  novaVersao();
+  return { regras: dadosRegras() };
+}
 function acaoSalvarContato(req) {
   const g = req.gestor || {};
   gravarConfig({ gestor_nome: seguro(String(g.nome || '').trim()), gestor_setor: seguro(String(g.setor || '').trim()), gestor_telefone: seguro(String(g.telefone || '').trim()), gestor_email: seguro(String(g.email || '').trim()) });
@@ -858,7 +943,6 @@ function acaoBackupEnviarArquivos(req) {
 /* Nada é apagado: pedidos e registros de histórico que já existem são mantidos e só entram os que faltam.
    Os materiais do backup atualizam os dados e as quantidades dos materiais atuais (cada mudança de quantidade vai para o histórico). */
 function acaoImportarBackup(req) {
-  exigirPrincipal();
   const d = req.dados || {}, op = req.opcoes || { pedidos: true, historico: true, estoque: true }, simular = !!req.simular;
   if (d.formato !== 'backup-almoxarifado-iema/1' || !Array.isArray(d.pedidos) || !Array.isArray(d.historico) || !Array.isArray(d.estoque))
     throw amigavel('Arquivo inválido. Use o arquivo .json gerado pelo botão “Gerar backup” ou recebido no e-mail de backup.');
@@ -1034,7 +1118,7 @@ function menuBackupAgora() {
   try { const d = backupMensal(); ui.alert('Backup enviado para ' + BACKUP_EMAILS.join(', ') + ' (' + d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico).'); }
   catch (e) { ui.alert('Não foi possível enviar: ' + e.message); }
 }
-function menuDesconectar() { props().setProperty('SESSOES', '{}'); SpreadsheetApp.getUi().alert('Todos os gestores foram desconectados.'); }
+function menuDesconectar() { chavesSessao().forEach(k => props().deleteProperty(k)); SpreadsheetApp.getUi().alert('Todos os gestores foram desconectados.'); }
 
 /* ======================= Catálogos de materiais ======================= */
 /* Relatório de Itens em Estoque – 17/10/2026. Colunas: id, código, descrição, unidade, natureza, nome da natureza, conta contábil, quantidade, termo de busca. */

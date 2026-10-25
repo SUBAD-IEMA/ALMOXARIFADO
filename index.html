@@ -734,6 +734,34 @@ img{max-width:100%}
 @media (max-width:1000px){ .charts{grid-template-columns:minmax(0,1fr)} }
 @media (max-width:760px){ html,body{overflow-x:clip} }
 
+/* ===================== Versão 11: perfis de acesso e inatividade ===================== */
+.inativo-aviso{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);z-index:200;display:flex;align-items:center;gap:14px;max-width:min(620px,calc(100vw - 24px));width:max-content;background:var(--surface);color:var(--ink);border:2px solid var(--amber);border-radius:14px;padding:14px 16px;box-shadow:0 14px 40px rgba(0,0,0,.25);transition:transform .25s ease;visibility:hidden}
+.inativo-aviso.on{transform:translate(-50%,0);visibility:visible}
+.inativo-aviso .ia-icone{font-size:26px;line-height:1}
+.inativo-aviso .ia-txt{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.inativo-aviso .ia-txt b{font-size:15px}
+.inativo-aviso .btn{flex:none;white-space:nowrap}
+@media (max-width:760px){
+  .inativo-aviso{flex-wrap:wrap;width:calc(100vw - 20px);bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+  .inativo-aviso .btn{flex:1 1 100%;justify-content:center}
+}
+.perfil-box{margin-top:14px}
+.perfil-desc{font-size:13px;color:var(--muted);margin:6px 0 10px;min-height:1.2em}
+.perm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.perm{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--surface)}
+.perm:has(input:checked){border-color:var(--pine);background:var(--pine-soft)}
+.perm input{margin-top:2px;flex:none;width:18px;height:18px}
+.perm span{display:flex;flex-direction:column;gap:2px}
+.perm b{font-size:14px}
+.perm small{font-size:12px;color:var(--muted);line-height:1.35}
+.perm.sempre{opacity:.75;cursor:default}
+.selo.perfil{background:var(--pine-soft);color:var(--pine);margin-left:0}
+.selo.perfil.master{background:var(--pine);color:#fff}
+.selo.leitura{background:var(--amber-soft);color:var(--amber)}
+.perms-resumo{color:var(--muted);font-size:12px;margin-top:2px}
+body.so-leitura .masthead #m-perfil{color:#FFE6B3}
+@media (max-width:760px){ .inativo-aviso .ia-icone{display:none} }
+
 </style>
 </head>
 <body>
@@ -863,7 +891,40 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   new MutationObserver(() => { clearTimeout(tRot); tRot = setTimeout(rotularTabelas, 30); }).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener("DOMContentLoaded", rotularTabelas);
 
-  window.U = { $, esc, fmt, norm, dataHora, pill, emailOk, mascaraTelefone, toast, abrirDialogo, fecharDialogo, ocupado, livre, confirmar, aplicarTextos, SITUACAO_CLASSE };
+  /* Regra de segurança: depois de "minutos" sem mexer na página (mouse, teclado, toque ou rolagem),
+     encerra a sessão (gestor) ou reinicia a página (solicitante). No último minuto aparece o aviso
+     com contagem regressiva e o botão "Manter conectado" (nesse minuto, só o botão renova o tempo). */
+  function inatividade(op){
+    const minutos = op.minutos || 15, avisoSeg = op.avisoSeg || 60;
+    let ultimo = Date.now(), avisando = false, barra = null;
+    const atividade = () => { if(!avisando) ultimo = Date.now(); };
+    ["mousemove", "mousedown", "keydown", "wheel", "scroll", "touchstart", "input"].forEach(ev => window.addEventListener(ev, atividade, { passive: true, capture: true }));
+    function montar(){
+      barra = document.createElement("div");
+      barra.className = "inativo-aviso"; barra.setAttribute("role", "alertdialog"); barra.setAttribute("aria-live", "assertive");
+      barra.innerHTML = `<div class="ia-icone" aria-hidden="true">⏱</div><div class="ia-txt"><b>${op.titulo || "Você ainda está aí?"}</b><span></span></div><button class="btn primary" type="button">Manter conectado</button>`;
+      barra.querySelector("button").onclick = manter;
+      document.body.appendChild(barra);
+    }
+    function mostrar(seg){
+      if(!barra) montar();
+      const mm = Math.floor(seg / 60), ss = String(seg % 60).padStart(2, "0");
+      barra.querySelector(".ia-txt span").textContent = (op.texto || "Por segurança, a sessão será encerrada em {t} por falta de uso.").replace("{t}", mm + ":" + ss);
+      if(!barra.classList.contains("on")){ barra.classList.add("on"); setTimeout(() => barra && barra.querySelector("button").focus(), 50); }
+    }
+    function esconder(){ if(barra) barra.classList.remove("on"); }
+    function manter(){ avisando = false; ultimo = Date.now(); esconder(); if(op.aoManter) op.aoManter(); }
+    setInterval(() => {
+      if(op.ativo && !op.ativo()){ ultimo = Date.now(); avisando = false; esconder(); return; }
+      const ocioso = Date.now() - ultimo, limite = minutos * 60000;
+      if(ocioso >= limite){ avisando = false; esconder(); ultimo = Date.now(); if(op.aoExpirar) op.aoExpirar(); }
+      else if(ocioso >= limite - avisoSeg * 1000){ avisando = true; mostrar(Math.ceil((limite - ocioso) / 1000)); }
+    }, 1000);
+    return { reiniciar(){ ultimo = Date.now(); avisando = false; esconder(); }, ociosoMs: () => Date.now() - ultimo,
+      _simular(ms){ ultimo = Date.now() - ms; } };   // _simular: usado só nos testes automáticos
+  }
+
+  window.U = { inatividade, $, esc, fmt, norm, dataHora, pill, emailOk, mascaraTelefone, toast, abrirDialogo, fecharDialogo, ocupado, livre, confirmar, aplicarTextos, SITUACAO_CLASSE };
 })();
 
 </script>
