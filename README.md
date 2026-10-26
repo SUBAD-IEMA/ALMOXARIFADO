@@ -20,6 +20,76 @@ Não há pastas. Envie os 8 arquivos lado a lado na raiz do repositório.
 
 Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Ambiente**, e o logotipo oficial (Governo do Estado do Espírito Santo, Secretaria do Meio Ambiente e Recursos Hídricos e IEMA). O nome também aparece no título das abas do navegador, nas planilhas Excel, nos PDFs e nos e-mails.
 
+## Catálogo para consulta e pré-aprovação (SIADES)
+
+A página inicial, a página de pedidos, a confirmação, o pedido enviado, o acompanhamento, o PDF e a planilha do pedido e os e-mails trazem, em tom formal, o aviso institucional:
+
+> *Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado. Esse procedimento não exclui a obrigatoriedade de solicitação formal dos itens no SIADES, que permanece indispensável para a efetivação do atendimento. Agradecemos a compreensão e a colaboração.*
+
+**Pedidos aprovados:** quando o gestor aprova um pedido, o andamento informa que se trata de uma **pré-aprovação** e lembra o solicitante de formalizar a solicitação no SIADES.
+
+**Mudar a redação:**
+- **Páginas e documentos:** altere `AVISO_SIADES_TITULO`, `AVISO_SIADES` e `AVISO_SIADES_CURTO` no `config.js`.
+- **E-mails:** altere `AVISO_SIADES` no início do `Code.gs`.
+
+## Mini imagens dos materiais em pedidos e relatórios
+
+As tabelas passam a ter uma coluna com a mini imagem de cada material. Os materiais sem foto aparecem com um quadrinho em branco.
+
+| Onde | Na tela | Excel | PDF e impressão |
+|---|---|---|---|
+| Pedido (confirmação, pedido enviado, acompanhamento, detalhe do gestor) | ✓ | ✓ | ✓ |
+| Lista de pedidos do gestor (até 4 imagens por pedido) | ✓ | ✓ | – |
+| Exportação do catálogo | – | ✓ | – |
+| Relatórios por pedido, por material, consumo, estoque e histórico | ✓ | ✓ | ✓ |
+| Dashboard: materiais com estoque baixo | ✓ | – | ✓ |
+
+A impressão usa o próprio PDF, então sai igual a ele, com as imagens. Nos relatórios, a opção **Incluir imagens dos materiais** pode ser desmarcada para gerar arquivos mais leves.
+
+## Gráficos e dashboard (aba Relatórios)
+
+A aba **Relatórios** tem dois modos, com os mesmos filtros.
+
+**Filtros:**
+- período rápido: 7, 30 e 90 dias, este mês, este ano, 12 meses ou todo o período;
+- datas De e Até;
+- setor;
+- situação;
+- natureza de despesa;
+- material, digitando o código ou o nome;
+- botão **Limpar filtros**.
+
+**Relatórios em tabela:** os 7 relatórios de antes. Com **Incluir gráfico** marcado, cada relatório mostra um gráfico próprio, que vai junto para o PDF (na primeira página) e para o Excel (aba "Gráfico"):
+
+| Relatório | Gráfico |
+|---|---|
+| Resumo | Situação dos pedidos |
+| Por material e consumo | 15 materiais mais pedidos |
+| Setores | Solicitado e atendido por setor |
+| Estoque | Disponível e reservado por natureza |
+| Histórico e excluídos | Registros por tipo e por responsável |
+
+**Dashboard com gráficos:**
+- **Indicadores:**
+  - pedidos;
+  - unidades solicitadas e atendidas;
+  - taxa de atendimento;
+  - tempo médio de atendimento;
+  - materiais com estoque baixo.
+- **Nove gráficos:**
+  - evolução por dia ou mês;
+  - situação;
+  - materiais mais solicitados;
+  - consumo por setor;
+  - consumo por natureza;
+  - estoque por natureza;
+  - taxa de atendimento por setor;
+  - pedidos por dia da semana;
+  - pedidos por horário.
+- **Estoque baixo:** a lista dos materiais com estoque baixo, com imagem.
+- **Atualização:** o dashboard muda na hora ao trocar um filtro e se atualiza sozinho quando chegam pedidos.
+- **Exportação:** os botões **Baixar PDF do dashboard** e **Imprimir dashboard** geram um relatório em paisagem com os indicadores, os gráficos e a lista com imagens.
+
 ## Perfis de acesso dos gestores
 
 Na aba **Gestores e contato**, quem tem a permissão **Usuários e perfis** (o gestor principal sempre tem) cadastra até 5 gestores. Para cada um, escolhe o **tipo de perfil** e pode ajustar as permissões marcando as caixinhas. Se as caixinhas marcadas não corresponderem a nenhum perfil pronto, o perfil vira **Personalizado**. Se corresponderem, recebe o nome do perfil.

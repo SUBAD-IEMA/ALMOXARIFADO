@@ -762,6 +762,65 @@ img{max-width:100%}
 body.so-leitura .masthead #m-perfil{color:#FFE6B3}
 @media (max-width:760px){ .inativo-aviso .ia-icone{display:none} }
 
+/* ===================== Versão 12: aviso SIADES, mini imagens, gráficos e dashboard ===================== */
+/* Aviso institucional (tom formal) */
+.aviso-siades{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(135deg,var(--pine-soft),var(--surface));border:1px solid color-mix(in srgb,var(--pine) 30%,var(--rule));border-left:5px solid var(--pine);border-radius:12px;padding:16px 20px;margin:18px 0}
+.aviso-siades .as-ico{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--pine);color:#fff}
+.aviso-siades h2{font-size:16.5px;margin:2px 0 6px;color:var(--pine);letter-spacing:-.01em}
+.aviso-siades p{margin:0;font-size:14.5px;line-height:1.6;color:var(--ink)}
+.aviso-siades.compacto{padding:12px 14px;margin:14px 0 0;gap:10px}
+.aviso-siades.compacto .as-ico{width:32px;height:32px}
+.aviso-siades.compacto b{display:block;color:var(--pine);font-size:14px;margin-bottom:3px}
+.aviso-siades.compacto p{font-size:13px;line-height:1.5}
+.aviso-siades.compacto p + p{margin-top:6px}
+.nota-siades{margin:12px 0 0;font-size:12.5px;color:var(--pine);font-weight:600;background:var(--pine-soft);border-radius:8px;padding:8px 10px}
+.inicio + .aviso-siades,.wrap > .aviso-siades:first-child{margin-top:22px}
+/* Mini imagens nas tabelas */
+.mini-img{width:40px;height:40px;border-radius:6px;border:1px solid var(--rule);background:#fff;object-fit:contain;display:inline-block;vertical-align:middle;flex:none}
+.mini-img.vazia{background:repeating-linear-gradient(45deg,#fff,#fff 6px,var(--surface-2) 6px,var(--surface-2) 7px)}
+.td-mini,.td-minis{width:1%;white-space:nowrap}
+.td-minis .mini-img + .mini-img{margin-left:4px}
+.minis{display:inline-flex;gap:3px;align-items:center;margin-right:8px;vertical-align:middle}
+.minis .mini-img{width:28px;height:28px;border-radius:5px}
+.minis-mais{font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);border-radius:5px;padding:5px 6px;margin-left:4px}
+.td-mats{white-space:nowrap}
+table.mini td.td-mini .mini-img{width:44px;height:44px}
+b.neg{color:#B42318} b.low{color:var(--amber)}
+/* Modos da aba Relatórios */
+.rel-modos{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--rule);border-radius:12px;padding:4px;margin:0 0 18px}
+.rel-modo{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;padding:10px 16px;border-radius:9px;font:inherit;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer}
+.rel-modo[aria-selected="true"]{background:var(--surface);color:var(--pine);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.filtros .rf-mat-f{flex:2 1 280px}
+.rel-acoes .check{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-left:6px}
+.dash-resumo{font-size:12.5px;color:var(--muted);margin-left:auto}
+.rel-graf{margin:0 0 14px}
+/* Dashboard */
+.dash-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:6px 0 16px}
+.dash-kpi{position:relative;background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:16px 16px 14px 18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;gap:3px}
+.dash-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--pine)}
+.dash-kpi.k1::before{background:#3B8C6E} .dash-kpi.k2::before{background:#C9A227} .dash-kpi.k3::before{background:#3B6FA0} .dash-kpi.k4::before{background:#7A5195} .dash-kpi.k5::before{background:#D67800}
+.dash-kpi b{font-size:28px;line-height:1.1;letter-spacing:-.02em;color:var(--ink)}
+.dash-kpi span{font-size:13px;font-weight:700;color:var(--ink)}
+.dash-kpi small{font-size:12px;color:var(--muted)}
+.dash-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.dash-card{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+.dash-card.largo{grid-column:1 / -1}
+.dash-card h3{font-size:15px;margin:0;color:var(--ink)}
+.dash-card > p{font-size:12.5px;color:var(--muted);margin:3px 0 10px}
+.dash-box{position:relative;height:280px}
+.dash-box.alto{height:320px}
+.dash-card .table-wrap{margin-top:4px}
+@media (max-width:1000px){ .dash-grid{grid-template-columns:minmax(0,1fr)} .dash-box{height:260px} }
+@media (max-width:760px){
+  .rel-modos{display:flex;width:100%} .rel-modo{flex:1;justify-content:center;padding:10px 8px;font-size:13px}
+  .dash-kpi b{font-size:22px} .dash-box,.dash-box.alto{height:240px}
+  .dash-resumo{margin-left:0;flex-basis:100%}
+  .aviso-siades{padding:14px;gap:10px} .aviso-siades .as-ico{width:34px;height:34px}
+  table.mini td.tn-cell,table.mini td.td-mini{display:flex}
+  .rel-acoes .check{margin-left:0}
+}
+@media print{ .aviso-siades{break-inside:avoid} }
+
 </style>
 </head>
 <body>
@@ -781,17 +840,22 @@ body.so-leitura .masthead #m-perfil{color:#FFE6B3}
   </div>
 </header>
 <main class="wrap">
+  <aside class="aviso-siades" role="note" aria-labelledby="siades-tit">
+    <span class="as-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></svg></span>
+    <div><h2 id="siades-tit" data-cfg="AVISO_SIADES_TITULO">Catálogo para consulta e pré-aprovação</h2>
+      <p data-cfg="AVISO_SIADES">Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado. Esse procedimento não exclui a obrigatoriedade de solicitação formal dos itens no SIADES, que permanece indispensável para a efetivação do atendimento. Agradecemos a compreensão e a colaboração.</p></div>
+  </aside>
   <div class="inicio">
     <a class="porta" href="solicitante.html">
       <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/></svg></span>
       <h2>Fazer um pedido</h2>
-      <p>Veja os materiais disponíveis, escolha as quantidades e envie o pedido ao almoxarifado. A planilha do pedido é baixada na hora.</p>
+      <p>Consulte os materiais disponíveis, escolha as quantidades e envie o pedido para pré-aprovação do almoxarifado. A planilha do pedido é baixada na hora.</p>
       <span class="ir">Abrir o catálogo →</span>
     </a>
     <a class="porta" href="solicitante.html?acompanhar=1">
       <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M8 11h6M11 8v6"/></svg></span>
       <h2>Acompanhar um pedido</h2>
-      <p>Informe o número do pedido e o e-mail usado nele para ver a situação: pendente, aprovado, atendido, atendido em parte ou recusado.</p>
+      <p>Informe o número do pedido e o e-mail usado nele para ver a situação: pendente, aprovado (pré-aprovação), atendido, atendido em parte ou recusado.</p>
       <span class="ir">Consultar →</span>
     </a>
     <a class="porta" href="gestor.html">
