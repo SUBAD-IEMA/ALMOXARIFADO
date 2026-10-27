@@ -6,7 +6,7 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "https://script.google.com/macros/s/AKfycbwT51i4ruTKKKCfYDXMVis99GSZYJjCbhXJtksZ6bBq-K03vUU1vew1J1mN5CVqfQqb7A/exec",
+  API_URL: "",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
@@ -19,11 +19,9 @@ window.CONFIG = {
   ORGAO: "IEMA - Instituto Estadual de Meio Ambiente",
   ALMOXARIFADO: "Almoxarifado IEMA",
 
-  /* Aviso institucional exibido na página inicial, na página de pedidos e nos documentos do pedido.
-     O mesmo texto está no Code.gs (AVISO_SIADES), usado nos e-mails. */
+  /* Aviso institucional exibido na página inicial e no topo da página de pedidos. */
   AVISO_SIADES_TITULO: "Catálogo para consulta e pré-aprovação",
-  AVISO_SIADES: "Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado. Esse procedimento não exclui a obrigatoriedade de solicitação formal dos itens no SIADES, que permanece indispensável para a efetivação do atendimento. Agradecemos a compreensão e a colaboração.",
-  AVISO_SIADES_CURTO: "Documento de consulta e pré-aprovação. Não exclui a obrigatoriedade de solicitação formal dos itens no SIADES.",
+  AVISO_SIADES: "Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado.",
 
   /* Pedidos só com e-mail institucional deste domínio (qualquer nome antes do @).
      A mesma regra está no Code.gs (DOMINIO_EMAIL), que é quem realmente bloqueia. */

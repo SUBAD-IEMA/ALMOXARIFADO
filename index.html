@@ -866,6 +866,15 @@ body.com-janela{overflow:hidden}
   .ped-janela .hovercard{width:100%;max-height:92dvh;border-radius:16px 16px 0 0}
 }
 
+/* ===================== Versão 15: Estoque inicial · Pedido · Atendido · Estoque final ===================== */
+.t-ped-itens th.col-ini,.t-ped-itens th.col-fim{color:var(--pine)}
+.t-ped-itens td.col-ini{background:var(--surface-2);color:var(--muted);font-weight:600}
+.t-ped-itens td.col-fim{background:color-mix(in srgb,var(--pine-soft) 60%,transparent)}
+.t-ped-itens td.col-ped b{font-size:15px}
+.t-ped-itens .col-fim .prev{display:block;font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.t-ped-itens td.col-at input{width:84px}
+@media (max-width:760px){ .t-ped-itens td.col-ini,.t-ped-itens td.col-fim{background:transparent} }
+
 </style>
 </head>
 <body>
@@ -888,7 +897,7 @@ body.com-janela{overflow:hidden}
   <aside class="aviso-siades" role="note" aria-labelledby="siades-tit">
     <span class="as-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></svg></span>
     <div><h2 id="siades-tit" data-cfg="AVISO_SIADES_TITULO">Catálogo para consulta e pré-aprovação</h2>
-      <p data-cfg="AVISO_SIADES">Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado. Esse procedimento não exclui a obrigatoriedade de solicitação formal dos itens no SIADES, que permanece indispensável para a efetivação do atendimento. Agradecemos a compreensão e a colaboração.</p></div>
+      <p data-cfg="AVISO_SIADES">Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado.</p></div>
   </aside>
   <div class="inicio">
     <a class="porta" href="solicitante.html">

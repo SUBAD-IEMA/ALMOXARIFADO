@@ -17,9 +17,6 @@
 /* ======================= Opções ======================= */
 const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é recebido e quando muda de situação
 const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
-/* Aviso institucional: o catálogo é para consulta e pré-aprovação; não dispensa a solicitação no SIADES. */
-const AVISO_SIADES = 'Este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado. ' +
-  'Esse procedimento não exclui a obrigatoriedade de solicitação formal dos itens no SIADES, indispensável para a efetivação do atendimento.';
 const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
 const MAX_GESTORES = 5;           // número máximo de logins de gestor (incluindo o gestor principal/master)
 const INATIVIDADE_MIN = 15;       // regra de segurança: sessão do gestor encerra após 15 minutos sem atividade
@@ -613,7 +610,7 @@ function acaoAtender(req) {
     let novo, texto;
     if (tipo === 'aprovar') {
       if (p.status !== 'Pendente') throw amigavel('Só pedidos pendentes podem ser aprovados.');
-      novo = 'Aprovado'; texto = 'Pedido pré-aprovado pelo almoxarifado. Caso ainda não o tenha feito, formalize a solicitação dos itens no SIADES. Aguarde a separação e a entrega.';
+      novo = 'Aprovado'; texto = 'Pedido pré-aprovado pelo almoxarifado. Aguarde a separação e a entrega.';
     } else if (tipo === 'recusar') {
       if (!resposta) throw amigavel('Informe o motivo da recusa.');
       p.itens.forEach(l => { devolver(l, l.qtd); l.atendida = 0; });
@@ -1093,8 +1090,7 @@ function avisar(p, novo) {
       '<p>Olá, ' + esc(p.solicitante.nome.split(' ')[0]) + '.</p>' +
       (novo ? '<p>Recebemos o seu pedido <b>' + esc(p.numero) + '</b>. Guarde este número para acompanhar o andamento.</p>'
             : '<p>O pedido <b>' + esc(p.numero) + '</b> mudou para a situação <b>' + esc(p.status) + '</b>.</p><p>' + esc(ultimo ? ultimo.texto : '') + '</p>') +
-      tabela +
-      '<p style="background:#E2EDE8;border-left:4px solid #1E5240;padding:10px 12px;font-size:13px;margin:16px 0"><b>Importante – solicitação no SIADES.</b> Prezado(a) servidor(a), ' + esc(AVISO_SIADES.charAt(0).toLowerCase() + AVISO_SIADES.slice(1)) + ' Agradecemos a compreensão.</p>' +
+      tabela + esc(AVISO_SIADES.charAt(0).toLowerCase() + AVISO_SIADES.slice(1)) + ' Agradecemos a compreensão.</p>' +
       (link ? '<p><a href="' + link + '">Acompanhar o pedido</a> (informe o e-mail usado no pedido).</p>' : '') +
       (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +
       '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado – ' + ORGAO + '. Não responda.</p></div>';

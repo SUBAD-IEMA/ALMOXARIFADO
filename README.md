@@ -21,17 +21,15 @@ Não há pastas. Envie os 9 arquivos lado a lado na raiz do repositório.
 
 Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Ambiente**, e o logotipo oficial (Governo do Estado do Espírito Santo, Secretaria do Meio Ambiente e Recursos Hídricos e IEMA). O nome também aparece no título das abas do navegador, nas planilhas Excel, nos PDFs e nos e-mails.
 
-## Catálogo para consulta e pré-aprovação (SIADES)
+## Catálogo para consulta e pré-aprovação
 
-A página inicial, a página de pedidos, a confirmação, o pedido enviado, o acompanhamento, o PDF e a planilha do pedido e os e-mails trazem, em tom formal, o aviso institucional:
+A página inicial e o topo da página de pedidos trazem o aviso institucional:
 
-> *Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado. Esse procedimento não exclui a obrigatoriedade de solicitação formal dos itens no SIADES, que permanece indispensável para a efetivação do atendimento. Agradecemos a compreensão e a colaboração.*
+> *Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado.*
 
-**Pedidos aprovados:** quando o gestor aprova um pedido, o andamento informa que se trata de uma **pré-aprovação** e lembra o solicitante de formalizar a solicitação no SIADES.
+O aviso não aparece nos pedidos (confirmação, pedido enviado, acompanhamento, PDF, planilha e e-mails). Quando o gestor aprova um pedido, o andamento registra "Pedido pré-aprovado pelo almoxarifado".
 
-**Mudar a redação:**
-- **Páginas e documentos:** altere `AVISO_SIADES_TITULO`, `AVISO_SIADES` e `AVISO_SIADES_CURTO` no `config.js`.
-- **E-mails:** altere `AVISO_SIADES` no início do `Code.gs`.
+Para mudar a redação, altere `AVISO_SIADES_TITULO` e `AVISO_SIADES` no `config.js`.
 
 ## Mini imagens dos materiais em pedidos e relatórios
 
@@ -185,7 +183,12 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - Cada ação fica no histórico com o nome de quem fez.
 - **Pedidos:**
   - para abrir um pedido, **clique no número do pedido, no nome do solicitante ou nos materiais**. O pedido abre numa janela com todos os dados do solicitante, os materiais e o andamento;
-  - na janela, a tabela de materiais mostra **Estoque** (disponível agora, atualizado em tempo real), **Pedido** e **Atendido**, para decidir o atendimento. O estoque aparece em âmbar quando está baixo e em vermelho quando está zerado;
+  - na janela, cada material mostra, nesta ordem, as colunas abaixo. Os valores de estoque são atualizados em tempo real:
+    - **Estoque inicial:** o disponível antes deste pedido;
+    - **Pedido:** a quantidade solicitada;
+    - **Atendido:** a quantidade entregue;
+    - **Estoque final:** o que fica no estoque depois deste pedido. Em pedidos em aberto, aparece como "previsto", considerando o atendimento completo. Fica em âmbar quando está baixo e em vermelho quando está zerado;
+  - em **Atender em parte**, as mesmas colunas aparecem e o **Estoque final** é recalculado enquanto você digita a quantidade a entregar;
   - ao concluir uma ação na janela, ela **fecha sozinha** e volta para a lista de pedidos. Se a ação for cancelada na confirmação, o pedido continua aberto. Também fecha com o **×**, com a tecla Esc ou clicando fora;
   - aprovar, atender tudo, atender em parte ou recusar;
   - baixar Excel ou PDF e imprimir;
