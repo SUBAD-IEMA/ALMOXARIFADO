@@ -821,6 +821,27 @@ b.neg{color:#B42318} b.low{color:var(--amber)}
 }
 @media print{ .aviso-siades{break-inside:avoid} }
 
+/* ===================== Versão 13: painel de gráficos para o Google Looker Studio ===================== */
+.lk-passos{margin:0 0 10px;padding-left:20px;font-size:13.5px;line-height:1.6}
+#lk-url{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;resize:none}
+body.painel-publico{background:#fff;margin:0}
+.pp-cab{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:3px solid var(--pine);background:#fff}
+.pp-brasao{height:40px;width:auto}
+.pp-tit{display:flex;flex-direction:column;line-height:1.25}
+.pp-tit b{font-size:16px;color:var(--pine)}
+.pp-tit span{font-size:12px;color:var(--muted)}
+.pp-info{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;font-size:11.5px;color:var(--muted);text-align:right}
+.pp-main{padding:14px 16px}
+body.sem-cab .pp-cab{display:none}
+body.sem-cab .pp-main{padding:8px}
+body.pp-unico .pp-main{padding:8px}
+body.pp-unico .dash-grid{grid-template-columns:1fr}
+body.pp-unico .dash-card{box-shadow:none;border:0;padding:6px 8px}
+body.pp-unico .dash-box,body.pp-unico .dash-box.alto{height:calc(100vh - 92px);min-height:220px}
+body.pp-unico.sem-cab .dash-box,body.pp-unico.sem-cab .dash-box.alto{height:calc(100vh - 70px)}
+.pp-erro{margin:30px auto;max-width:560px;text-align:center;color:var(--down);font-weight:600;background:#FBE4E4;border-radius:10px;padding:16px}
+@media (max-width:640px){ .pp-info{display:none} }
+
 </style>
 </head>
 <body>

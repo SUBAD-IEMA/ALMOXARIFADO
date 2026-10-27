@@ -62,7 +62,7 @@ const PERFIS = {
 const PERMISSAO_ACAO = { atender: 'pedidos_atender', excluirPedido: 'pedidos_excluir', ajustarEstoque: 'estoque_ajustar',
   salvarItem: 'catalogo_editar', indisponivel: 'catalogo_editar', visibilidade: 'catalogo_editar', soVisualizar: 'catalogo_editar', removerItem: 'catalogo_editar',
   salvarContato: 'configuracoes', salvarRegras: 'configuracoes', ativarBackup: 'configuracoes',
-  backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
+  linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
   adicionarGestor: 'usuarios', removerGestor: 'usuarios', redefinirSenha: 'usuarios', editarGestor: 'usuarios' };
 function permissoesDe(g) {
   const o = {};
@@ -106,12 +106,12 @@ function doPost(e) {
   QUEM = 'Sistema'; GESTOR = null;
   const publicas = { versao: acaoVersao, catalogo: acaoCatalogo, imagens: acaoImagens, solicitar: acaoSolicitar, consultar: acaoConsultar,
     login: acaoLogin, situacaoAcesso: acaoSituacaoAcesso, criarPrimeiroGestor: acaoCriarPrimeiroGestor,
-    esqueciSenha: acaoEsqueciSenha, redefinirComCodigo: acaoRedefinirComCodigo };
+    esqueciSenha: acaoEsqueciSenha, redefinirComCodigo: acaoRedefinirComCodigo, painelPublico: acaoPainelPublico };
   const doGestor = { sair: acaoSair, painel: acaoPainel, atender: acaoAtender, excluirPedido: acaoExcluirPedido,
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
     backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
@@ -805,6 +805,42 @@ function acaoSalvarContato(req) {
   registrar([[new Date(), 'Contato do almoxarifado', '', '', '', String(g.nome || '')]]);
   novaVersao();
   return { gestor: dadosContato() };
+}
+
+/* ======================= Painel de gráficos para o Google Looker Studio ======================= */
+/* O link (painel.html?t=CHAVE) mostra somente gráficos. O servidor entrega apenas números agregados por pedido
+   (data, situação, setor e itens) e o estoque – nunca nomes, e-mails, telefones ou observações. */
+function acaoLinkPainel(req) {
+  const op = String(req.op || 'obter');
+  if (op === 'obter') return { chave: props().getProperty('PAINEL_CHAVE') || '' };
+  exigirPermissao('configuracoes');
+  if (op === 'novo') {
+    const chave = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+    props().setProperty('PAINEL_CHAVE', chave);
+    registrar([[new Date(), 'Link do painel criado', '', '', '', 'Painel de gráficos (Looker Studio)', '', '', '', 'Novo link gerado; o link anterior, se havia, deixou de funcionar']]);
+    return { chave };
+  }
+  if (op === 'desativar') {
+    props().deleteProperty('PAINEL_CHAVE');
+    registrar([[new Date(), 'Link do painel desativado', '', '', '', 'Painel de gráficos (Looker Studio)', '', '', '', 'O painel deixou de aparecer onde o link era usado']]);
+    return { chave: '' };
+  }
+  throw amigavel('Operação inválida.');
+}
+function acaoPainelPublico(req) {
+  const chave = props().getProperty('PAINEL_CHAVE') || '';
+  if (!chave || String(req.t || '') !== chave) throw amigavel('Link do painel inválido ou desativado. Gere um novo link na área do gestor (Relatórios › Dashboard › Link para o Looker Studio).');
+  garantirCatalogo();
+  const pedidos = lerPedidos().pedidos, res = {};
+  pedidos.forEach(p => { if (p.status === 'Pendente' || p.status === 'Aprovado') p.itens.forEach(l => { res[l.id] = (res[l.id] || 0) + (Number(l.qtd) || 0); }); });
+  const regra = dadosRegras().estoqueMinimo;
+  return {
+    versao: versaoAtual(), geradoEm: new Date().toISOString(), baixo: regra == null ? null : regra,
+    pedidos: pedidos.map(p => ({ dataISO: p.dataISO, status: p.status, setor: (p.solicitante || {}).setor || '',
+      itens: p.itens.map(l => ({ id: l.id, codigo: l.codigo, descricao: l.descricao, qtd: Number(l.qtd) || 0, atendida: l.atendida == null ? null : Number(l.atendida) })) })),
+    itens: lerCatalogo().itens.filter(i => i.ativo).map(i => ({ id: i.id, codigo: i.codigo, descricao: i.descricao, natureza: i.natureza, naturezaNome: i.naturezaNome,
+      qtd: i.qtd, reservado: res[i.id] || 0, oculto: !!i.oculto, indisponivel: !!i.indisponivel }))
+  };
 }
 
 /* ======================= Backup (PDF, Excel e JSON) ======================= */

@@ -3,12 +3,13 @@
 > **Endereço do site:** `https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/`
 > Esta página é o código. O site fica no endereço acima, depois de ativar o GitHub Pages (Parte 1).
 
-## Os 8 arquivos
+## Os 9 arquivos
 
 | Arquivo | Para quê |
 |---|---|
 | `index.html` | Página inicial: fazer pedido, acompanhar pedido, área do gestor |
 | `solicitante.html` | Catálogo, pedido (dados obrigatórios), planilha Excel e acompanhamento. Sem login |
+| `painel.html` | Painel só com gráficos, para incorporar no **Google Looker Studio** (link gerado na área do gestor) |
 | `gestor.html` | Área do gestor: até 5 logins com perfis de acesso, pedidos, painel, catálogo, relatórios, histórico |
 | `imagens.js` | Miniaturas das fotos do Catálogo GOV ES (carregam com a página) |
 | `imagens-hd.js` | Imagens em alta resolução (400×400), carregadas em segundo plano para o painel lateral e a ampliação |
@@ -16,7 +17,7 @@
 | `Code.gs` | Servidor: colar no Google Apps Script |
 | `README.md` | Este guia |
 
-Não há pastas. Envie os 8 arquivos lado a lado na raiz do repositório.
+Não há pastas. Envie os 9 arquivos lado a lado na raiz do repositório.
 
 Todas as páginas têm o nome do órgão, **IEMA - Instituto Estadual de Meio Ambiente**, e o logotipo oficial (Governo do Estado do Espírito Santo, Secretaria do Meio Ambiente e Recursos Hídricos e IEMA). O nome também aparece no título das abas do navegador, nas planilhas Excel, nos PDFs e nos e-mails.
 
@@ -69,26 +70,47 @@ A aba **Relatórios** tem dois modos, com os mesmos filtros.
 | Estoque | Disponível e reservado por natureza |
 | Histórico e excluídos | Registros por tipo e por responsável |
 
-**Dashboard com gráficos:**
-- **Indicadores:**
-  - pedidos;
-  - unidades solicitadas e atendidas;
-  - taxa de atendimento;
-  - tempo médio de atendimento;
-  - materiais com estoque baixo.
-- **Nove gráficos:**
+**Dashboard com gráficos:** somente gráficos, sem tabelas nem quadros de números.
+- **Os 10 gráficos:**
   - evolução por dia ou mês;
-  - situação;
+  - situação dos pedidos;
   - materiais mais solicitados;
   - consumo por setor;
   - consumo por natureza;
-  - estoque por natureza;
+  - estoque por natureza (disponível e reservado);
+  - materiais com estoque baixo por natureza (sem estoque e abaixo do alerta);
   - taxa de atendimento por setor;
   - pedidos por dia da semana;
   - pedidos por horário.
-- **Estoque baixo:** a lista dos materiais com estoque baixo, com imagem.
-- **Atualização:** o dashboard muda na hora ao trocar um filtro e se atualiza sozinho quando chegam pedidos.
-- **Exportação:** os botões **Baixar PDF do dashboard** e **Imprimir dashboard** geram um relatório em paisagem com os indicadores, os gráficos e a lista com imagens.
+- **Atualização:** muda na hora ao trocar um filtro e se atualiza sozinho quando chegam pedidos.
+- **Exportação:** **Baixar PDF do dashboard** e **Imprimir dashboard** geram um relatório em paisagem só com os gráficos.
+
+### Dashboard no Google Looker Studio
+
+O botão **Link para o Looker Studio**, em *Relatórios › Dashboard com gráficos*, gera o link do painel de gráficos (`painel.html`). Colado no Looker Studio, o painel mostra os gráficos e **se atualiza sozinho**.
+
+**Como gerar o link:**
+1. Abra **Relatórios › Dashboard com gráficos** e escolha os filtros que o painel deve usar (por exemplo, período rápido "Últimos 30 dias" e setor).
+2. Clique em **Link para o Looker Studio**. Na primeira vez, clique em **Criar link** (é preciso a permissão "Configurações e regras").
+3. Escolha **Todos os gráficos** ou **Só: (um gráfico)**, e se quer mostrar o título do painel.
+4. Clique em **Copiar link**. Para conferir antes, use **Abrir o painel (pré-visualizar)**.
+
+**Como colar no Looker Studio:**
+1. Abra o relatório no Looker Studio e clique em **Editar**.
+2. No menu, escolha **Inserir › Incorporar URL** (*Embed URL*).
+3. Desenhe o quadro na página e cole o link em **URL do conteúdo incorporado**.
+4. Ajuste o tamanho do quadro.
+
+Para montar o relatório gráfico por gráfico, gere um link "Só: …" para cada gráfico e coloque cada um num quadro.
+
+**Atualização automática:** o painel confere as novidades a cada minuto e se redesenha sozinho quando chegam pedidos ou o estoque muda. Com um período rápido ("Últimos 30 dias", "Este mês" etc.), o período avança sozinho com os dias. Datas fixas (De/Até) ficam fixas.
+
+**Segurança:**
+- **Código secreto:** o link tem um código que só funciona enquanto estiver ativo.
+- **Dados entregues:** o servidor envia ao painel apenas números agregados dos pedidos (data, situação, setor e materiais) e do estoque, **nunca** nomes, e-mails, telefones ou observações.
+- **Cortar o acesso:** **Gerar novo link** ou **Desativar link** derruba na hora todos os links já distribuídos, inclusive os colados no Looker Studio.
+- **Registro:** criar e desativar o link fica no histórico.
+- **Requisito:** o link só funciona com a Planilha Google ligada (fora do modo demonstração).
 
 ## Perfis de acesso dos gestores
 
@@ -214,14 +236,14 @@ Do Catálogo GOV ES não foram trazidos código do fornecedor, NCM nem preço. O
 1. Descompacte o `.zip`.
 2. No GitHub, crie um repositório:
    - clique em **New**, dê um nome (ex.: `almoxarifado`), marque **Public** e clique em **Create repository**;
-   - clique em **uploading an existing file**, selecione **os 8 arquivos**, arraste para a página e clique em **Commit changes**.
+   - clique em **uploading an existing file**, selecione **os 9 arquivos**, arraste para a página e clique em **Commit changes**.
 3. Em **Settings › Pages**, escolha *Branch* `main` e a pasta `/ (root)`, e clique em **Save**.
 4. Aguarde 1 a 2 minutos. O endereço do site aparece em **Settings › Pages**, no botão **Visit site**.
 
 O site já abre em **modo demonstração**, mas nesse modo cada computador tem uma cópia própria dos dados. **Para uso simultâneo em qualquer máquina, a Parte 2 é obrigatória.**
 
 > **Aparece só texto?** Ou você está no endereço do repositório (`github.com/...`) em vez do site (`...github.io/...`), ou os arquivos ficaram dentro de uma pasta.
-> **A página abre sem formatação?** Apague arquivos de versões antigas e suba os 8 desta versão. Depois aperte Ctrl+F5.
+> **A página abre sem formatação?** Apague arquivos de versões antigas e suba os 9 desta versão. Depois aperte Ctrl+F5.
 
 ## Parte 2 – Ligar o banco de dados (10 minutos, uma vez só)
 
@@ -250,7 +272,7 @@ Quando o aviso amarelo de "Modo demonstração" sumir das páginas, o sistema es
 2. Publique a versão nova: **Implantar › Gerenciar implantações › lápis › Versão: Nova versão › Implantar**. A URL não muda.
    - **Se o Google pedir autorização**, clique em **Autorizar acesso**, escolha a conta, depois **Avançado › Acessar (não seguro)** e por fim **Permitir**. O pedido aparece porque o backup usa novas permissões (gerar o PDF e o Excel e agendar o envio do dia 1º).
    - Depois disso, abra a área do gestor: o backup mensal se ativa sozinho.
-3. No GitHub, substitua os arquivos pelos 8 desta versão. Mantenha a sua linha `API_URL` no `config.js`.
+3. No GitHub, substitua os arquivos pelos 9 desta versão. Mantenha a sua linha `API_URL` no `config.js`.
 
 Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
 - os 118 materiais novos e as fotos são incluídos sozinhos;
