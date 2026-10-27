@@ -184,6 +184,9 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Até 5 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo**. Cada um tem um **perfil de acesso** (veja "Perfis de acesso"). As telas se atualizam sozinhas a cada 6 segundos.
 - Cada ação fica no histórico com o nome de quem fez.
 - **Pedidos:**
+  - para abrir um pedido, **clique no número do pedido, no nome do solicitante ou nos materiais**. O pedido abre numa janela com todos os dados do solicitante, os materiais e o andamento;
+  - na janela, a tabela de materiais mostra **Estoque** (disponível agora, atualizado em tempo real), **Pedido** e **Atendido**, para decidir o atendimento. O estoque aparece em âmbar quando está baixo e em vermelho quando está zerado;
+  - ao concluir uma ação na janela, ela **fecha sozinha** e volta para a lista de pedidos. Se a ação for cancelada na confirmação, o pedido continua aberto. Também fecha com o **×**, com a tecla Esc ou clicando fora;
   - aprovar, atender tudo, atender em parte ou recusar;
   - baixar Excel ou PDF e imprimir;
   - **excluir pedido**, com motivo obrigatório. A exclusão fica no histórico com o nome do gestor, a data e o horário. Pedidos pendentes ou aprovados devolvem as quantidades ao estoque.

@@ -843,6 +843,30 @@ body.pp-unico.sem-cab .dash-box,body.pp-unico.sem-cab .dash-box.alto{height:calc
 .pp-erro{margin:30px auto;max-width:560px;text-align:center;color:var(--down);font-weight:600;background:#FBE4E4;border-radius:10px;padding:16px}
 @media (max-width:640px){ .pp-info{display:none} }
 
+/* ===================== Versão 14: pedido abre ao clicar, numa janela, com coluna Estoque ===================== */
+#tb-ped td.abre{cursor:pointer}
+#tb-ped .lnk-ped{color:var(--pine);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--pine) 35%,transparent);text-underline-offset:3px}
+#tb-ped td.abre:hover .lnk-ped{text-decoration-color:var(--pine)}
+#tb-ped td.td-mats.abre:hover .minis .mini-img{border-color:var(--pine)}
+#tb-ped tr.pedido.pinned td{background:var(--pine-soft)}
+.ped-janela{position:fixed;inset:0;z-index:45;background:rgba(10,15,13,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+.ped-janela[hidden]{display:none}
+.ped-janela .hovercard{position:relative!important;left:auto!important;top:auto!important;right:auto;bottom:auto;display:block;width:min(820px,100%);max-height:calc(100dvh - 40px);border-radius:14px;box-shadow:0 24px 64px rgba(10,15,13,.35)}
+.hovercard .hc-dir{display:flex;align-items:center;gap:10px}
+.hc-fechar{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule);background:var(--surface);color:var(--ink);font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.hc-fechar:hover{background:var(--surface-2)}
+body.com-janela{overflow:hidden}
+.t-ped-itens .col-est{background:color-mix(in srgb,var(--pine-soft) 55%,transparent)}
+.t-ped-itens th.col-est{color:var(--pine)}
+.t-ped-itens .est{font-weight:700;color:var(--pine)}
+.t-ped-itens .est.baixo{color:var(--amber)}
+.t-ped-itens .est.zero{color:#B42318}
+.est-nota{margin:6px 0 0}
+@media (max-width:760px){
+  .ped-janela{padding:0;align-items:flex-end}
+  .ped-janela .hovercard{width:100%;max-height:92dvh;border-radius:16px 16px 0 0}
+}
+
 </style>
 </head>
 <body>
@@ -950,7 +974,7 @@ body.pp-unico.sem-cab .dash-box,body.pp-unico.sem-cab .dash-box.alto{height:calc
         <select id="pper" aria-label="Período"><option value="">Todo o período</option><option value="1">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option></select>
         <button class="btn" type="button" id="btn-xls-ped">Exportar Excel</button>
       </div>
-      <p class="saved-note" style="margin:10px 0">Passe o mouse sobre um pedido para ver tudo, atender ou excluir. No celular, toque no pedido.</p>
+      <p class="saved-note" style="margin:10px 0">Clique no <b>número do pedido</b>, no <b>nome do solicitante</b> ou nos <b>materiais</b> para abrir o pedido numa janela e dar o tratamento. Depois da ação, a janela fecha e você volta para esta lista.</p>
       <div class="table-wrap"><table class="cartoes t-pedidos">
         <thead><tr><th>Pedido</th><th>Data</th><th>Solicitante</th><th>Setor</th><th>Telefone</th><th class="num">Materiais</th><th class="num">Unidades</th><th>Situação</th><th class="num">Baixar</th></tr></thead>
         <tbody id="tb-ped"></tbody>
@@ -1116,7 +1140,7 @@ body.pp-unico.sem-cab .dash-box,body.pp-unico.sem-cab .dash-box.alto{height:calc
   <footer><p><strong>As imagens são meramente ilustrativas</strong> e não substituem a descrição oficial do item.</p></footer>
 </main>
 
-<div class="hovercard" id="hc" role="dialog" aria-label="Detalhes do pedido"></div>
+<div class="ped-janela" id="ped-janela" hidden><div class="hovercard" id="hc" role="dialog" aria-modal="true" aria-labelledby="hc-tit"></div></div>
 <input type="file" id="arquivo" accept="image/*" hidden>
 
 <script>document.write('<script src="config.js?v=' + Date.now() + '"><\/script>');</script>
@@ -2914,13 +2938,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     tbP.innerHTML = !D.pedidos.length ? `<tr><td colspan="9" class="empty">Nenhum pedido ainda. Os pedidos enviados na página de pedidos aparecem aqui automaticamente.</td></tr>`
       : !l.length ? `<tr><td colspan="9" class="empty">Nenhum pedido corresponde aos filtros.</td></tr>`
       : l.map(p => `<tr class="pedido${novos.has(p.numero) ? " novo" : ""}" data-num="${esc(p.numero)}" tabindex="0">
-        <td><b>${esc(p.numero)}</b></td><td style="white-space:nowrap">${dataHora(p.dataISO)}</td>
-        <td class="who"><b>${esc(p.solicitante.nome)}</b><small>${esc(p.solicitante.email)}</small></td><td>${esc(p.solicitante.setor)}</td>
-        <td style="white-space:nowrap">${esc(p.solicitante.telefone)}</td><td class="num td-mats"><span class="minis">${p.itens.slice(0, 4).map(l => IMAGENS.miniHtml(porId[l.id] || { id: l.id, descricao: l.descricao })).join("")}${p.itens.length > 4 ? `<span class="minis-mais">+${p.itens.length - 4}</span>` : ""}</span><b>${p.totalItens}</b></td>
+        <td class="abre" data-abrir title="Abrir o pedido"><b class="lnk-ped">${esc(p.numero)}</b></td><td style="white-space:nowrap">${dataHora(p.dataISO)}</td>
+        <td class="who abre" data-abrir title="Abrir o pedido"><b class="lnk-ped">${esc(p.solicitante.nome)}</b><small>${esc(p.solicitante.email)}</small></td><td>${esc(p.solicitante.setor)}</td>
+        <td style="white-space:nowrap">${esc(p.solicitante.telefone)}</td><td class="num td-mats abre" data-abrir title="Abrir o pedido"><span class="minis">${p.itens.slice(0, 4).map(l => IMAGENS.miniHtml(porId[l.id] || { id: l.id, descricao: l.descricao })).join("")}${p.itens.length > 4 ? `<span class="minis-mais">+${p.itens.length - 4}</span>` : ""}</span><b>${p.totalItens}</b></td>
         <td class="num"><b>${fmt(p.totalUnidades)}</b>${p.totalAtendido != null && p.totalAtendido !== p.totalUnidades ? `<br><small style="color:var(--muted)">atendido ${fmt(p.totalAtendido)}</small>` : ""}</td>
         <td>${pill(p.status)}</td>
         <td class="num">${pode("relatorios") ? `<div class="row-actions"><button class="btn sm" type="button" data-a="xls">Excel</button><button class="btn sm" type="button" data-a="pdf">PDF</button></div>` : ""}</td></tr>`).join("");
-    if(cardNum){ const tr = tbP.querySelector(`tr.pedido[data-num="${CSS.escape(cardNum)}"]`); if(tr && hc.classList.contains("open")){ preencher(cardNum); if(fixado) tr.classList.add("pinned"); } else fecharCard(true); }
+    if(cardNum){ if(acharPedido(cardNum)) preencher(cardNum); else fecharCard(true); }   // janela aberta: estoque e situação em tempo real
   }
   $("#pq").addEventListener("input", renderPedidos);
   ["#pst", "#pset", "#pper"].forEach(s => $(s).addEventListener("change", renderPedidos));
@@ -2933,15 +2957,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const p = acharPedido(num); if(!p) return;
     const s = p.solicitante, aberto = ABERTOS.includes(p.status);
     hc.innerHTML = `
-      <div class="hc-head"><div><h3>Pedido ${esc(p.numero)}</h3><small>${dataHora(p.dataISO)}</small></div>${pill(p.status)}</div>
+      <div class="hc-head"><div><h3 id="hc-tit">Pedido ${esc(p.numero)}</h3><small>${dataHora(p.dataISO)}</small></div><div class="hc-dir">${pill(p.status)}<button class="hc-fechar" type="button" data-fechar aria-label="Fechar o pedido e voltar à lista" title="Fechar (Esc)">×</button></div></div>
       <div class="hc-body">
         <dl class="kv"><dt>Nome completo</dt><dd>${esc(s.nome)}</dd><dt>Setor</dt><dd>${esc(s.setor)}</dd>
           <dt>Telefone</dt><dd><a href="tel:${esc(s.telefone.replace(/[^\d+]/g, ""))}">${esc(s.telefone)}</a></dd>
           <dt>E-mail</dt><dd><a href="mailto:${esc(s.email)}?subject=${encodeURIComponent("Pedido " + p.numero + " – Almoxarifado IEMA")}">${esc(s.email)}</a></dd>
           ${p.obs ? `<dt>Observação</dt><dd>${esc(p.obs)}</dd>` : ""}${p.resposta ? `<dt>Resposta</dt><dd>${esc(p.resposta)}</dd>` : ""}</dl>
-        <table class="mini"><thead><tr><th></th><th>Código</th><th>Descrição</th><th class="num">Pedido</th><th class="num">Atendido</th></tr></thead><tbody>${
-          p.itens.map(l => { const it = porId[l.id] || l; return `<tr><td class="tn-cell"><img class="tn${IMAGENS.temFoto(it) ? " foto" : ""}" data-id="${esc(l.id)}" src="${esc(IMAGENS.url(it))}" alt=""></td><td>${esc(l.codigo)}</td><td>${esc(l.descricao)}<br><small style="color:var(--muted)">${esc(l.unidade)}</small></td><td class="num"><b>${fmt(l.qtd)}</b></td><td class="num">${l.atendida == null ? "—" : fmt(l.atendida)}</td></tr>`; }).join("")
+        <table class="mini t-ped-itens"><thead><tr><th></th><th>Código</th><th>Descrição</th><th class="num col-est" title="Quantidade disponível agora no estoque (atualizada em tempo real)">Estoque</th><th class="num">Pedido</th><th class="num">Atendido</th></tr></thead><tbody>${
+          p.itens.map(l => { const it = porId[l.id] || l, est = porId[l.id] ? porId[l.id].qtd : null;
+            const cls = est == null ? "" : est <= 0 ? " zero" : est <= BAIXO ? " baixo" : "";
+            return `<tr><td class="tn-cell"><img class="tn${IMAGENS.temFoto(it) ? " foto" : ""}" data-id="${esc(l.id)}" src="${esc(IMAGENS.url(it))}" alt=""></td><td>${esc(l.codigo)}</td><td>${esc(l.descricao)}<br><small style="color:var(--muted)">${esc(l.unidade)}</small></td><td class="num col-est"><span class="est${cls}">${est == null ? "—" : fmt(est)}</span></td><td class="num"><b>${fmt(l.qtd)}</b></td><td class="num">${l.atendida == null ? "—" : fmt(l.atendida)}</td></tr>`; }).join("")
         }</tbody></table>
+        <p class="hint-txt est-nota">Estoque: quantidade disponível agora (já descontado o que está reservado), atualizada em tempo real.</p>
         ${p.andamento && p.andamento.length > 1 ? `<ul class="timeline" style="margin-top:12px">${p.andamento.map(a => `<li><b>${esc(a.status)}</b><small>${dataHora(a.dataISO)}</small></li>`).join("")}</ul>` : ""}
       </div>
       <div class="hc-actions">
@@ -2953,63 +2980,58 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       </div>`;
     hc.dataset.num = num;
   }
-  function posicionar(tr, x){
-    if(matchMedia("(max-width:720px)").matches) return;
-    const r = tr.getBoundingClientRect(), w = hc.offsetWidth, h = hc.offsetHeight;
-    hc.style.left = Math.min(Math.max(12, (x || r.left + 120) - 60), innerWidth - w - 12) + "px";
-    let top = r.bottom + 6; if(top + h > innerHeight - 12) top = Math.max(12, r.top - h - 6);
-    hc.style.top = top + "px";
+  /* Janela do pedido: abre ao clicar no número, no solicitante ou nos materiais; fecha depois da ação escolhida. */
+  const janela = $("#ped-janela");
+  let focoAntes = null;
+  function abrirPedido(num){
+    const tr = tbP.querySelector(`tr.pedido[data-num="${CSS.escape(num)}"]`);
+    focoAntes = document.activeElement;
+    cardNum = num; fixado = true; preencher(num);
+    janela.hidden = false; hc.classList.add("open"); document.body.classList.add("com-janela");
+    if(tr){ tbP.querySelectorAll("tr.pinned").forEach(r => r.classList.remove("pinned")); tr.classList.add("pinned"); if(novos.delete(num)) tr.classList.remove("novo"); }
+    setTimeout(() => { const f = hc.querySelector("[data-fechar]"); if(f) f.focus(); }, 30);
   }
-  function abrirCard(tr, fixar, x){
-    clearTimeout(tFechar);
-    tbP.querySelectorAll("tr.pinned").forEach(r => r.classList.remove("pinned"));
-    cardNum = tr.dataset.num; fixado = !!fixar;
-    preencher(cardNum); hc.classList.add("open"); posicionar(tr, x);
-    if(fixado) tr.classList.add("pinned");
-    if(novos.delete(cardNum)) tr.classList.remove("novo");
+  function fecharCard(){
+    if(janela.hidden && !cardNum) return;
+    janela.hidden = true; hc.classList.remove("open"); document.body.classList.remove("com-janela");
+    cardNum = null; fixado = false; tbP.querySelectorAll("tr.pinned").forEach(r => r.classList.remove("pinned"));
+    if(focoAntes && document.contains(focoAntes)) try{ focoAntes.focus({ preventScroll: true }); }catch(e){}
   }
-  function fecharCard(forcar){ if(fixado && !forcar) return; hc.classList.remove("open"); cardNum = null; fixado = false; tbP.querySelectorAll("tr.pinned").forEach(r => r.classList.remove("pinned")); }
-  tbP.addEventListener("mouseover", e => {
-    const tr = e.target.closest("tr.pedido"); if(!tr || fixado) return;
-    clearTimeout(tFechar); clearTimeout(tAbrir);
-    if(cardNum === tr.dataset.num && hc.classList.contains("open")) return;
-    const x = e.clientX; tAbrir = setTimeout(() => abrirCard(tr, false, x), 140);
-  });
-  tbP.addEventListener("mouseleave", () => { clearTimeout(tAbrir); if(!fixado) tFechar = setTimeout(() => fecharCard(), 280); });
-  hc.addEventListener("mouseenter", () => clearTimeout(tFechar));
-  hc.addEventListener("mouseleave", () => { if(!fixado) tFechar = setTimeout(() => fecharCard(), 280); });
   tbP.addEventListener("click", e => {
     const tr = e.target.closest("tr.pedido"); if(!tr) return;
     const b = e.target.closest("button[data-a]"); if(b) return acao(b.dataset.a, tr.dataset.num, b);
-    if(fixado && cardNum === tr.dataset.num) fecharCard(true); else abrirCard(tr, true, e.clientX);
+    if(e.target.closest("[data-abrir]")) abrirPedido(tr.dataset.num);
   });
-  tbP.addEventListener("keydown", e => { if(e.key === "Enter"){ const tr = e.target.closest("tr.pedido"); if(tr) abrirCard(tr, true); } });
-  hc.addEventListener("click", e => { const b = e.target.closest("button[data-a]"); if(b) acao(b.dataset.a, hc.dataset.num, b); });
-  document.addEventListener("click", e => { if(fixado && !hc.contains(e.target) && !e.target.closest("tr.pedido") && !e.target.closest(".modal")) fecharCard(true); });
-  document.addEventListener("keydown", e => { if(e.key === "Escape") fecharCard(true); });
-  window.addEventListener("scroll", () => { if(hc.classList.contains("open") && !fixado) fecharCard(); }, { passive: true });
+  tbP.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ const tr = e.target.closest("tr.pedido"); if(tr && !e.target.closest("button")){ e.preventDefault(); abrirPedido(tr.dataset.num); } } });
+  hc.addEventListener("click", e => {
+    if(e.target.closest("[data-fechar]")) return fecharCard();
+    const b = e.target.closest("button[data-a]"); if(b) acao(b.dataset.a, hc.dataset.num, b);
+  });
+  janela.addEventListener("click", e => { if(e.target === janela) fecharCard(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && !janela.hidden && !document.querySelector(".modal.open")) fecharCard(); });
 
   async function acao(a, num, botao){
     const p = acharPedido(num); if(!p) return;
-    if(a === "xls"){ ocupado(botao, "…"); try{ await DOCS.excelPedido(p, porId, D.gestor); }catch(e){ toast("Falha ao gerar a planilha"); } livre(botao); return; }
-    if(a === "pdf") return DOCS.baixarPdf(p, D.gestor);
-    if(a === "print") return DOCS.imprimir(p, D.gestor);
+    const naJanela = !!(botao && hc.contains(botao));
+    const fim = () => { if(naJanela) fecharCard(); };
+    if(a === "xls"){ ocupado(botao, "…"); try{ await DOCS.excelPedido(p, porId, D.gestor); fim(); }catch(e){ toast("Falha ao gerar a planilha"); } livre(botao); return; }
+    if(a === "pdf"){ await DOCS.baixarPdf(p, D.gestor); return fim(); }
+    if(a === "print"){ await DOCS.imprimir(p, D.gestor); return fim(); }
     if(a === "aprovar") return atender(p, "aprovar", {});
     if(a === "atender"){ if(await confirmar(`Atender o pedido ${p.numero} por completo?`, `Todas as ${fmt(p.totalUnidades)} unidades serão registradas como entregues.`, "Atender tudo")) atender(p, "atender", {}); return; }
     if(a === "recusar"){ const m = await confirmar(`Recusar o pedido ${p.numero}?`, "As quantidades voltam para o estoque. O solicitante verá o motivo ao consultar o pedido e receberá um e-mail.", "Recusar pedido", { campo: "Motivo da recusa", obrigatorio: true, perigo: true }); if(m) atender(p, "recusar", { resposta: m }); return; }
     if(a === "parcial") return dialogoParcial(p);
     if(a === "excluir"){
-      fecharCard(true);
       const m = await confirmar(`Excluir o pedido ${p.numero}?`,
         `O pedido de ${p.solicitante.nome} sai da lista de pedidos. A exclusão fica registrada no histórico com o seu nome (${eu ? eu.nome : ""}), a data e o horário.${ABERTOS.includes(p.status) ? " Como o pedido ainda está " + p.status.toLowerCase() + ", as quantidades voltam para o estoque." : ""}`,
         "Excluir pedido", { campo: "Motivo da exclusão", obrigatorio: true, perigo: true });
       if(!m) return;
-      try{ await API.chamar("excluirPedido", { token, numero: p.numero, motivo: m }); toast(`Pedido ${p.numero} excluído e registrado no histórico`); await carregar(true); }
+      try{ await API.chamar("excluirPedido", { token, numero: p.numero, motivo: m }); fecharCard(); toast(`Pedido ${p.numero} excluído e registrado no histórico`); await carregar(true); }
       catch(e){ tratarErro(e); }
     }
   }
   async function atender(p, tipo, extra){
-    try{ const r = await API.chamar("atender", Object.assign({ token, numero: p.numero, tipo }, extra)); toast(`Pedido ${p.numero}: ${r.pedido.status}`); await carregar(true); }
+    try{ const r = await API.chamar("atender", Object.assign({ token, numero: p.numero, tipo }, extra)); fecharCard(); toast(`Pedido ${p.numero}: ${r.pedido.status}`); await carregar(true); }
     catch(e){ tratarErro(e); carregar(true); }
   }
   function dialogoParcial(p){
