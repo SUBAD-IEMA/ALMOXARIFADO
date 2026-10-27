@@ -28,13 +28,16 @@ const BACKUP_EMAILS = ['almoxarifado@iema.es.gov.br', 'subad@iema.es.gov.br'];
 const HORAS_SESSAO = 10;          // duração máxima de uma sessão, mesmo com atividade
 
 /* ======================= Estrutura ======================= */
-const SITUACOES = ['Pendente', 'Aprovado', 'Parcialmente atendido', 'Atendido', 'Recusado'];
-const ABERTAS = ['Pendente', 'Aprovado'];
-const FINAIS = ['Parcialmente atendido', 'Atendido', 'Recusado'];
+/* Fluxo do pedido: Pendente → (Atendimento total ou parcial) → Aguardando retirada → (Entrega realizada) → Entrega realizada.
+   Pendente também pode ser Recusado. "Aprovado", "Atendido" e "Parcialmente atendido" ficam só para pedidos antigos. */
+const SITUACOES = ['Pendente', 'Aguardando retirada', 'Entrega realizada', 'Recusado', 'Aprovado', 'Parcialmente atendido', 'Atendido'];
+const ABERTAS = ['Pendente', 'Aprovado'];                 // quantidades reservadas, aguardando o atendimento
+const RETIRADA = 'Aguardando retirada';                   // materiais separados, aguardando o solicitante retirar
+const FINAIS = ['Entrega realizada', 'Recusado', 'Parcialmente atendido', 'Atendido'];
 const ABAS = {
   catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto', 'Só visualização'], 'A:B'],
   imagens:  ['Imagens enviadas', ['id', 'Imagem (parte 1)', 'Atualizado em', 'Parte 2', 'Parte 3', 'Parte 4', 'Parte 5', 'Parte 6'], 'A:A'],
-  pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)'], 'A:A,E:E'],
+  pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)', 'Rascunho do atendimento (dados)'], 'A:A,E:E'],
   historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável'], 'C:E'],
   config:   ['Configuração', ['Chave', 'Valor'], 'A:B']
 };
@@ -59,7 +62,7 @@ const PERFIS = {
 const PERMISSAO_ACAO = { atender: 'pedidos_atender', excluirPedido: 'pedidos_excluir', ajustarEstoque: 'estoque_ajustar',
   salvarItem: 'catalogo_editar', indisponivel: 'catalogo_editar', visibilidade: 'catalogo_editar', soVisualizar: 'catalogo_editar', removerItem: 'catalogo_editar',
   salvarContato: 'configuracoes', salvarRegras: 'configuracoes', ativarBackup: 'configuracoes',
-  linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
+  salvarRascunho: 'pedidos_atender', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
   adicionarGestor: 'usuarios', removerGestor: 'usuarios', redefinirSenha: 'usuarios', editarGestor: 'usuarios' };
 function permissoesDe(g) {
   const o = {};
@@ -108,7 +111,7 @@ function doPost(e) {
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
     backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
@@ -273,18 +276,20 @@ function lerPedidos() {
     let itens = [], andamento = [];
     try { itens = JSON.parse(r[7] || '[]'); } catch (e) {}
     try { andamento = JSON.parse(r[14] || '[]'); } catch (e) {}
+    let rascunho = null; try { rascunho = r[15] ? JSON.parse(r[15]) : null; } catch (e) {}
     return {
       linha: i + 2, numero: String(r[0]), dataISO: iso(r[1]),
       solicitante: { nome: String(r[2]), setor: String(r[3]), telefone: String(r[4]), email: String(r[5]) },
       obs: String(r[6] || ''), itens, totalItens: Number(r[8]) || 0, totalUnidades: Number(r[9]) || 0, totalAtendido: r[10] === '' ? null : Number(r[10]),
-      status: String(r[11] || 'Pendente'), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''), andamento
+      status: String(r[11] || 'Pendente'), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''), andamento, rascunho
     };
   }).filter(p => p.numero);
   return { sh, pedidos };
 }
 function linhaPedido(p) {
   return [p.numero, new Date(p.dataISO), seguro(p.solicitante.nome), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
-    JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), seguro(p.resposta || ''), JSON.stringify(p.andamento)];
+    JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), seguro(p.resposta || ''), JSON.stringify(p.andamento),
+    p.rascunho ? JSON.stringify(p.rascunho) : ''];
 }
 function semLinha(p) { const c = Object.assign({}, p); delete c.linha; return c; }
 
@@ -570,7 +575,8 @@ function acaoConsultar(req) {
     cache.put('consultas', String(tent + 1), 300);
     throw amigavel('Pedido não encontrado ou o e-mail não confere com o informado no pedido.');
   }
-  return { pedido: semLinha(p), gestor: dadosContato() };
+  const pub = semLinha(p); delete pub.rascunho;   // o rascunho do atendimento é interno do almoxarifado
+  return { pedido: pub, gestor: dadosContato() };
 }
 
 /* ======================= Ações do gestor ======================= */
@@ -608,33 +614,42 @@ function acaoAtender(req) {
       registrar([[agora, 'Devolução ao estoque', p.numero, l.id, l.codigo, l.descricao, e ? e.qtd - q : '', e ? e.qtd : '', q, 'Quantidade não entregue do pedido']]);
     };
     let novo, texto;
+    const exigeAberto = () => { if (ABERTAS.indexOf(p.status) < 0) throw amigavel('O pedido ' + p.numero + ' está "' + p.status + '" e não pode mais receber esta ação.'); };
     if (tipo === 'aprovar') {
       if (p.status !== 'Pendente') throw amigavel('Só pedidos pendentes podem ser aprovados.');
       novo = 'Aprovado'; texto = 'Pedido pré-aprovado pelo almoxarifado. Aguarde a separação e a entrega.';
     } else if (tipo === 'recusar') {
+      exigeAberto();
       if (!resposta) throw amigavel('Informe o motivo da recusa.');
       p.itens.forEach(l => { devolver(l, l.qtd); l.atendida = 0; });
       novo = 'Recusado'; texto = 'Pedido recusado.';
     } else if (tipo === 'atender') {
+      exigeAberto();
       p.itens.forEach(l => l.atendida = l.qtd);
-      novo = 'Atendido'; texto = 'Pedido atendido integralmente.';
+      novo = RETIRADA; texto = 'Atendimento total: os materiais foram separados e estão aguardando retirada no almoxarifado.';
     } else if (tipo === 'parcial') {
+      exigeAberto();
       const at = req.atendidas || {};
       p.itens.forEach(l => {
         const q = Number(at[l.id]);
         if (!Number.isInteger(q) || q < 0 || q > l.qtd) throw amigavel('Quantidade atendida inválida para ' + l.descricao + ' (de 0 a ' + l.qtd + ').');
-        devolver(l, l.qtd - q); l.atendida = q;
       });
-      const total = p.itens.reduce((a, l) => a + l.atendida, 0);
-      if (total === 0) { if (!resposta) throw amigavel('Nenhum item foi atendido: informe o motivo (o pedido será recusado).'); novo = 'Recusado'; texto = 'Pedido recusado.'; }
-      else if (p.itens.every(l => l.atendida === l.qtd)) { novo = 'Atendido'; texto = 'Pedido atendido integralmente.'; }
-      else { novo = 'Parcialmente atendido'; texto = 'Pedido atendido parcialmente: ' + total + ' de ' + p.totalUnidades + ' unidades.'; }
+      const total = p.itens.reduce((a, l) => a + Number(at[l.id]), 0);
+      if (total === 0 && !resposta) throw amigavel('Nenhum item foi atendido: informe o motivo (o pedido será recusado).');
+      p.itens.forEach(l => { const q = Number(at[l.id]); devolver(l, l.qtd - q); l.atendida = q; });
+      if (total === 0) { novo = 'Recusado'; texto = 'Pedido recusado.'; }
+      else if (p.itens.every(l => l.atendida === l.qtd)) { novo = RETIRADA; texto = 'Atendimento total: os materiais foram separados e estão aguardando retirada no almoxarifado.'; }
+      else { novo = RETIRADA; texto = 'Atendimento parcial: ' + total + ' de ' + p.totalUnidades + ' unidades foram separadas e estão aguardando retirada no almoxarifado. O restante voltou ao estoque.'; }
+    } else if (tipo === 'entregar') {
+      if (p.status !== RETIRADA) throw amigavel('Só pedidos "Aguardando retirada" podem ter a entrega registrada.');
+      novo = 'Entrega realizada'; texto = 'Entrega realizada: os materiais foram retirados. Pedido concluído.';
     } else throw amigavel('Ação inválida.');
+    if (tipo !== 'entregar') p.rascunho = null;
     p.status = novo;
-    p.totalAtendido = FINAIS.indexOf(novo) >= 0 ? p.itens.reduce((a, l) => a + (l.atendida || 0), 0) : null;
+    p.totalAtendido = FINAIS.indexOf(novo) >= 0 || novo === RETIRADA ? p.itens.reduce((a, l) => a + (l.atendida || 0), 0) : null;
     if (resposta) p.resposta = resposta;
     p.andamento.push({ dataISO: agora.toISOString(), status: novo, texto: texto + (resposta ? ' Mensagem do almoxarifado: ' + resposta : '') });
-    shP.getRange(p.linha, 1, 1, 15).setValues([linhaPedido(p)]);
+    shP.getRange(p.linha, 1, 1, 16).setValues([linhaPedido(p)]);
     registrar([[agora, 'Pedido ' + novo.toLowerCase(), p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '', (p.totalAtendido != null ? p.totalAtendido + ' de ' + p.totalUnidades + ' unidades atendidas. ' : '') + resposta]]);
     novaVersao();
     pedido = semLinha(p);
@@ -643,7 +658,30 @@ function acaoAtender(req) {
   return { pedido };
 }
 
+/* Atendimento parcial: o gestor pode ir salvando as quantidades e voltar depois para continuar (não mexe no estoque). */
+function acaoSalvarRascunho(req) {
+  const lock = bloquear();
+  try {
+    const { sh, pedidos } = lerPedidos();
+    const p = pedidos.find(x => x.numero === String(req.numero));
+    if (!p) throw amigavel('Pedido não encontrado (pode ter sido excluído por outro gestor).');
+    if (ABERTAS.indexOf(p.status) < 0) throw amigavel('O pedido ' + p.numero + ' está "' + p.status + '" e não aceita mais rascunho.');
+    const at = req.atendidas || {}, limpo = {};
+    p.itens.forEach(l => { const q = Number(at[l.id]); if (!Number.isInteger(q) || q < 0 || q > l.qtd) throw amigavel('Quantidade inválida para ' + l.descricao + ' (de 0 a ' + l.qtd + ').'); limpo[l.id] = q; });
+    p.rascunho = { atendidas: limpo, resposta: String(req.resposta || '').trim().slice(0, 1000), por: GESTOR.nome, emISO: new Date().toISOString() };
+    sh.getRange(p.linha, 1, 1, 16).setValues([linhaPedido(p)]);
+    registrar([[new Date(), 'Rascunho de atendimento salvo', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '',
+      'Atendimento parcial em edição: ' + p.itens.map(l => l.codigo + ' ' + limpo[l.id] + '/' + l.qtd).join('; ')]]);
+    novaVersao();
+    return { pedido: semLinha(p) };
+  } finally { lock.releaseLock(); }
+}
 function acaoExcluirPedido(req) {
+  // A exclusão é confirmada com a senha do próprio gestor (no máximo 5 tentativas a cada 10 minutos).
+  const cache = CacheService.getScriptCache(), chaveT = 'excl_' + GESTOR.usuario, tent = Number(cache.get(chaveT) || 0);
+  if (tent >= 5) throw amigavel('Muitas tentativas com senha incorreta. Aguarde 10 minutos para excluir pedidos.');
+  if (hashSenha(GESTOR.salt, String(req.senha || '')) !== GESTOR.hash) { cache.put(chaveT, String(tent + 1), 600); throw amigavel('Senha incorreta. A exclusão não foi feita.'); }
+  cache.remove(chaveT);
   const motivo = String(req.motivo || '').trim().slice(0, 500);
   if (!motivo) throw amigavel('Informe o motivo da exclusão.');
   const lock = bloquear();
@@ -655,12 +693,13 @@ function acaoExcluirPedido(req) {
     numero = p.numero;
     const agora = new Date();
     let devolvidas = 0;
-    if (ABERTAS.indexOf(p.status) >= 0) {
+    if (ABERTAS.indexOf(p.status) >= 0 || p.status === RETIRADA) {
+      // Pedido em aberto devolve o reservado; pedido aguardando retirada devolve o que foi separado.
       const cat = lerCatalogo(), rows = [];
       p.itens.forEach(l => {
-        const e = cat.mapa[l.id]; if (!e) return;
-        e.qtd += l.qtd; gravarItem(cat.sh, e); devolvidas += l.qtd;
-        rows.push([agora, 'Devolução ao estoque', p.numero, l.id, l.codigo, l.descricao, e.qtd - l.qtd, e.qtd, l.qtd, 'Pedido excluído']);
+        const e = cat.mapa[l.id], q = p.status === RETIRADA ? (Number(l.atendida) || 0) : l.qtd; if (!e || !q) return;
+        e.qtd += q; gravarItem(cat.sh, e); devolvidas += q;
+        rows.push([agora, 'Devolução ao estoque', p.numero, l.id, l.codigo, l.descricao, e.qtd - q, e.qtd, q, 'Pedido excluído']);
       });
       registrar(rows);
     }
@@ -829,7 +868,8 @@ function acaoPainelPublico(req) {
   if (!chave || String(req.t || '') !== chave) throw amigavel('Link do painel inválido ou desativado. Gere um novo link na área do gestor (Relatórios › Dashboard › Link para o Looker Studio).');
   garantirCatalogo();
   const pedidos = lerPedidos().pedidos, res = {};
-  pedidos.forEach(p => { if (p.status === 'Pendente' || p.status === 'Aprovado') p.itens.forEach(l => { res[l.id] = (res[l.id] || 0) + (Number(l.qtd) || 0); }); });
+  pedidos.forEach(p => { if (ABERTAS.indexOf(p.status) >= 0) p.itens.forEach(l => { res[l.id] = (res[l.id] || 0) + (Number(l.qtd) || 0); });
+    else if (p.status === RETIRADA) p.itens.forEach(l => { res[l.id] = (res[l.id] || 0) + (Number(l.atendida) || 0); }); });
   const regra = dadosRegras().estoqueMinimo;
   return {
     versao: versaoAtual(), geradoEm: new Date().toISOString(), baixo: regra == null ? null : regra,
@@ -1090,7 +1130,7 @@ function avisar(p, novo) {
       '<p>Olá, ' + esc(p.solicitante.nome.split(' ')[0]) + '.</p>' +
       (novo ? '<p>Recebemos o seu pedido <b>' + esc(p.numero) + '</b>. Guarde este número para acompanhar o andamento.</p>'
             : '<p>O pedido <b>' + esc(p.numero) + '</b> mudou para a situação <b>' + esc(p.status) + '</b>.</p><p>' + esc(ultimo ? ultimo.texto : '') + '</p>') +
-      tabela + esc(AVISO_SIADES.charAt(0).toLowerCase() + AVISO_SIADES.slice(1)) + ' Agradecemos a compreensão.</p>' +
+      tabela +
       (link ? '<p><a href="' + link + '">Acompanhar o pedido</a> (informe o e-mail usado no pedido).</p>' : '') +
       (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +
       '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado – ' + ORGAO + '. Não responda.</p></div>';

@@ -182,17 +182,26 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Até 5 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo**. Cada um tem um **perfil de acesso** (veja "Perfis de acesso"). As telas se atualizam sozinhas a cada 6 segundos.
 - Cada ação fica no histórico com o nome de quem fez.
 - **Pedidos:**
-  - para abrir um pedido, **clique no número do pedido, no nome do solicitante ou nos materiais**. O pedido abre numa janela com todos os dados do solicitante, os materiais e o andamento;
-  - na janela, cada material mostra, nesta ordem, as colunas abaixo. Os valores de estoque são atualizados em tempo real:
-    - **Estoque inicial:** o disponível antes deste pedido;
-    - **Pedido:** a quantidade solicitada;
-    - **Atendido:** a quantidade entregue;
-    - **Estoque final:** o que fica no estoque depois deste pedido. Em pedidos em aberto, aparece como "previsto", considerando o atendimento completo. Fica em âmbar quando está baixo e em vermelho quando está zerado;
-  - em **Atender em parte**, as mesmas colunas aparecem e o **Estoque final** é recalculado enquanto você digita a quantidade a entregar;
-  - ao concluir uma ação na janela, ela **fecha sozinha** e volta para a lista de pedidos. Se a ação for cancelada na confirmação, o pedido continua aberto. Também fecha com o **×**, com a tecla Esc ou clicando fora;
-  - aprovar, atender tudo, atender em parte ou recusar;
-  - baixar Excel ou PDF e imprimir;
-  - **excluir pedido**, com motivo obrigatório. A exclusão fica no histórico com o nome do gestor, a data e o horário. Pedidos pendentes ou aprovados devolvem as quantidades ao estoque.
+  - **Fluxo:** **Pendente → Aguardando retirada → Entrega realizada**. Um pedido pendente também pode ser **Recusado**.
+  - **Abrir um pedido:** clique no **número do pedido**, no **nome do solicitante** ou nos **materiais**. O pedido abre numa janela com os dados do solicitante, os materiais e o andamento.
+  - **Colunas de cada material:** **Estoque inicial · Pedido · Atendido · Estoque final**, em tempo real.
+  - **Botões de um pedido pendente:**
+
+    | Botão | Cor | O que faz |
+    |---|---|---|
+    | **Atendimento total** | verde | Separa todas as unidades. O pedido passa **automaticamente** para **Aguardando retirada** |
+    | **Atendimento parcial** | laranja | Abre o editor dentro da janela: informe quanto de cada material será entregue. **Salvar** guarda um rascunho, para voltar ao pedido e continuar depois (também em outro computador). **Confirmar** separa as quantidades, devolve a diferença ao estoque e passa o pedido para **Aguardando retirada** |
+    | **Recusar** | vermelho | Pede o motivo e devolve tudo ao estoque |
+    | **Planilha Excel** | azul | Baixa a planilha do pedido |
+    | **PDF** | cinza | Baixa o PDF do pedido |
+    | **Imprimir** | branco | Imprime o pedido |
+    | **Excluir pedido** | vermelho | Pede o motivo e **a senha do gestor** (5 tentativas erradas bloqueiam por 10 minutos). Devolve ao estoque o que estava reservado ou separado e fica registrado no histórico |
+
+  - **Confirmação:** cada botão pede confirmação **em forma de pergunta, dentro da própria janela** (por exemplo: "Confirma o atendimento total do pedido 2026-00012?"). **Não, voltar** retorna ao pedido.
+  - **Depois da ação:** confirmada a ação, a janela fecha e volta para a lista.
+  - **Aguardando retirada:** a janela mostra **apenas** o botão **Entrega realizada**, a última etapa. Ao confirmar, o pedido termina como **Entrega realizada**.
+  - **E-mails:** o solicitante recebe um e-mail a cada mudança de situação.
+  - **Pedidos antigos:** pedidos anteriores a esta versão podem aparecer como "Aprovado", "Atendido" ou "Parcialmente atendido". Os aprovados continuam podendo ser atendidos.
 - **Visão geral:** indicadores e gráficos com **filtros** de período (incluindo datas escolhidas), setor, situação e natureza de despesa.
 - **Catálogo e estoque:**
   - **Visível**: desligado, o material some da página de pedidos;
@@ -216,11 +225,11 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 
 | Situação | Estoque |
 |---|---|
-| Pendente / Aprovado | Quantidades **reservadas** (saem do disponível) |
-| Atendido | Baixa definitiva |
-| Parcialmente atendido | O que não foi entregue **volta** ao estoque |
+| Pendente | Quantidades **reservadas** (saem do disponível) |
+| Aguardando retirada | Materiais **separados** (total ou parcial). Num atendimento parcial, o que não será entregue **volta** ao estoque |
+| Entrega realizada | Baixa definitiva. Última etapa do pedido |
 | Recusado | Tudo **volta** ao estoque |
-| Excluído (pelo gestor) | Sai da lista. Se estava pendente ou aprovado, tudo **volta** ao estoque. A exclusão fica no histórico |
+| Excluído (pelo gestor, com senha) | Sai da lista. O que estava reservado ou separado **volta** ao estoque. A exclusão fica no histórico |
 
 ### Catálogo e imagens
 
