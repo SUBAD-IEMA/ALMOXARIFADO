@@ -218,9 +218,9 @@ function publico(it) {
 /* Carrega sozinho o catálogo inicial e os materiais acrescentados (Catálogo GOV ES), sem depender do gestor. */
 function garantirCatalogo() {
   const vazio = aba('catalogo').getLastRow() < 2;
-  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5')) return;
+  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5') && props().getProperty('NOMES_MAIUSCULOS_V17')) return;
   const lock = bloquear();
-  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); } finally { lock.releaseLock(); }
+  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); nomesPedidosMaiusculos(); } finally { lock.releaseLock(); }
 }
 /* Versão 6: só os materiais do Catálogo GOV ES têm foto. As imagens aproximadas colocadas na versão 5
    nos demais materiais são retiradas (os quadrinhos ficam em branco para o gestor inserir a imagem).
@@ -279,7 +279,7 @@ function lerPedidos() {
     let rascunho = null; try { rascunho = r[15] ? JSON.parse(r[15]) : null; } catch (e) {}
     return {
       linha: i + 2, numero: String(r[0]), dataISO: iso(r[1]),
-      solicitante: { nome: String(r[2]), setor: String(r[3]), telefone: String(r[4]), email: String(r[5]) },
+      solicitante: { nome: nomeMaiusculo(r[2]), setor: String(r[3]), telefone: String(r[4]), email: String(r[5]) },
       obs: String(r[6] || ''), itens, totalItens: Number(r[8]) || 0, totalUnidades: Number(r[9]) || 0, totalAtendido: r[10] === '' ? null : Number(r[10]),
       status: String(r[11] || 'Pendente'), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''), andamento, rascunho
     };
@@ -287,7 +287,7 @@ function lerPedidos() {
   return { sh, pedidos };
 }
 function linhaPedido(p) {
-  return [p.numero, new Date(p.dataISO), seguro(p.solicitante.nome), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
+  return [p.numero, new Date(p.dataISO), seguro(nomeMaiusculo(p.solicitante.nome)), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
     JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), seguro(p.resposta || ''), JSON.stringify(p.andamento),
     p.rascunho ? JSON.stringify(p.rascunho) : ''];
 }
@@ -516,9 +516,23 @@ function emailInstitucional(e) {
   const dom = DOMINIO_EMAIL.replace(/\./g, '\\.');
   return new RegExp('^[^\\s@]+@' + dom + '$', 'i').test(String(e || '').trim());
 }
+/* Padrão do nome do solicitante: sempre em CAIXA ALTA, sem espaços repetidos. */
+function nomeMaiusculo(v) { return String(v || '').replace(/\s+/g, ' ').trim().toUpperCase(); }
+/* Uma única vez: passa para CAIXA ALTA os nomes dos pedidos já gravados. */
+function nomesPedidosMaiusculos() {
+  if (props().getProperty('NOMES_MAIUSCULOS_V17')) return;
+  const sh = aba('pedidos'), n = sh.getLastRow() - 1;
+  if (n > 0) {
+    const col = sh.getRange(2, 3, n, 1).getValues();
+    let mudou = false;
+    col.forEach(r => { const novo = nomeMaiusculo(r[0]); if (novo !== String(r[0])) { r[0] = seguro(novo); mudou = true; } });
+    if (mudou) sh.getRange(2, 3, n, 1).setValues(col);
+  }
+  props().setProperty('NOMES_MAIUSCULOS_V17', '1');
+}
 function validarSolicitante(s) {
   s = s || {};
-  const r = { nome: String(s.nome || '').trim().slice(0, 120), setor: String(s.setor || '').trim().slice(0, 120), telefone: String(s.telefone || '').trim().slice(0, 30), email: String(s.email || '').trim().toLowerCase().slice(0, 120) };
+  const r = { nome: nomeMaiusculo(s.nome).slice(0, 120), setor: String(s.setor || '').trim().slice(0, 120), telefone: String(s.telefone || '').trim().slice(0, 30), email: String(s.email || '').trim().toLowerCase().slice(0, 120) };
   if (r.nome.split(/\s+/).length < 2) throw amigavel('Informe o nome completo do solicitante.');
   if (!r.setor) throw amigavel('Informe o setor do solicitante.');
   if (r.telefone.replace(/\D/g, '').length < 10) throw amigavel('Informe um telefone para contato com DDD.');
@@ -706,7 +720,7 @@ function acaoExcluirPedido(req) {
     sh.deleteRow(p.linha);
     const resumo = p.itens.map(l => l.codigo + ' × ' + l.qtd).join('; ');
     registrar([[agora, 'Pedido excluído', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '',
-      ('Excluído por ' + GESTOR.nome + ' (' + GESTOR.usuario + ') em ' + dataBR(agora) + '. Situação: ' + p.status + '. Pedido de ' + dataBR(new Date(p.dataISO)) +
+      ('Excluído por ' + GESTOR.nome + ' (' + GESTOR.usuario + ') em ' + dataBR(agora) + '. Status: ' + p.status + '. Pedido de ' + dataBR(new Date(p.dataISO)) +
        ', ' + p.totalItens + ' materiais, ' + p.totalUnidades + ' unidades' + (devolvidas ? ' (devolvidas ao estoque)' : '') + '. Motivo: ' + motivo + '. Itens: ' + resumo).slice(0, 2000)]]);
     novaVersao();
   } finally { lock.releaseLock(); }
@@ -904,9 +918,9 @@ function dataArq(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_
 function tabelasBackup(d) {
   const dt = s => s ? new Date(s) : '';
   return {
-    'Pedidos': [['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Materiais', 'Solicitado', 'Atendido', 'Situação', 'Observação', 'Resposta do almoxarifado']]
+    'Pedidos': [['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Materiais', 'Solicitado', 'Atendido', 'Status', 'Observação', 'Resposta do almoxarifado']]
       .concat(d.pedidos.map(p => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, p.solicitante.telefone, p.solicitante.email, p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, p.obs || '', p.resposta || ''])),
-    'Itens dos pedidos': [['Pedido', 'Data', 'Solicitante', 'Setor', 'Código', 'Material', 'Unidade', 'Solicitado', 'Atendido', 'Situação']]
+    'Itens dos pedidos': [['Pedido', 'Data', 'Solicitante', 'Setor', 'Código', 'Material', 'Unidade', 'Solicitado', 'Atendido', 'Status']]
       .concat([].concat.apply([], d.pedidos.map(p => p.itens.map(l => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, l.codigo, l.descricao, l.unidade, l.qtd, l.atendida == null ? '' : l.atendida, p.status])))),
     'Histórico': [['Data', 'Tipo', 'Pedido', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável']]
       .concat(d.historico.map(h => [dt(h.dataISO), h.tipo, h.pedido, h.codigo, h.descricao, h.antes == null ? '' : h.antes, h.depois == null ? '' : h.depois, h.delta == null ? '' : h.delta, h.detalhes, h.quem])),
@@ -1129,7 +1143,7 @@ function avisar(p, novo) {
       '<p style="background:#FBF0DC;border:1px solid #E6C68F;padding:8px 12px;font-size:13px"><b>E-mail automático somente para consulta. Não responda esta mensagem</b>: as respostas não são recebidas. Para acompanhar o pedido, use o link abaixo.</p>' +
       '<p>Olá, ' + esc(p.solicitante.nome.split(' ')[0]) + '.</p>' +
       (novo ? '<p>Recebemos o seu pedido <b>' + esc(p.numero) + '</b>. Guarde este número para acompanhar o andamento.</p>'
-            : '<p>O pedido <b>' + esc(p.numero) + '</b> mudou para a situação <b>' + esc(p.status) + '</b>.</p><p>' + esc(ultimo ? ultimo.texto : '') + '</p>') +
+            : '<p>O pedido <b>' + esc(p.numero) + '</b> mudou para o status <b>' + esc(p.status) + '</b>.</p><p>' + esc(ultimo ? ultimo.texto : '') + '</p>') +
       tabela +
       (link ? '<p><a href="' + link + '">Acompanhar o pedido</a> (informe o e-mail usado no pedido).</p>' : '') +
       (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +

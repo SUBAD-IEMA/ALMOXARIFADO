@@ -923,6 +923,75 @@ body.com-janela{overflow:hidden}
   .hcq-bts .btn-acao{flex:1 1 100%}
 }
 
+/* ===================== Versão 17: botões padronizados, nome em caixa alta, status e linha do tempo ===================== */
+/* Botões de gestão do pedido: uma cor por comando e todos do mesmo tamanho */
+.hc-actions .grupo,.hc-actions .grupo.trat,.hc-actions .grupo.docs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hc-actions .grupo .espaco{display:none}
+.hc-actions .btn-acao,.hc-actions .grupo.trat .btn-acao:not(.grande),.parcial-bts .btn-acao{width:100%;min-width:0!important;height:52px;min-height:52px;padding:6px 10px;flex:none!important;
+  font-size:13.5px;line-height:1.2;white-space:normal;text-align:center}
+.hcq-bts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hcq-bts .btn-acao{height:52px;width:100%}
+.hcq-bts .btn-acao:first-child{grid-column:3}
+.btn-acao.roxo{--c:#7C5CBF;--c2:#5E3F9E}
+.btn-acao.bordo{--c:#9B2C2C;--c2:#7A1F1F}
+.btn-acao.turquesa{--c:#14917F;--c2:#0E6E61}
+.hc-pergunta.roxo{--c:#5E3F9E} .hc-pergunta.bordo{--c:#7A1F1F} .hc-pergunta.turquesa{--c:#0E6E61}
+@media (max-width:760px){
+  .hc-actions .grupo,.hc-actions .grupo.trat,.hc-actions .grupo.docs,.hcq-bts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hcq-bts .btn-acao:first-child{grid-column:auto}
+}
+/* Nome completo do solicitante: sempre em caixa alta, tamanho 11 */
+#nome{text-transform:uppercase;font-size:11pt;letter-spacing:.02em}
+/* Status em destaque */
+.status-painel{display:grid;grid-template-columns:minmax(200px,auto) 1fr;gap:18px;align-items:center;background:var(--surface-2);border:1px solid var(--rule);border-radius:14px;padding:14px 18px;margin:0 0 14px}
+.status-card{--c:#D67800;display:flex;flex-direction:column;gap:2px;border-left:6px solid var(--c);background:var(--surface);border-radius:10px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.status-card .sc-rot{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.status-card b{font-size:21px;line-height:1.2;color:var(--c)}
+.status-card small{font-size:12px;color:var(--muted)}
+.status-card.s-pendente{--c:#C96A00} .status-card.s-retirada{--c:#2A5F9E} .status-card.s-entregue{--c:#1E5240}
+.status-card.s-recusado{--c:#B42318} .status-card.s-aprovado{--c:#3B6FA0} .status-card.s-parcial{--c:#7A5195} .status-card.s-atendido{--c:#1E5240}
+.status-msg{margin:-4px 0 14px;font-size:13.5px;color:var(--ink);background:var(--surface);border:1px dashed var(--rule-strong);border-radius:8px;padding:8px 12px}
+/* Linha do tempo horizontal (checklist) */
+.etapas{list-style:none;margin:0;padding:0;display:flex;align-items:flex-start}
+.etapas li{flex:1 1 0;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;min-width:0;padding:0 4px}
+.etapas li::before{content:"";position:absolute;top:19px;right:50%;width:100%;height:4px;background:var(--rule-strong);border-radius:2px;z-index:0}
+.etapas li:first-child::before{display:none}
+.etapas li.feito::before,.etapas li.erro::before,.etapas li.aguardando::before{background:var(--pine)}
+.etapas li.aguardando::before{background:linear-gradient(90deg,var(--pine),#E8A33D)}
+.etapas li.erro::before{background:linear-gradient(90deg,var(--pine),#B42318)}
+.et-ico{position:relative;z-index:1;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;background:var(--surface);border:3px solid var(--rule-strong);color:var(--muted)}
+.et-ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.etapas li.feito .et-ico{background:var(--pine);border-color:var(--pine);color:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--pine) 18%,transparent)}
+.etapas li.erro .et-ico{background:#B42318;border-color:#B42318;color:#fff;box-shadow:0 0 0 4px rgba(180,35,24,.15)}
+.etapas li.aguardando .et-ico{background:#FFF4E5;border-color:#E8A33D;color:#C96A00;animation:pulso 1.8s ease-in-out infinite}
+.etapas li.aguardando .et-ico svg{stroke-width:2.4}
+.etapas li b{font-size:13.5px;line-height:1.25;color:var(--ink)}
+.etapas li.futuro b{color:var(--muted);font-weight:600}
+.etapas li.aguardando b{color:#C96A00}
+.etapas li.erro b{color:#B42318}
+.etapas li small{font-size:11.5px;color:var(--muted)}
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 rgba(232,163,61,.45)}50%{box-shadow:0 0 0 7px rgba(232,163,61,0)}}
+@media (prefers-reduced-motion:reduce){ .etapas li.aguardando .et-ico{animation:none} }
+/* Consulta do pedido pelo solicitante: janela maior e mais legível */
+.dialog.consulta-pedido{width:min(960px,calc(100vw - 32px));max-width:min(960px,calc(100vw - 32px))}
+.dialog.consulta-pedido .cp-tit{font-size:26px;letter-spacing:-.01em}
+.dialog.consulta-pedido header p{font-size:14.5px}
+.dialog.consulta-pedido .status-card b{font-size:24px}
+.dialog.consulta-pedido .et-ico{width:48px;height:48px}
+.dialog.consulta-pedido .etapas li::before{top:22px}
+.dialog.consulta-pedido .etapas li b{font-size:15px}
+.dialog.consulta-pedido .body{font-size:15px}
+.dialog.consulta-pedido table.mini{font-size:14.5px}
+.cp-sub{font-size:15.5px;margin:6px 0 8px}
+@media (max-width:760px){
+  .status-painel{grid-template-columns:1fr;gap:14px;padding:12px}
+  .etapas li b{font-size:12px} .et-ico{width:36px;height:36px} .etapas li::before{top:16px}
+  .dialog.consulta-pedido .et-ico{width:40px;height:40px} .dialog.consulta-pedido .etapas li::before{top:18px}
+  .dialog.consulta-pedido .cp-tit{font-size:21px}
+}
+.hc-pergunta + .hcq-bts{margin-top:0}
+.hc-actions > .hcq-bts{grid-column:auto}
+
 </style>
 </head>
 <body>
@@ -957,7 +1026,7 @@ body.com-janela{overflow:hidden}
     <a class="porta" href="solicitante.html?acompanhar=1">
       <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M8 11h6M11 8v6"/></svg></span>
       <h2>Acompanhar um pedido</h2>
-      <p>Informe o número do pedido e o e-mail usado nele para ver a situação: pendente, aguardando retirada, entrega realizada ou recusado.</p>
+      <p>Informe o número do pedido e o e-mail usado nele para ver o status: pendente, aguardando retirada, entrega realizada ou recusado.</p>
       <span class="ir">Consultar →</span>
     </a>
     <a class="porta" href="gestor.html">
@@ -1013,7 +1082,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     document.addEventListener("keydown", e => { if(e.key === "Escape" && dlg.classList.contains("open") && !card.querySelector("[data-ocupado]")) fecharDialogo(); });
   }
   function abrirDialogo(html, largo){
-    garantirDialogo(); card.innerHTML = html; card.classList.toggle("largo", !!largo); dlg.classList.add("open");
+    garantirDialogo(); card.className = "modal-card dialog" + (largo ? " largo" : ""); card.innerHTML = html; dlg.classList.add("open");
     const f = card.querySelector("[data-foco]") || card.querySelector("input,textarea,select,button"); if(f) setTimeout(() => f.focus(), 30);
     return card;
   }
@@ -1090,7 +1159,39 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
       _simular(ms){ ultimo = Date.now() - ms; } };   // _simular: usado só nos testes automáticos
   }
 
-  window.U = { inatividade, $, esc, fmt, norm, dataHora, pill, emailOk, mascaraTelefone, toast, abrirDialogo, fecharDialogo, ocupado, livre, confirmar, aplicarTextos, SITUACAO_CLASSE };
+  /* ---------- Status do pedido em destaque + linha do tempo horizontal (solicitante e gestor) ---------- */
+  const SVG = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const ICO_OK = SVG('<path d="M20 6 9 17l-5-5"/>'), ICO_X = SVG('<path d="M18 6 6 18M6 6l12 12"/>'), ICO_RELOGIO = SVG('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>');
+  function etapasDoPedido(p){
+    const and = p.andamento || [], achar = (...sts) => and.find(a => sts.includes(a.status));
+    const antigoFinal = ["Atendido", "Parcialmente atendido"].includes(p.status);   // pedidos de versões anteriores
+    const recebido = { t: "Pedido recebido", d: (and[0] || {}).dataISO || p.dataISO, ok: true };
+    if(p.status === "Recusado") return [recebido, { t: "Recusado", d: (achar("Recusado") || {}).dataISO, ok: true, erro: true }];
+    const ret = achar("Aguardando retirada"), ent = achar("Entrega realizada") || (antigoFinal ? achar("Atendido", "Parcialmente atendido") : null);
+    return [recebido,
+      { t: "Aguardando retirada", d: ret ? ret.dataISO : (antigoFinal && ent ? ent.dataISO : null), ok: !!ret || antigoFinal || p.status === "Entrega realizada" },
+      { t: "Entrega realizada", d: ent ? ent.dataISO : null, ok: p.status === "Entrega realizada" || antigoFinal }];
+  }
+  /* Etapas concluídas: coloridas com ✓. Próxima etapa: relógio (aguardando). Demais: em cinza, numeradas. */
+  function linhaDoTempo(p){
+    const et = etapasDoPedido(p), prox = et.findIndex(e => !e.ok);
+    return `<ol class="etapas" aria-label="Linha do tempo do pedido">${et.map((e, i) => {
+      const est = e.ok ? (e.erro ? "erro" : "feito") : i === prox ? "aguardando" : "futuro";
+      const ico = est === "feito" ? ICO_OK : est === "erro" ? ICO_X : est === "aguardando" ? ICO_RELOGIO : `<span>${i + 1}</span>`;
+      const leg = { feito: "concluída", erro: "recusado", aguardando: "aguardando", futuro: "próxima etapa" }[est];
+      return `<li class="${est}" aria-label="${esc(e.t)}: ${leg}"><span class="et-ico">${ico}</span><b>${esc(e.t)}</b><small>${e.d ? dataHora(e.d) : est === "aguardando" ? "Aguardando…" : "&nbsp;"}</small></li>`;
+    }).join("")}</ol>`;
+  }
+  function cartaoStatus(p){
+    const ult = (p.andamento || []).slice(-1)[0];
+    return `<div class="status-card s-${SITUACAO_CLASSE[p.status] || "pendente"}"><span class="sc-rot">Status</span><b>${esc(p.status)}</b>${ult ? `<small>Atualizado em ${dataHora(ult.dataISO)}</small>` : ""}</div>`;
+  }
+  function painelStatus(p){
+    const ult = (p.andamento || []).slice(-1)[0];
+    return `<div class="status-painel">${cartaoStatus(p)}${linhaDoTempo(p)}</div>${ult && ult.texto ? `<p class="status-msg">${esc(ult.texto)}</p>` : ""}`;
+  }
+
+  window.U = { inatividade, linhaDoTempo, cartaoStatus, painelStatus, $, esc, fmt, norm, dataHora, pill, emailOk, mascaraTelefone, toast, abrirDialogo, fecharDialogo, ocupado, livre, confirmar, aplicarTextos, SITUACAO_CLASSE };
 })();
 
 </script>

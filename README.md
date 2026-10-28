@@ -165,6 +165,8 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - A página segue o modelo do Relatório de Itens em Estoque: materiais agrupados por natureza de despesa, com totais. No cabeçalho aparece só a data e hora de acesso.
 - Os materiais do catálogo do fornecedor mostram a foto do produto; os demais ficam em branco até o almoxarifado inserir a imagem. Ao passar o mouse sobre o quadrinho, o painel lateral mostra a imagem em alta resolução e os detalhes do material.
 - Nome completo, setor (lista suspensa de siglas), telefone e e-mail são obrigatórios.
+- **Nome completo em CAIXA ALTA:** o campo mostra e grava o nome sempre em letras maiúsculas, tamanho 11, qualquer que seja o teclado ou o texto colado. Os nomes de pedidos antigos também passam para maiúsculas automaticamente na atualização.
+- **Acompanhar pedido:** a consulta abre numa janela maior, com o **status em destaque** e uma **linha do tempo horizontal**, em forma de checklist: **Pedido recebido → Aguardando retirada → Entrega realizada**. As etapas concluídas aparecem coloridas com ✓, a próxima com um relógio e as futuras em cinza. Num pedido recusado, a última etapa aparece em vermelho com ✗.
 - **Só e-mail institucional:** o pedido só é aceito com e-mail terminado em **@iema.es.gov.br**. O nome antes do @ pode ser qualquer um (ex.: `maria.souza@iema.es.gov.br`). Outros domínios são recusados, inclusive variações como `@iema.es.gov.br.com` ou `@sub.iema.es.gov.br`. A regra vale na página e também no servidor (`DOMINIO_EMAIL` no `Code.gs` e no `config.js`).
 - Materiais marcados pelo gestor como **só visualização** aparecem com a quantidade e a marca SOMENTE CONSULTA, mas não podem ser pedidos.
 - Não aceita materiais indisponíveis nem quantidade acima do disponível ou do limite por pedido.
@@ -184,6 +186,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Pedidos:**
   - **Fluxo:** **Pendente → Aguardando retirada → Entrega realizada**. Um pedido pendente também pode ser **Recusado**.
   - **Abrir um pedido:** clique no **número do pedido**, no **nome do solicitante** ou nos **materiais**. O pedido abre numa janela com os dados do solicitante, os materiais e o andamento.
+  - **Status e linha do tempo:** a janela mostra o **status em destaque** e a mesma **linha do tempo horizontal** do solicitante.
   - **Colunas de cada material:** **Estoque inicial · Pedido · Atendido · Estoque final**, em tempo real.
   - **Botões de um pedido pendente:**
 
@@ -194,9 +197,10 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
     | **Recusar** | vermelho | Pede o motivo e devolve tudo ao estoque |
     | **Planilha Excel** | azul | Baixa a planilha do pedido |
     | **PDF** | cinza | Baixa o PDF do pedido |
-    | **Imprimir** | branco | Imprime o pedido |
-    | **Excluir pedido** | vermelho | Pede o motivo e **a senha do gestor** (5 tentativas erradas bloqueiam por 10 minutos). Devolve ao estoque o que estava reservado ou separado e fica registrado no histórico |
+    | **Imprimir** | roxo | Imprime o pedido |
+    | **Excluir pedido** | bordô | Pede o motivo e **a senha do gestor** (5 tentativas erradas bloqueiam por 10 minutos). Devolve ao estoque o que estava reservado ou separado e fica registrado no histórico |
 
+  - **Tamanho dos botões:** todos têm o mesmo tamanho, em grade (4 por linha no computador e 2 no celular). **Entrega realizada** é verde-azulado.
   - **Confirmação:** cada botão pede confirmação **em forma de pergunta, dentro da própria janela** (por exemplo: "Confirma o atendimento total do pedido 2026-00012?"). **Não, voltar** retorna ao pedido.
   - **Depois da ação:** confirmada a ação, a janela fecha e volta para a lista.
   - **Aguardando retirada:** a janela mostra **apenas** o botão **Entrega realizada**, a última etapa. Ao confirmar, o pedido termina como **Entrega realizada**.
@@ -221,9 +225,9 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
   - cada gestor troca a própria senha;
   - contato do almoxarifado.
 
-### Situações do pedido
+### Status do pedido
 
-| Situação | Estoque |
+| Status | Estoque |
 |---|---|
 | Pendente | Quantidades **reservadas** (saem do disponível) |
 | Aguardando retirada | Materiais **separados** (total ou parcial). Num atendimento parcial, o que não será entregue **volta** ao estoque |
