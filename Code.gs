@@ -888,6 +888,7 @@ function acaoPainelPublico(req) {
   return {
     versao: versaoAtual(), geradoEm: new Date().toISOString(), baixo: regra == null ? null : regra,
     pedidos: pedidos.map(p => ({ dataISO: p.dataISO, status: p.status, setor: (p.solicitante || {}).setor || '',
+      andamento: (p.andamento || []).map(a => ({ status: a.status, dataISO: a.dataISO })),   // só status e data (para o tempo médio de atendimento)
       itens: p.itens.map(l => ({ id: l.id, codigo: l.codigo, descricao: l.descricao, qtd: Number(l.qtd) || 0, atendida: l.atendida == null ? null : Number(l.atendida) })) })),
     itens: lerCatalogo().itens.filter(i => i.ativo).map(i => ({ id: i.id, codigo: i.codigo, descricao: i.descricao, natureza: i.natureza, naturezaNome: i.naturezaNome,
       qtd: i.qtd, reservado: res[i.id] || 0, oculto: !!i.oculto, indisponivel: !!i.indisponivel }))

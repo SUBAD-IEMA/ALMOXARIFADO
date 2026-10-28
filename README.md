@@ -69,17 +69,27 @@ A aba **Relatórios** tem dois modos, com os mesmos filtros.
 | Histórico e excluídos | Registros por tipo e por responsável |
 
 **Dashboard com gráficos:** somente gráficos, sem tabelas nem quadros de números.
-- **Os 10 gráficos:**
+- **Visual profissional:**
+  - os gráficos mostram **só nomes** (materiais, naturezas de despesa e setores), sem códigos; os códigos continuam nos filtros;
+  - valores escritos nas barras, eixos com título e grades discretas;
+  - nomes longos quebrados em duas linhas.
+- **Gráficos de pizza:** ao passar o mouse, mostram a **quantidade e o percentual**, e a legenda também traz o percentual.
+- **Os 11 gráficos:**
   - evolução por dia ou mês;
-  - situação dos pedidos;
+  - pedidos por status;
+  - **tempo médio de atendimento**;
   - materiais mais solicitados;
   - consumo por setor;
   - consumo por natureza;
   - estoque por natureza (disponível e reservado);
-  - materiais com estoque baixo por natureza (sem estoque e abaixo do alerta);
+  - materiais com estoque baixo por natureza;
   - taxa de atendimento por setor;
   - pedidos por dia da semana;
   - pedidos por horário.
+- **Tempo médio de atendimento:** mede o tempo da **solicitação até a entrega realizada**, separado em duas fases:
+  - **até a separação**: da solicitação ao status "Aguardando retirada";
+  - **aguardando retirada**: até "Entrega realizada".
+  - O gráfico mostra a **média geral** e a média **por setor**, em horas ou dias, conforme o tamanho, e considera só os pedidos já entregues no período.
 - **Atualização:** muda na hora ao trocar um filtro e se atualiza sozinho quando chegam pedidos.
 - **Exportação:** **Baixar PDF do dashboard** e **Imprimir dashboard** geram um relatório em paisagem só com os gráficos.
 
