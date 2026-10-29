@@ -37,7 +37,7 @@ const FINAIS = ['Entrega realizada', 'Recusado', 'Parcialmente atendido', 'Atend
 const ABAS = {
   catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto', 'Só visualização'], 'A:B'],
   imagens:  ['Imagens enviadas', ['id', 'Imagem (parte 1)', 'Atualizado em', 'Parte 2', 'Parte 3', 'Parte 4', 'Parte 5', 'Parte 6'], 'A:A'],
-  pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)', 'Rascunho do atendimento (dados)'], 'A:A,E:E'],
+  pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)', 'Rascunho do atendimento (dados)', 'Conversa (dados)'], 'A:A,E:E'],
   historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável'], 'C:E'],
   config:   ['Configuração', ['Chave', 'Valor'], 'A:B']
 };
@@ -62,7 +62,7 @@ const PERFIS = {
 const PERMISSAO_ACAO = { atender: 'pedidos_atender', excluirPedido: 'pedidos_excluir', ajustarEstoque: 'estoque_ajustar',
   salvarItem: 'catalogo_editar', indisponivel: 'catalogo_editar', visibilidade: 'catalogo_editar', soVisualizar: 'catalogo_editar', removerItem: 'catalogo_editar',
   salvarContato: 'configuracoes', salvarRegras: 'configuracoes', ativarBackup: 'configuracoes',
-  salvarRascunho: 'pedidos_atender', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
+  salvarRascunho: 'pedidos_atender', responderPedido: 'pedidos_atender', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
   adicionarGestor: 'usuarios', removerGestor: 'usuarios', redefinirSenha: 'usuarios', editarGestor: 'usuarios' };
 function permissoesDe(g) {
   const o = {};
@@ -106,12 +106,12 @@ function doPost(e) {
   QUEM = 'Sistema'; GESTOR = null;
   const publicas = { versao: acaoVersao, catalogo: acaoCatalogo, imagens: acaoImagens, solicitar: acaoSolicitar, consultar: acaoConsultar,
     login: acaoLogin, situacaoAcesso: acaoSituacaoAcesso, criarPrimeiroGestor: acaoCriarPrimeiroGestor,
-    esqueciSenha: acaoEsqueciSenha, redefinirComCodigo: acaoRedefinirComCodigo, painelPublico: acaoPainelPublico };
+    esqueciSenha: acaoEsqueciSenha, redefinirComCodigo: acaoRedefinirComCodigo, painelPublico: acaoPainelPublico, mensagemPedido: acaoMensagemPedido };
   const doGestor = { sair: acaoSair, painel: acaoPainel, atender: acaoAtender, excluirPedido: acaoExcluirPedido,
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, responderPedido: acaoResponderPedido, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
     backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
@@ -277,11 +277,12 @@ function lerPedidos() {
     try { itens = JSON.parse(r[7] || '[]'); } catch (e) {}
     try { andamento = JSON.parse(r[14] || '[]'); } catch (e) {}
     let rascunho = null; try { rascunho = r[15] ? JSON.parse(r[15]) : null; } catch (e) {}
+    let conversa = { msgs: [], pendente: false }; try { if (r[16]) conversa = JSON.parse(r[16]); } catch (e) {}
     return {
       linha: i + 2, numero: String(r[0]), dataISO: iso(r[1]),
       solicitante: { nome: nomeMaiusculo(r[2]), setor: String(r[3]), telefone: String(r[4]), email: String(r[5]) },
       obs: String(r[6] || ''), itens, totalItens: Number(r[8]) || 0, totalUnidades: Number(r[9]) || 0, totalAtendido: r[10] === '' ? null : Number(r[10]),
-      status: String(r[11] || 'Pendente'), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''), andamento, rascunho
+      status: String(r[11] || 'Pendente'), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''), andamento, rascunho, conversa
     };
   }).filter(p => p.numero);
   return { sh, pedidos };
@@ -289,7 +290,7 @@ function lerPedidos() {
 function linhaPedido(p) {
   return [p.numero, new Date(p.dataISO), seguro(nomeMaiusculo(p.solicitante.nome)), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
     JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), seguro(p.resposta || ''), JSON.stringify(p.andamento),
-    p.rascunho ? JSON.stringify(p.rascunho) : ''];
+    p.rascunho ? JSON.stringify(p.rascunho) : '', p.conversa && p.conversa.msgs && p.conversa.msgs.length ? JSON.stringify(p.conversa) : ''];
 }
 function semLinha(p) { const c = Object.assign({}, p); delete c.linha; return c; }
 
@@ -499,10 +500,17 @@ function acaoTrocarSenha(req) {
 /* ======================= Ações públicas ======================= */
 function acaoVersao() { return { versao: versaoAtual() }; }
 
+/* O que a página do solicitante recebe de cada material: sem quantidade em estoque e sem conta contábil.
+   (O controle de estoque fica só na área do gestor.) */
+function paraSolicitante(i) {
+  return { id: i.id, codigo: i.codigo, descricao: i.descricao, unidade: i.unidade, natureza: i.natureza, naturezaNome: i.naturezaNome,
+    limite: i.limite || 0, indisponivel: !!i.indisponivel || !(i.qtd > 0), soVisualizar: !!i.soVisualizar,
+    imagem: i.imagem || '', imagemVersao: i.imagemVersao || 0, busca: i.busca || '' };
+}
 function acaoCatalogo() {
   garantirCatalogo();
   const { itens } = lerCatalogo();
-  return { versao: versaoAtual(), inicializado: itens.length > 0, itens: itens.filter(i => i.ativo && !i.oculto).map(publico), gestor: dadosContato(), regras: dadosRegras() };
+  return { versao: versaoAtual(), inicializado: itens.length > 0, itens: itens.filter(i => i.ativo && !i.oculto).map(paraSolicitante), gestor: dadosContato(), regras: dadosRegras() };
 }
 
 function acaoImagens(req) {
@@ -560,7 +568,7 @@ function acaoSolicitar(req) {
       if (e.indisponivel) throw amigavel(e.codigo + ' – ' + e.descricao + ' está INDISPONÍVEL.');
       if (e.soVisualizar) throw amigavel(e.codigo + ' – ' + e.descricao + ' está disponível somente para consulta e não pode ser pedido pela página.');
       if (!Number.isInteger(q) || q <= 0) throw amigavel('Quantidade inválida para ' + e.descricao + '.');
-      if (q > e.qtd) throw amigavel('Estoque insuficiente para ' + e.codigo + ' – ' + e.descricao + ': disponível ' + e.qtd + ', solicitado ' + q + '.');
+      if (q > e.qtd) throw amigavel('A quantidade solicitada de ' + e.codigo + ' – ' + e.descricao + ' não está disponível no momento. Reduza a quantidade ou fale com o almoxarifado.');
       if (e.limite > 0 && q > e.limite) throw amigavel('O limite por pedido de ' + e.codigo + ' – ' + e.descricao + ' é ' + e.limite + '.');
       return { id: e.id, codigo: e.codigo, descricao: e.descricao, unidade: e.unidade, qtd: q, atendida: null };
     });
@@ -663,13 +671,81 @@ function acaoAtender(req) {
     p.totalAtendido = FINAIS.indexOf(novo) >= 0 || novo === RETIRADA ? p.itens.reduce((a, l) => a + (l.atendida || 0), 0) : null;
     if (resposta) p.resposta = resposta;
     p.andamento.push({ dataISO: agora.toISOString(), status: novo, texto: texto + (resposta ? ' Mensagem do almoxarifado: ' + resposta : '') });
-    shP.getRange(p.linha, 1, 1, 16).setValues([linhaPedido(p)]);
+    shP.getRange(p.linha, 1, 1, 17).setValues([linhaPedido(p)]);
     registrar([[agora, 'Pedido ' + novo.toLowerCase(), p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '', (p.totalAtendido != null ? p.totalAtendido + ' de ' + p.totalUnidades + ' unidades atendidas. ' : '') + resposta]]);
     novaVersao();
     pedido = semLinha(p);
   } finally { lock.releaseLock(); }
   avisar(pedido, false);
   return { pedido };
+}
+
+/* ======================= Conversa do pedido (assistente do solicitante ↔ gestor) ======================= */
+/* Quando as respostas automáticas do assistente não ajudam, o solicitante deixa um recado registrado no pedido.
+   O gestor responde pela janela do pedido; os dois lados recebem aviso por e-mail. */
+function textoConversa(v) { return String(v || '').replace(/\s+\n/g, '\n').trim().slice(0, 1500); }
+function acaoMensagemPedido(req) {
+  const numero = String(req.numero || '').trim(), email = String(req.email || '').trim().toLowerCase(), texto = textoConversa(req.texto);
+  if (texto.length < 3) throw amigavel('Escreva a sua mensagem.');
+  const cache = CacheService.getScriptCache(), chave = 'msg_' + numero, n = Number(cache.get(chave) || 0);
+  if (n >= 10) throw amigavel('Muitas mensagens seguidas neste pedido. Aguarde um pouco ou fale com o almoxarifado por telefone.');
+  const lock = bloquear();
+  let p;
+  try {
+    const { sh, pedidos } = lerPedidos();
+    p = pedidos.find(x => x.numero === numero);
+    if (!p || p.solicitante.email.toLowerCase() !== email) throw amigavel('Pedido não encontrado ou o e-mail não confere com o informado no pedido.');
+    p.conversa = p.conversa || { msgs: [] }; p.conversa.msgs = p.conversa.msgs || [];
+    p.conversa.msgs.push({ de: 'solicitante', nome: p.solicitante.nome, texto, assunto: String(req.assunto || '').slice(0, 80), emISO: new Date().toISOString() });
+    p.conversa.pendente = true;
+    sh.getRange(p.linha, 1, 1, 17).setValues([linhaPedido(p)]);
+    QUEM = p.solicitante.nome + ' (solicitante)';
+    registrar([[new Date(), 'Mensagem do solicitante', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '', (req.assunto ? '[' + req.assunto + '] ' : '') + texto.slice(0, 300)]]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  cache.put(chave, String(n + 1), 3600);
+  // aviso ao almoxarifado (e-mail do contato cadastrado)
+  const g = dadosContato();
+  if (ENVIAR_EMAIL && g.email && typeof MailApp !== 'undefined') {
+    try {
+      enviarEmail({ to: g.email, subject: 'Nova mensagem no pedido ' + p.numero + ' – ' + ORGAO + ' (não responda)', name: NOME_REMETENTE,
+        htmlBody: '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+          '<p><b>' + esc(p.solicitante.nome) + '</b> (' + esc(p.solicitante.setor) + ') deixou uma mensagem no pedido <b>' + esc(p.numero) + '</b>' + (req.assunto ? ' sobre <i>' + esc(req.assunto) + '</i>' : '') + ':</p>' +
+          '<blockquote style="border-left:4px solid #1E5240;margin:0;padding:8px 12px;background:#F4F7F6">' + esc(texto).replace(/\n/g, '<br>') + '</blockquote>' +
+          '<p>Responda pela área do gestor: abra o pedido e clique em <b>Conversa</b>.</p><p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>' });
+    } catch (e) {}
+  }
+  const pub = semLinha(p); delete pub.rascunho;
+  return { conversa: pub.conversa };
+}
+function acaoResponderPedido(req) {
+  const texto = textoConversa(req.texto);
+  if (texto.length < 2) throw amigavel('Escreva a resposta.');
+  const lock = bloquear();
+  let p;
+  try {
+    const { sh, pedidos } = lerPedidos();
+    p = pedidos.find(x => x.numero === String(req.numero));
+    if (!p) throw amigavel('Pedido não encontrado (pode ter sido excluído por outro gestor).');
+    p.conversa = p.conversa || { msgs: [] }; p.conversa.msgs = p.conversa.msgs || [];
+    p.conversa.msgs.push({ de: 'gestor', nome: GESTOR.nome, texto, emISO: new Date().toISOString() });
+    p.conversa.pendente = false;
+    sh.getRange(p.linha, 1, 1, 17).setValues([linhaPedido(p)]);
+    registrar([[new Date(), 'Resposta ao solicitante', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '', texto.slice(0, 300)]]);
+    novaVersao();
+  } finally { lock.releaseLock(); }
+  if (ENVIAR_EMAIL && typeof MailApp !== 'undefined') {
+    try {
+      const site = props().getProperty('SITE_URL') || '', link = site ? site + 'solicitante.html?pedido=' + encodeURIComponent(p.numero) : '';
+      enviarEmail({ to: p.solicitante.email, subject: 'Resposta do almoxarifado – pedido ' + p.numero + ' – ' + ORGAO + ' (não responda)', name: NOME_REMETENTE,
+        htmlBody: '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+          '<p>Olá, ' + esc(p.solicitante.nome.split(' ')[0]) + '. O almoxarifado respondeu à sua mensagem sobre o pedido <b>' + esc(p.numero) + '</b>:</p>' +
+          '<blockquote style="border-left:4px solid #1E5240;margin:0;padding:8px 12px;background:#F4F7F6">' + esc(texto).replace(/\n/g, '<br>') + '</blockquote>' +
+          (link ? '<p><a href="' + link + '">Abrir o pedido e a conversa</a> (informe o e-mail usado no pedido).</p>' : '') +
+          '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda: para continuar a conversa, use o assistente na página de acompanhamento do pedido.</p></div>' });
+    } catch (e) {}
+  }
+  return { pedido: semLinha(p) };
 }
 
 /* Atendimento parcial: o gestor pode ir salvando as quantidades e voltar depois para continuar (não mexe no estoque). */
@@ -683,7 +759,7 @@ function acaoSalvarRascunho(req) {
     const at = req.atendidas || {}, limpo = {};
     p.itens.forEach(l => { const q = Number(at[l.id]); if (!Number.isInteger(q) || q < 0 || q > l.qtd) throw amigavel('Quantidade inválida para ' + l.descricao + ' (de 0 a ' + l.qtd + ').'); limpo[l.id] = q; });
     p.rascunho = { atendidas: limpo, resposta: String(req.resposta || '').trim().slice(0, 1000), por: GESTOR.nome, emISO: new Date().toISOString() };
-    sh.getRange(p.linha, 1, 1, 16).setValues([linhaPedido(p)]);
+    sh.getRange(p.linha, 1, 1, 17).setValues([linhaPedido(p)]);
     registrar([[new Date(), 'Rascunho de atendimento salvo', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '',
       'Atendimento parcial em edição: ' + p.itens.map(l => l.codigo + ' ' + limpo[l.id] + '/' + l.qtd).join('; ')]]);
     novaVersao();

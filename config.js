@@ -6,7 +6,7 @@ window.CONFIG = {
 
   /* Cole entre as aspas a URL do "App da Web" do Google Apps Script (termina em /exec).
      Enquanto estiver vazio, o sistema funciona em MODO DEMONSTRAÇÃO (dados só neste navegador). */
-  API_URL: "https://script.google.com/macros/s/AKfycbzGwPox8vVYHdNkCEjQK4Nwpqz2TrfKEjUeXGei8UyzgKYbV8gsnZOvaB2zThvGhqOdVg/exec",
+  API_URL: "",
 
   /* Itens com esta quantidade ou menos aparecem como "estoque baixo" para o gestor. */
   ESTOQUE_BAIXO: 10,
@@ -22,6 +22,10 @@ window.CONFIG = {
   /* Aviso institucional exibido na página inicial e no topo da página de pedidos. */
   AVISO_SIADES_TITULO: "Catálogo para consulta e pré-aprovação",
   AVISO_SIADES: "Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado.",
+
+  /* Assistente do pedido (aba "Acompanhar pedido"): onde e quando retirar os materiais. */
+  LOCAL_RETIRADA: "no Almoxarifado do IEMA",
+  HORARIO_ATENDIMENTO: "em horário de expediente",
 
   /* Pedidos só com e-mail institucional deste domínio (qualquer nome antes do @).
      A mesma regra está no Code.gs (DOMINIO_EMAIL), que é quem realmente bloqueia. */

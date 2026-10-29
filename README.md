@@ -120,6 +120,36 @@ Para montar o relatório gráfico por gráfico, gere um link "Só: …" para cad
 - **Registro:** criar e desativar o link fica no histórico.
 - **Requisito:** o link só funciona com a Planilha Google ligada (fora do modo demonstração).
 
+## Acompanhar pedido e assistente do pedido
+
+**Aba "Acompanhar pedido":**
+- A página do solicitante tem duas abas no cabeçalho: **Fazer pedido** e **Acompanhar pedido**.
+- O acompanhamento é uma página própria, e não uma janela flutuante. O solicitante informa o número do pedido e o e-mail e vê, na própria página:
+  - o status em destaque e a linha do tempo;
+  - os materiais;
+  - os botões **Conversar com o assistente** (anil), **Baixar planilha** (azul), **PDF** (cinza) e **Consultar outro pedido**.
+
+**Assistente do pedido (chatbot integrado):**
+- **Início:** abre dentro da página, sem balão flutuante. Cumprimenta o solicitante pelo nome ("Bom dia, Maria!") e já informa o número, o status e o total do pedido.
+- **Perguntas frequentes** (botões):
+  - status do pedido;
+  - quando posso retirar;
+  - itens atendidos;
+  - disponibilidade de um material (só "disponível", "indisponível" ou "somente consulta", sem quantidades);
+  - alterar ou cancelar;
+  - como funciona a retirada;
+  - contato do almoxarifado.
+- **Perguntas digitadas:** também entende palavras-chave ("posso cancelar?", "quando retiro?", "tem caneta?").
+- **"Essa informação ajudou?":** aparece depois de cada resposta. Em **"Não, quero deixar uma mensagem"**, o solicitante escreve e a mensagem fica **registrada no pedido**. O almoxarifado recebe um aviso por e-mail, no e-mail do contato cadastrado.
+- **Respostas:** quando o gestor responde, a resposta aparece no assistente (sozinha, se a conversa estiver aberta) e vai por e-mail ao solicitante.
+- **Local e horário:** onde e quando retirar os materiais são configurados em `LOCAL_RETIRADA` e `HORARIO_ATENDIMENTO`, no `config.js`.
+- **Por que não Typebot ou Landbot:** o assistente é próprio do sistema, sem serviços externos, então as conversas ficam na Planilha Google, junto com o pedido (LGPD).
+
+**Gestor:**
+- **Botão Conversa:** na janela de cada pedido há o botão **Conversa** (anil), em todos os status, com a marca **nova** quando há mensagem sem resposta. A lista de pedidos mostra **💬 nova mensagem** nesses pedidos.
+- **Responder:** na conversa, o gestor lê as mensagens e responde, com confirmação em pergunta.
+- **Registro e permissão:** as mensagens e as respostas ficam no histórico. Responder exige a permissão **Atender pedidos**.
+
 ## Perfis de acesso dos gestores
 
 Na aba **Gestores e contato**, quem tem a permissão **Usuários e perfis** (o gestor principal sempre tem) cadastra até 5 gestores. Para cada um, escolhe o **tipo de perfil** e pode ajustar as permissões marcando as caixinhas. Se as caixinhas marcadas não corresponderem a nenhum perfil pronto, o perfil vira **Personalizado**. Se corresponderem, recebe o nome do perfil.
@@ -174,6 +204,12 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 **Solicitante (`solicitante.html`)**
 - A página segue o modelo do Relatório de Itens em Estoque: materiais agrupados por natureza de despesa, com totais. No cabeçalho aparece só a data e hora de acesso.
 - Os materiais do catálogo do fornecedor mostram a foto do produto; os demais ficam em branco até o almoxarifado inserir a imagem. Ao passar o mouse sobre o quadrinho, o painel lateral mostra a imagem em alta resolução e os detalhes do material.
+- **Sem estoque nem conta contábil para o solicitante:**
+  - a página do solicitante **não mostra a quantidade em estoque** nem o saldo; a coluna "Disponibilidade" mostra apenas **Disponível**, **INDISPONÍVEL** ou **SOMENTE CONSULTA** (e o limite por pedido, quando houver);
+  - os materiais são agrupados só pelo nome do grupo, **sem códigos de conta contábil** (natureza de despesa);
+  - o próprio servidor deixa de enviar a quantidade e a conta à página do solicitante;
+  - se alguém pedir mais do que existe, o envio é recusado com uma mensagem sem números. O controle de estoque fica só na área do gestor.
+- **Quantidades sem casas decimais:** todas as quantidades aparecem como números inteiros, sem vírgula (ex.: 1.287), nas páginas, planilhas, PDFs e e-mails.
 - Nome completo, setor (lista suspensa de siglas), telefone e e-mail são obrigatórios.
 - **Nome completo em CAIXA ALTA:** o campo mostra e grava o nome sempre em letras maiúsculas, tamanho 11, qualquer que seja o teclado ou o texto colado. Os nomes de pedidos antigos também passam para maiúsculas automaticamente na atualização.
 - **Acompanhar pedido:** a consulta abre numa janela maior, com o **status em destaque** e uma **linha do tempo horizontal**, em forma de checklist: **Pedido recebido → Aguardando retirada → Entrega realizada**. As etapas concluídas aparecem coloridas com ✓, a próxima com um relógio e as futuras em cinza. Num pedido recusado, a última etapa aparece em vermelho com ✗.
