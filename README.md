@@ -147,7 +147,7 @@ Em **Catálogo e estoque**, a tabela mostra as colunas nesta ordem:
 | **Reservado** | Em pedidos em aberto ou separado aguardando retirada |
 | **Disponível** | **Estoque − Reservado**, calculado automaticamente. Pode ser **editado manualmente** se necessário; ao editar, o Estoque se recalcula na hora |
 
-Depois vêm os interruptores (Visível, Só visualizar, Indisponível) e o botão Editar. A planilha **Exportar Excel** do catálogo usa a mesma ordem.
+Depois vêm os interruptores (Visível, Sob consulta, Indisponível) e o botão Editar. A planilha **Exportar Excel** do catálogo usa a mesma ordem.
 
 ## Estoque mínimo por material
 
@@ -187,7 +187,7 @@ Depois vêm os interruptores (Visível, Só visualizar, Indisponível) e o botã
   - status do pedido;
   - quando posso retirar;
   - itens atendidos;
-  - disponibilidade de um material (só "disponível", "indisponível" ou "somente consulta", sem quantidades);
+  - disponibilidade de um material (só "disponível", "indisponível" ou "sob consulta", sem quantidades);
   - alterar ou cancelar;
   - como funciona a retirada;
   - contato do almoxarifado.
@@ -213,7 +213,7 @@ Na aba **Gestores e contato**, quem tem a permissão **Usuários e perfis** (o g
 | Atender pedidos | Aprovar, atender, atender em parte e recusar |
 | Excluir pedidos | Excluir com motivo (devolve o estoque reservado) |
 | Ajustar estoque | Alterar as quantidades disponíveis |
-| Editar catálogo | Cadastrar, editar e remover materiais; imagens; Visível, Só visualizar e Indisponível |
+| Editar catálogo | Cadastrar, editar e remover materiais; imagens; Visível, Sob consulta e Indisponível |
 | Relatórios e exportações | Gerar relatórios e baixar Excel e PDF |
 | Histórico e auditoria | Ver o histórico completo, com responsável |
 | Backup | Gerar e enviar o backup |
@@ -257,7 +257,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - A página segue o modelo do Relatório de Itens em Estoque: materiais agrupados por natureza de despesa, com totais. No cabeçalho aparece só a data e hora de acesso.
 - Os materiais do catálogo do fornecedor mostram a foto do produto; os demais ficam em branco até o almoxarifado inserir a imagem. Ao passar o mouse sobre o quadrinho, o painel lateral mostra a imagem em alta resolução e os detalhes do material.
 - **Sem estoque nem conta contábil para o solicitante:**
-  - a página do solicitante **não mostra a quantidade em estoque** nem o saldo; a coluna "Disponibilidade" mostra apenas **Disponível**, **INDISPONÍVEL** ou **SOMENTE CONSULTA** (e o limite por pedido, quando houver);
+  - a página do solicitante **não mostra a quantidade em estoque** nem o saldo; a coluna "Disponibilidade" mostra apenas **Disponível** (balão verde), **Sob consulta** (balão azul) ou **Indisponível** (balão vermelho) (e o limite por pedido, quando houver);
   - os materiais são agrupados só pelo nome do grupo, **sem códigos de conta contábil** (natureza de despesa);
   - o próprio servidor deixa de enviar a quantidade e a conta à página do solicitante;
   - se alguém pedir mais do que existe, o envio é recusado com uma mensagem sem números. O controle de estoque fica só na área do gestor.
@@ -266,7 +266,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Nome completo em CAIXA ALTA:** o campo mostra e grava o nome sempre em letras maiúsculas, tamanho 11, qualquer que seja o teclado ou o texto colado. Os nomes de pedidos antigos também passam para maiúsculas automaticamente na atualização.
 - **Acompanhar pedido:** a consulta abre numa janela maior, com o **status em destaque** e uma **linha do tempo horizontal**, em forma de checklist: **Pedido recebido → Aguardando retirada → Entrega realizada**. As etapas concluídas aparecem coloridas com ✓, a próxima com um relógio e as futuras em cinza. Num pedido recusado, a última etapa aparece em vermelho com ✗.
 - **Só e-mail institucional:** o pedido só é aceito com e-mail terminado em **@iema.es.gov.br**. O nome antes do @ pode ser qualquer um (ex.: `maria.souza@iema.es.gov.br`). Outros domínios são recusados, inclusive variações como `@iema.es.gov.br.com` ou `@sub.iema.es.gov.br`. A regra vale na página e também no servidor (`DOMINIO_EMAIL` no `Code.gs` e no `config.js`).
-- Materiais marcados pelo gestor como **só visualização** aparecem com a quantidade e a marca SOMENTE CONSULTA, mas não podem ser pedidos.
+- Materiais marcados pelo gestor como **sob consulta** aparecem com o balão azul "Sob consulta" e não podem ser pedidos.
 - Não aceita materiais indisponíveis nem quantidade acima do disponível ou do limite por pedido.
 - Os materiais ocultados pelo gestor não aparecem.
 - Ao clicar em **Enviar pedido**:
@@ -307,7 +307,8 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Visão geral:** indicadores e gráficos com **filtros** de período (incluindo datas escolhidas), setor, situação e natureza de despesa.
 - **Catálogo e estoque:**
   - **Visível**: desligado, o material some da página de pedidos;
-  - **Só visualizar**: ligado, o material aparece na página com a quantidade, mas **não pode ser pedido**. A caixinha e a quantidade ficam travadas e aparece a marca SOMENTE CONSULTA;
+  - **Sob consulta** (interruptor azul): ligado, o material aparece para o solicitante com o balão azul **Sob consulta**, no mesmo formato do balão verde "Disponível". Não pode ser pedido.
+- **Indisponível** (interruptor vermelho): ligado, o material aparece com o balão vermelho **Indisponível**, e o solicitante não consegue fazer nenhuma ação sobre ele. Se já estava no pedido em montagem, sai sozinho, com um aviso.
   - **Indisponível**: ligado, o material aparece marcado como INDISPONÍVEL;
   - alterar quantidades (com motivo);
   - cadastrar, editar ou remover materiais;

@@ -633,8 +633,8 @@ function acaoSolicitar(req) {
       if (!e || !e.ativo || e.oculto) throw amigavel('Um dos materiais não está mais disponível no catálogo. Atualize a página.');
       if (vistos[i.id]) throw amigavel('Material repetido no pedido: ' + e.descricao);
       vistos[i.id] = true;
-      if (e.indisponivel) throw amigavel(e.codigo + ' – ' + e.descricao + ' está INDISPONÍVEL.');
-      if (e.soVisualizar) throw amigavel(e.codigo + ' – ' + e.descricao + ' está disponível somente para consulta e não pode ser pedido pela página.');
+      if (e.indisponivel) throw amigavel(e.codigo + ' – ' + e.descricao + ' está indisponível e não pode ser pedido.');
+      if (e.soVisualizar) throw amigavel(e.codigo + ' – ' + e.descricao + ' está sob consulta e não pode ser pedido pela página. Fale com o almoxarifado.');
       if (!Number.isInteger(q) || q <= 0) throw amigavel('Quantidade inválida para ' + e.descricao + '.');
       if (q > e.qtd) throw amigavel('A quantidade solicitada de ' + e.codigo + ' – ' + e.descricao + ' não está disponível no momento. Reduza a quantidade ou fale com o almoxarifado.');
       if (e.limite > 0 && q > e.limite) throw amigavel('O limite por pedido de ' + e.codigo + ' – ' + e.descricao + ' é ' + e.limite + '.');
@@ -913,7 +913,7 @@ function acaoSalvarItem(req) {
     }
     const mudancas = [];
     if (!novo) {
-      const rot = { codigo: 'código', descricao: 'descrição', unidade: 'unidade', natureza: 'natureza', naturezaNome: 'nome da natureza', conta: 'conta contábil', limite: 'limite por pedido', indisponivel: 'indisponível', oculto: 'oculto', soVisualizar: 'só visualização', busca: 'termo de busca' };
+      const rot = { codigo: 'código', descricao: 'descrição', unidade: 'unidade', natureza: 'natureza', naturezaNome: 'nome da natureza', conta: 'conta contábil', limite: 'limite por pedido', indisponivel: 'indisponível', oculto: 'oculto', soVisualizar: 'sob consulta', busca: 'termo de busca' };
       const fmtv = (k, v) => (k === 'indisponivel' || k === 'oculto' || k === 'soVisualizar') ? (v ? 'sim' : 'não') : v;
       Object.keys(campos).forEach(k => { if (String(it[k]) !== String(campos[k])) { mudancas.push(rot[k] + ': "' + fmtv(k, it[k]) + '" → "' + fmtv(k, campos[k]) + '"'); it[k] = campos[k]; } });
       if (imagemMudou) mudancas.push('imagem alterada');
@@ -1065,7 +1065,7 @@ function tabelasBackup(d) {
       .concat([].concat.apply([], d.pedidos.map(p => p.itens.map(l => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, l.codigo, l.descricao, l.unidade, l.qtd, l.atendida == null ? '' : l.atendida, p.status])))),
     'Histórico': [['Data', 'Tipo', 'Pedido', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável']]
       .concat(d.historico.map(h => [dt(h.dataISO), h.tipo, h.pedido, h.codigo, h.descricao, h.antes == null ? '' : h.antes, h.depois == null ? '' : h.depois, h.delta == null ? '' : h.delta, h.detalhes, h.quem])),
-    'Estoque': [['Natureza', 'Nome da natureza', 'Código', 'Descrição', 'Unidade', 'Disponível', 'Limite por pedido', 'Indisponível', 'Visível', 'Só visualização']]
+    'Estoque': [['Natureza', 'Nome da natureza', 'Código', 'Descrição', 'Unidade', 'Disponível', 'Limite por pedido', 'Indisponível', 'Visível', 'Sob consulta']]
       .concat(d.estoque.map(i => [i.natureza, i.naturezaNome, i.codigo, i.descricao, i.unidade, i.qtd, i.limite || '', i.indisponivel ? 'Sim' : 'Não', i.oculto ? 'Não' : 'Sim', i.soVisualizar ? 'Sim' : 'Não']))
   };
 }

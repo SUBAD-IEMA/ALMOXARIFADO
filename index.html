@@ -1152,6 +1152,42 @@ td.col-est{font-weight:700}
   table.t-cat tr.item td:nth-child(13)::before{content:none}
 }
 
+/* ===================== Versão 22: balões Disponível · Sob consulta · Indisponível (mesmo formato) ===================== */
+.disp-ok.balao-sob{color:#1F5FAF;background:#E1ECFA}
+.disp-ok.balao-ind{color:#B42318;background:#FBE4E4}
+.disp-ok{min-width:92px;text-align:center;box-sizing:border-box}
+#tbl td.qty .disp-ok{display:inline-block}
+.switch.vermelho input:checked + .trilho{background:#C62828}
+.switch.vermelho .trilho{box-shadow:inset 0 0 0 1.5px rgba(198,40,40,.35)}
+th[title^="Aparece na página com o balão vermelho"]{color:#C62828}
+tr.item.indisponivel td:not(.qty){opacity:.6}
+tr.item.indisponivel .stepper,tr.item.consulta .stepper{opacity:.45;pointer-events:none}
+tr.item.indisponivel input[type=checkbox],tr.item.consulta input[type=checkbox]{cursor:not-allowed}
+
+/* ===================== Versão 22: catálogo do gestor compacto – os três interruptores visíveis sem rolar ===================== */
+@media (min-width:901px){
+  table.t-cat{min-width:0;width:100%;font-size:13px}
+  table.t-cat thead th{white-space:normal;font-size:11.5px;line-height:1.25;padding:8px 6px;vertical-align:bottom;letter-spacing:.01em}
+  table.t-cat tbody td{padding:6px 6px}
+  table.t-cat tr.item td:first-child{width:52px}
+  table.t-cat .thumb,table.t-cat .thumb img{width:42px;height:42px}
+  table.t-cat td.code{white-space:nowrap;font-size:12.5px}
+  table.t-cat td.desc{min-width:150px}
+  table.t-cat td.desc .full{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  table.t-cat td.unit{max-width:110px;font-size:11.5px;white-space:normal;line-height:1.3}
+  table.t-cat th:nth-child(5),table.t-cat td:nth-child(5){width:70px}
+  table.t-cat th:nth-child(6),table.t-cat td:nth-child(6){width:84px}
+  table.t-cat th:nth-child(7),table.t-cat td:nth-child(7),table.t-cat th:nth-child(8),table.t-cat td:nth-child(8){width:66px}
+  table.t-cat .min-btn{min-width:0;padding:4px 7px;font-size:13px;gap:4px}
+  table.t-cat td.col-disp{width:146px}
+  table.t-cat td.col-disp .ponto-min{margin-right:6px;width:12px;height:12px}
+  table.t-cat .stepper input{width:52px;height:32px;padding:0 5px}
+  table.t-cat .stepper button{width:26px}
+  table.t-cat th:nth-child(n+10),table.t-cat td.sw{width:72px;text-align:center}
+  table.t-cat td.acoes{width:64px}
+  table.t-cat td.acoes .btn{padding:5px 9px;font-size:12.5px}
+}
+
 </style>
 </head>
 <body>
