@@ -35,14 +35,14 @@ const ABERTAS = ['Pendente', 'Aprovado'];                 // quantidades reserva
 const RETIRADA = 'Aguardando retirada';                   // materiais separados, aguardando o solicitante retirar
 const FINAIS = ['Entrega realizada', 'Recusado', 'Parcialmente atendido', 'Atendido'];
 const ABAS = {
-  catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto', 'Só visualização'], 'A:B'],
+  catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto', 'Só visualização', 'Estoque mínimo'], 'A:B'],
   imagens:  ['Imagens enviadas', ['id', 'Imagem (parte 1)', 'Atualizado em', 'Parte 2', 'Parte 3', 'Parte 4', 'Parte 5', 'Parte 6'], 'A:A'],
   pedidos:  ['Pedidos', ['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Observação', 'Itens (dados)', 'Qtd. de itens', 'Unidades solicitadas', 'Unidades atendidas', 'Situação', 'Atualizado em', 'Resposta do gestor', 'Andamento (dados)', 'Rascunho do atendimento (dados)', 'Conversa (dados)'], 'A:A,E:E'],
   historico:['Histórico', ['Data', 'Tipo', 'Pedido', 'id', 'Código', 'Descrição', 'Antes', 'Depois', 'Variação', 'Detalhes', 'Responsável'], 'C:E'],
   config:   ['Configuração', ['Chave', 'Valor'], 'A:B']
 };
-const NCOL = 18;
-const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15, oculto: 16, soVisualizar: 17 };
+const NCOL = 19;
+const COL = { id: 0, codigo: 1, descricao: 2, unidade: 3, natureza: 4, naturezaNome: 5, conta: 6, qtd: 7, limite: 8, indisponivel: 9, imagem: 10, busca: 11, qtdRelatorio: 12, ativo: 13, atualizado: 14, imagemVersao: 15, oculto: 16, soVisualizar: 17, minimo: 18 };
 
 /* ======================= Perfis de acesso dos gestores ======================= */
 /* Todo gestor sempre pode VISUALIZAR o painel, os pedidos, o catálogo e o estoque em tempo real.
@@ -62,7 +62,7 @@ const PERFIS = {
 const PERMISSAO_ACAO = { atender: 'pedidos_atender', excluirPedido: 'pedidos_excluir', ajustarEstoque: 'estoque_ajustar',
   salvarItem: 'catalogo_editar', indisponivel: 'catalogo_editar', visibilidade: 'catalogo_editar', soVisualizar: 'catalogo_editar', removerItem: 'catalogo_editar',
   salvarContato: 'configuracoes', salvarRegras: 'configuracoes', ativarBackup: 'configuracoes',
-  salvarRascunho: 'pedidos_atender', responderPedido: 'pedidos_atender', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
+  salvarRascunho: 'pedidos_atender', responderPedido: 'pedidos_atender', definirMinimo: 'estoque_ajustar', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
   adicionarGestor: 'usuarios', removerGestor: 'usuarios', redefinirSenha: 'usuarios', editarGestor: 'usuarios' };
 function permissoesDe(g) {
   const o = {};
@@ -111,7 +111,7 @@ function doPost(e) {
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, responderPedido: acaoResponderPedido, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, responderPedido: acaoResponderPedido, definirMinimo: acaoDefinirMinimo, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
     backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
@@ -189,6 +189,71 @@ function registrar(rows) { anexar('historico', rows.map(r => (r.length >= 11 ? r
 
 /* ---------- Catálogo ---------- */
 function simNao(v) { return v === true || String(v).toUpperCase() === 'SIM'; }
+/* ======================= Estoque mínimo por material ======================= */
+/* Sugestão inicial, analisando a descrição e a unidade de cada material:
+   - consumo diário (copa, higiene, escritório) → mínimo maior; equipamentos e bens duráveis → mínimo 1;
+   - embalagens com várias unidades (caixa, pacote, fardo…) → mínimo menor;
+   - o mínimo nunca passa de 25% do estoque do relatório original (itens com pouco estoque não ficam sempre em alerta).
+   Depois de gravado, o valor só muda pelo gestor, com senha (acaoDefinirMinimo). */
+function semAcentoMaiusc(v) { return String(v || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function minimoSugerido(it) {
+  const d = semAcentoMaiusc(it.descricao), u = semAcentoMaiusc(it.unidade), tem = re => re.test(d);
+  const DIARIO = /PAPEL HIGIENICO|PAPEL TOALHA|COPO DESCART|COPO PLAST|CAFE EM PO|CAFE TORRADO|CAFE|ACUCAR|ADOCANTE|SACO (DE |PARA )?LIXO|SACO PLASTICO|GUARDANAPO|FILTRO DE PAPEL|CHA /;
+  const LIMPEZA = /DETERGENTE|SABAO|SABONETE|DESINFETANTE|ALCOOL|AGUA SANITARIA|HIPOCLORITO|SANITIZANTE|SAPONACEO|AMACIANTE|MULTIUSO|LUSTRA|LIMPADOR|CLORO|ESPONJA|PANO|FLANELA|LIMPA|INSETICIDA|AROMATIZANTE|DESODORIZADOR|CERA/;
+  const ESCRITA = /CANETA|LAPIS|LAPISEIRA|MARCADOR|MARCA ?TEXTO|PINCEL|BORRACHA|CORRETIVO|GRAFITE/;   // consumo frequente, mesmo com palavras de bens (ex.: "quadro branco")
+  const ESCRITORIO = /CANETA|LAPIS|LAPISEIRA|BORRACHA|CORRETIVO|MARCA ?TEXTO|MARCADOR|PINCEL|APONTADOR|COLA|FITA|ENVELOPE|PASTA|CADERNO|BLOCO|ADESIVO|ETIQUETA|PILHA|BATERIA|CLIPE|CLIPS|GRAMPO|ELASTICO|PAPEL/;
+  const EPI = /LUVA|MASCARA|OCULOS|PROTETOR|TOUCA|AVENTAL|REPELENTE/;
+  const VESTUARIO = /BOTA|CAPACETE|COLETE|UNIFORME|CAMISA|CAMISETA|CALCA|JAQUETA|CAPA DE CHUVA|BONE|CHAPEU|PERNEIRA|BOTINA|MEIA/;
+  const SUPRIMENTO = /TONER|CARTUCHO|REFIL|TINTA/;
+  const DURAVEL = /CALCULADORA|TESOURA|GRAMPEADOR|PERFURADOR|EXTRATOR|ESTILETE|EXTENSAO|FONE|TECLADO|MOUSE|CABO|ADAPTADOR|XICARA|GARRAFA|BANDEJA|JARRA|ORGANIZADOR|LIXEIRA|VASSOURA|RODO|BALDE|PA DE LIXO|SUPORTE|QUADRO|RELOGIO|TELEFONE|RADIO|LANTERNA|BINOCULO|GPS|TRENA|FACAO|MACHADO|FERRAMENTA|ALICATE|CHAVE|MARTELO|CADEADO|PRANCHETA|REGUA|CARIMBO|ESCADA|MOCHILA|BOLSA|CANTIL|PANELA|CHALEIRA|CAFETEIRA|COADOR|DISPENSER|PORTA|APARELHO|EQUIPAMENTO|CHUVEIRO|DUCHA|TORNEIRA|SIFAO|TERMOMETRO|DESENTUPIDOR|XICARA|CANECA|PRATO|TALHER|COLHER|FACA|GARFO|COPO/;
+  let m;
+  if (/RESMA/.test(u) || (/RESMA/.test(d) && !/CAIXA/.test(u))) m = 10;
+  else if (/CAIXA|PACOTE|FARDO|SACO|ENVELOPE|BLOCO|ROLO|GALAO|BOMBONA|LITRO|FRASCO|QUILO|KG|POTE|TUBO|CARTELA|JOGO|KIT/.test(u)) {
+    const descartavel = /DESCART|PLASTIC/.test(d);
+    m = tem(DURAVEL) && !tem(ESCRITA) && !descartavel ? 1 : tem(DIARIO) ? 10 : tem(LIMPEZA) ? 6 : 3;
+    if (/1000|500|100 UNIDADES/.test(u) && !tem(DIARIO)) m = Math.min(m, 2);   // embalagem grande (ex.: caixa com 1.000 grampos)
+  } else if (/PAR/.test(u)) m = 2;
+  else {
+    m = tem(ESCRITA) ? 10 : tem(/LAMPADA/) ? 10 : tem(/RESISTENCIA|REPARO|BOIA|VEDA/) ? 3 : tem(DURAVEL) ? 1 : tem(DIARIO) ? 10 : tem(ESCRITORIO) ? 10 : tem(LIMPEZA) ? 6 : tem(EPI) ? 4 : tem(SUPRIMENTO) ? 2 : tem(VESTUARIO) ? 2 : 3;
+  }
+  const base = Number(it.qtdRelatorio) || 0;
+  if (base > 0) m = Math.min(m, Math.max(1, Math.round(base * 0.25)));
+  return m;
+}
+/* Uma única vez: grava o estoque mínimo sugerido de cada material (a partir daí só o gestor altera, com senha). */
+function minimosIniciais() {
+  if (props().getProperty('MINIMO_V20')) return;
+  const sh = aba('catalogo'), n = sh.getLastRow() - 1;
+  if (n > 0) {
+    const cat = lerCatalogo(), col = sh.getRange(2, COL.minimo + 1, n, 1).getValues();
+    const porLinha = {}; cat.itens.forEach(it => porLinha[it.linha] = it);
+    col.forEach((r, i) => { if (r[0] === '' || r[0] === null) { const it = porLinha[i + 2]; if (it) r[0] = it.minimo; } });
+    sh.getRange(2, COL.minimo + 1, n, 1).setValues(col);
+  }
+  props().setProperty('MINIMO_V20', '1');
+}
+/* Confirmação com a senha do próprio gestor (no máximo 5 tentativas a cada 10 minutos). */
+function conferirSenhaGestor(senha, motivo) {
+  const cache = CacheService.getScriptCache(), chaveT = 'senha_' + GESTOR.usuario, tent = Number(cache.get(chaveT) || 0);
+  if (tent >= 5) throw amigavel('Muitas tentativas com senha incorreta. Aguarde 10 minutos.');
+  if (hashSenha(GESTOR.salt, String(senha || '')) !== GESTOR.hash) { cache.put(chaveT, String(tent + 1), 600); throw amigavel('Senha incorreta. ' + motivo); }
+  cache.remove(chaveT);
+}
+function acaoDefinirMinimo(req) {
+  conferirSenhaGestor(req.senha, 'O estoque mínimo não foi alterado.');
+  const v = Number(req.minimo);
+  if (!Number.isInteger(v) || v < 0 || v > 999999) throw amigavel('Informe um estoque mínimo inteiro (0 ou mais).');
+  const lock = bloquear();
+  try {
+    const cat = lerCatalogo(), it = cat.mapa[String(req.id)];
+    if (!it || !it.ativo) throw amigavel('Material não encontrado.');
+    const antes = it.minimo; if (antes === v) return { item: publico(it) };
+    it.minimo = v; gravarItem(cat.sh, it);
+    registrar([[new Date(), 'Estoque mínimo alterado', '', it.id, it.codigo, it.descricao, antes, v, v - antes, 'Estoque mínimo de ' + antes + ' para ' + v]]);
+    novaVersao();
+    return { item: publico(it) };
+  } finally { lock.releaseLock(); }
+}
 function lerCatalogo() {
   const sh = aba('catalogo');
   const itens = linhas(sh).map((r, i) => ({
@@ -197,14 +262,17 @@ function lerCatalogo() {
     qtd: Number(r[COL.qtd]) || 0, limite: Number(r[COL.limite]) || 0, indisponivel: simNao(r[COL.indisponivel]),
     imagem: String(r[COL.imagem] || ''), busca: String(r[COL.busca] || ''), qtdRelatorio: Number(r[COL.qtdRelatorio]) || 0,
     ativo: r[COL.ativo] === '' || r[COL.ativo] === undefined ? true : simNao(r[COL.ativo]), atualizado: iso(r[COL.atualizado]),
-    imagemVersao: Number(r[COL.imagemVersao]) || 0, oculto: simNao(r[COL.oculto]), soVisualizar: simNao(r[COL.soVisualizar])
+    imagemVersao: Number(r[COL.imagemVersao]) || 0, oculto: simNao(r[COL.oculto]), soVisualizar: simNao(r[COL.soVisualizar]),
+    minimo: r[COL.minimo] === '' || r[COL.minimo] === undefined || r[COL.minimo] === null ? null : Math.max(0, Math.floor(Number(r[COL.minimo]) || 0))
   })).filter(it => it.id);
+  itens.forEach(it => { if (it.minimo === null) it.minimo = minimoSugerido(it); });
   const mapa = {}; itens.forEach(it => mapa[it.id] = it);
   return { sh, itens, mapa };
 }
 function linhaItem(it) {
   return [it.id, seguro(it.codigo), seguro(it.descricao), seguro(it.unidade), seguro(it.natureza), seguro(it.naturezaNome), seguro(it.conta || ''), it.qtd, it.limite || 0,
-    it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0, it.oculto ? 'SIM' : 'NÃO', it.soVisualizar ? 'SIM' : 'NÃO'];
+    it.indisponivel ? 'SIM' : 'NÃO', it.imagem || '', it.busca || '', it.qtdRelatorio || 0, it.ativo === false ? 'NÃO' : 'SIM', new Date(), it.imagemVersao || 0, it.oculto ? 'SIM' : 'NÃO', it.soVisualizar ? 'SIM' : 'NÃO',
+    it.minimo == null ? minimoSugerido(it) : it.minimo];
 }
 function gravarItem(sh, it) {
   if (it.linha) sh.getRange(it.linha, 1, 1, NCOL).setValues([linhaItem(it)]);
@@ -212,15 +280,15 @@ function gravarItem(sh, it) {
 }
 function publico(it) {
   return { id: it.id, codigo: it.codigo, descricao: it.descricao, unidade: it.unidade, natureza: it.natureza, naturezaNome: it.naturezaNome, conta: it.conta,
-    qtd: it.qtd, limite: it.limite, indisponivel: it.indisponivel, oculto: it.oculto, soVisualizar: !!it.soVisualizar, imagem: it.imagem, imagemVersao: it.imagemVersao, busca: it.busca, qtdRelatorio: it.qtdRelatorio };
+    qtd: it.qtd, limite: it.limite, indisponivel: it.indisponivel, oculto: it.oculto, soVisualizar: !!it.soVisualizar, imagem: it.imagem, imagemVersao: it.imagemVersao, busca: it.busca, qtdRelatorio: it.qtdRelatorio, minimo: it.minimo };
 }
 
 /* Carrega sozinho o catálogo inicial e os materiais acrescentados (Catálogo GOV ES), sem depender do gestor. */
 function garantirCatalogo() {
   const vazio = aba('catalogo').getLastRow() < 2;
-  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5') && props().getProperty('NOMES_MAIUSCULOS_V17')) return;
+  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5') && props().getProperty('NOMES_MAIUSCULOS_V17') && props().getProperty('MINIMO_V20')) return;
   const lock = bloquear();
-  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); nomesPedidosMaiusculos(); } finally { lock.releaseLock(); }
+  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); nomesPedidosMaiusculos(); minimosIniciais(); } finally { lock.releaseLock(); }
 }
 /* Versão 6: só os materiais do Catálogo GOV ES têm foto. As imagens aproximadas colocadas na versão 5
    nos demais materiais são retiradas (os quadrinhos ficam em branco para o gestor inserir a imagem).
@@ -767,11 +835,7 @@ function acaoSalvarRascunho(req) {
   } finally { lock.releaseLock(); }
 }
 function acaoExcluirPedido(req) {
-  // A exclusão é confirmada com a senha do próprio gestor (no máximo 5 tentativas a cada 10 minutos).
-  const cache = CacheService.getScriptCache(), chaveT = 'excl_' + GESTOR.usuario, tent = Number(cache.get(chaveT) || 0);
-  if (tent >= 5) throw amigavel('Muitas tentativas com senha incorreta. Aguarde 10 minutos para excluir pedidos.');
-  if (hashSenha(GESTOR.salt, String(req.senha || '')) !== GESTOR.hash) { cache.put(chaveT, String(tent + 1), 600); throw amigavel('Senha incorreta. A exclusão não foi feita.'); }
-  cache.remove(chaveT);
+  conferirSenhaGestor(req.senha, 'A exclusão não foi feita.');   // confirmada com a senha do próprio gestor
   const motivo = String(req.motivo || '').trim().slice(0, 500);
   if (!motivo) throw amigavel('Informe o motivo da exclusão.');
   const lock = bloquear();
@@ -967,7 +1031,7 @@ function acaoPainelPublico(req) {
       andamento: (p.andamento || []).map(a => ({ status: a.status, dataISO: a.dataISO })),   // só status e data (para o tempo médio de atendimento)
       itens: p.itens.map(l => ({ id: l.id, codigo: l.codigo, descricao: l.descricao, qtd: Number(l.qtd) || 0, atendida: l.atendida == null ? null : Number(l.atendida) })) })),
     itens: lerCatalogo().itens.filter(i => i.ativo).map(i => ({ id: i.id, codigo: i.codigo, descricao: i.descricao, natureza: i.natureza, naturezaNome: i.naturezaNome,
-      qtd: i.qtd, reservado: res[i.id] || 0, oculto: !!i.oculto, indisponivel: !!i.indisponivel }))
+      qtd: i.qtd, reservado: res[i.id] || 0, oculto: !!i.oculto, indisponivel: !!i.indisponivel, minimo: i.minimo }))
   };
 }
 

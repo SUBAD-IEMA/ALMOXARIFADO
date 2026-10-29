@@ -3,6 +3,17 @@
 > **Endereço do site:** `https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/`
 > Esta página é o código. O site fica no endereço acima, depois de ativar o GitHub Pages (Parte 1).
 
+## Relatórios legíveis (tela, Excel, PDF e impressão)
+
+- **PDF e impressão:**
+  - fonte de 8,8 pt;
+  - colunas curtas (pedido, código, data, unidade, números) inteiras numa linha, e descrições e detalhes com o espaço restante;
+  - linhas em faixas alternadas;
+  - cabeçalho repetido em todas as páginas e total só na última;
+  - gráficos desenhados em tamanho próprio para papel, com nomes e valores legíveis.
+- **Excel:** fonte de 10,5, altura das linhas ajustada ao texto, faixas alternadas, números sem casas decimais e cabeçalho repetido na impressão.
+- **Tela:** números de pedido, códigos e datas não quebram no meio, e o gráfico cresce com o número de linhas.
+
 ## Os 9 arquivos
 
 | Arquivo | Para quê |
@@ -69,6 +80,9 @@ A aba **Relatórios** tem dois modos, com os mesmos filtros.
 | Histórico e excluídos | Registros por tipo e por responsável |
 
 **Dashboard com gráficos:** somente gráficos, sem tabelas nem quadros de números.
+- **Largura total:** "Materiais mais solicitados" e "Consumo por natureza de despesa" ocupam a largura toda.
+  - Os nomes dos materiais aparecem inteiros, numa linha, sem sobreposição.
+  - A pizza de natureza tem a legenda à esquerda, com o nome completo e o percentual.
 - **Visual profissional:**
   - os gráficos mostram **só nomes** (materiais, naturezas de despesa e setores), sem códigos; os códigos continuam nos filtros;
   - valores escritos nas barras, eixos com título e grades discretas;
@@ -119,6 +133,29 @@ Para montar o relatório gráfico por gráfico, gere um link "Só: …" para cad
 - **Cortar o acesso:** **Gerar novo link** ou **Desativar link** derruba na hora todos os links já distribuídos, inclusive os colados no Looker Studio.
 - **Registro:** criar e desativar o link fica no histórico.
 - **Requisito:** o link só funciona com a Planilha Google ligada (fora do modo demonstração).
+
+## Estoque mínimo por material
+
+**Coluna "Estoque mínimo":** em **Catálogo e estoque**, cada material tem o seu estoque mínimo, numa coluna logo à esquerda de "Disponível".
+
+**Valor inicial:** foi sugerido analisando item a item a **descrição** e a **unidade**:
+- **Consumo diário**, como copo descartável, café, açúcar, papel higiênico, canetas e marcadores: mínimo maior (10).
+- **Limpeza:** 6.
+- **EPIs:** cerca de 4.
+- **Bens duráveis**, como calculadora, tesoura, garrafa, xícara e chuveiro: 1.
+- **Embalagens com muitas unidades**, como caixa com 1.000 grampos: mínimo menor.
+- **Limite pelo estoque original:** o mínimo nunca passa de 25% do estoque do relatório original.
+
+**Alterar:** clique no valor (com o cadeado), informe o novo mínimo e **digite a sua senha**. Exige a permissão **Ajustar estoque**. Cinco senhas erradas bloqueiam por 10 minutos, e cada alteração fica no histórico.
+
+**Alerta amarelo:** uma **bolinha amarela**, sem texto, aparece ao lado da quantidade disponível quando o material está na **zona de estoque mínimo** (quantidade igual ou abaixo do mínimo). A legenda fica logo acima da tabela.
+
+**Onde o mínimo também vale:**
+- o filtro **Na zona de estoque mínimo**;
+- a lista de estoque baixo da Visão geral;
+- o gráfico "Materiais com estoque baixo" do dashboard;
+- o relatório "Posição do estoque" (coluna "Mínimo" e status "Estoque mínimo");
+- a planilha do catálogo.
 
 ## Acompanhar pedido e assistente do pedido
 
