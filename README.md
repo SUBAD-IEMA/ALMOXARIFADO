@@ -134,6 +134,21 @@ Para montar o relatório gráfico por gráfico, gere um link "Só: …" para cad
 - **Registro:** criar e desativar o link fica no histórico.
 - **Requisito:** o link só funciona com a Planilha Google ligada (fora do modo demonstração).
 
+## Colunas do catálogo de estoque (área do gestor)
+
+Em **Catálogo e estoque**, a tabela mostra as colunas nesta ordem:
+
+| Coluna | O que é |
+|---|---|
+| **Imagem, Código, Descrição, Unidade** | Identificação do material |
+| **Limite por solicitação** | Quantidade máxima por pedido (vazio = sem limite) |
+| **Alerta de estoque mínimo** | Estoque mínimo do material; só muda com a senha do gestor |
+| **Estoque** | Quantidade física no almoxarifado = Disponível + Reservado (calculado) |
+| **Reservado** | Em pedidos em aberto ou separado aguardando retirada |
+| **Disponível** | **Estoque − Reservado**, calculado automaticamente. Pode ser **editado manualmente** se necessário; ao editar, o Estoque se recalcula na hora |
+
+Depois vêm os interruptores (Visível, Só visualizar, Indisponível) e o botão Editar. A planilha **Exportar Excel** do catálogo usa a mesma ordem.
+
 ## Estoque mínimo por material
 
 **Coluna "Estoque mínimo":** em **Catálogo e estoque**, cada material tem o seu estoque mínimo, numa coluna logo à esquerda de "Disponível".
