@@ -62,7 +62,7 @@ const PERFIS = {
 const PERMISSAO_ACAO = { atender: 'pedidos_atender', excluirPedido: 'pedidos_excluir', ajustarEstoque: 'estoque_ajustar',
   salvarItem: 'catalogo_editar', indisponivel: 'catalogo_editar', visibilidade: 'catalogo_editar', soVisualizar: 'catalogo_editar', removerItem: 'catalogo_editar',
   salvarContato: 'configuracoes', salvarRegras: 'configuracoes', ativarBackup: 'configuracoes',
-  salvarRascunho: 'pedidos_atender', responderPedido: 'pedidos_atender', definirMinimo: 'estoque_ajustar', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
+  salvarRascunho: 'pedidos_atender', descartarRascunho: 'pedidos_atender', responderPedido: 'pedidos_atender', definirMinimo: 'estoque_ajustar', linkPainel: 'relatorios', backupDados: 'backup', backupEmailAgora: 'backup', backupEnviarArquivos: 'backup', importarBackup: 'backup_importar',
   adicionarGestor: 'usuarios', removerGestor: 'usuarios', redefinirSenha: 'usuarios', editarGestor: 'usuarios' };
 function permissoesDe(g) {
   const o = {};
@@ -111,7 +111,7 @@ function doPost(e) {
     salvarItem: acaoSalvarItem, ajustarEstoque: acaoAjustarEstoque, indisponivel: acaoIndisponivel, visibilidade: acaoVisibilidade, soVisualizar: acaoSoVisualizar,
     removerItem: acaoRemoverItem, salvarContato: acaoSalvarContato, gestores: acaoGestores, adicionarGestor: acaoAdicionarGestor,
     removerGestor: acaoRemoverGestor, redefinirSenha: acaoRedefinirSenha, trocarSenha: acaoTrocarSenha,
-    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, responderPedido: acaoResponderPedido, definirMinimo: acaoDefinirMinimo, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
+    alterarEmailGestor: acaoAlterarEmailGestor, editarGestor: acaoEditarGestor, linkPainel: acaoLinkPainel, salvarRascunho: acaoSalvarRascunho, descartarRascunho: acaoDescartarRascunho, responderPedido: acaoResponderPedido, definirMinimo: acaoDefinirMinimo, salvarRegras: acaoSalvarRegras, manterConectado: acaoManterConectado, backupDados: acaoBackupDados, backupEmailAgora: acaoBackupEmailAgora,
     backupEnviarArquivos: acaoBackupEnviarArquivos, ativarBackup: acaoAtivarBackup, importarBackup: acaoImportarBackup };
   try {
     let f = publicas[req.acao];
@@ -715,6 +715,8 @@ function acaoAtender(req) {
       novo = 'Recusado'; texto = 'Pedido recusado.';
     } else if (tipo === 'atender') {
       exigeAberto();
+      // Trava de segurança: com atendimento parcial salvo, o atendimento total só depois de desfazer o parcial
+      if (p.rascunho) throw amigavel('Atendimento parcial em andamento. Para fazer o atendimento total, primeiro desfaça o atendimento parcial salvo neste pedido.');
       p.itens.forEach(l => l.atendida = l.qtd);
       novo = RETIRADA; texto = 'Atendimento total: os materiais foram separados e estão aguardando retirada no almoxarifado.';
     } else if (tipo === 'parcial') {
@@ -830,6 +832,22 @@ function acaoSalvarRascunho(req) {
     sh.getRange(p.linha, 1, 1, 17).setValues([linhaPedido(p)]);
     registrar([[new Date(), 'Rascunho de atendimento salvo', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '',
       'Atendimento parcial em edição: ' + p.itens.map(l => l.codigo + ' ' + limpo[l.id] + '/' + l.qtd).join('; ')]]);
+    novaVersao();
+    return { pedido: semLinha(p) };
+  } finally { lock.releaseLock(); }
+}
+/* Desfaz o atendimento parcial salvo (rascunho): libera de novo o atendimento total. Não mexe no estoque. */
+function acaoDescartarRascunho(req) {
+  const lock = bloquear();
+  try {
+    const { sh, pedidos } = lerPedidos();
+    const p = pedidos.find(x => x.numero === String(req.numero));
+    if (!p) throw amigavel('Pedido não encontrado (pode ter sido excluído por outro gestor).');
+    if (!p.rascunho) return { pedido: semLinha(p) };
+    const era = p.rascunho; p.rascunho = null;
+    sh.getRange(p.linha, 1, 1, 17).setValues([linhaPedido(p)]);
+    registrar([[new Date(), 'Atendimento parcial desfeito', p.numero, '', '', p.solicitante.nome + ' (' + p.solicitante.setor + ')', '', '', '',
+      'Rascunho salvo por ' + (era.por || '') + ' descartado; o atendimento total foi liberado']]);
     novaVersao();
     return { pedido: semLinha(p) };
   } finally { lock.releaseLock(); }

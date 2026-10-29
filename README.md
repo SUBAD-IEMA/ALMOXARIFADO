@@ -299,6 +299,11 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
     | **Excluir pedido** | bordô | Pede o motivo e **a senha do gestor** (5 tentativas erradas bloqueiam por 10 minutos). Devolve ao estoque o que estava reservado ou separado e fica registrado no histórico |
 
   - **Tamanho dos botões:** todos têm o mesmo tamanho, em grade (4 por linha no computador e 2 no celular). **Entrega realizada** é verde-azulado.
+  - **Trava de segurança do atendimento parcial:**
+    - quando há um atendimento parcial **salvo** no pedido, o botão **Atendimento total** aparece com um cadeado;
+    - se for clicado, nenhuma ação é feita: aparece o aviso **"Atendimento parcial em andamento"**, com os botões *Voltar ao pedido* e *Abrir atendimento parcial*;
+    - para liberar o atendimento total, abra o atendimento parcial e use **Desfazer atendimento parcial** (com pergunta de confirmação; nada muda no estoque e a ação fica no histórico), ou conclua o atendimento parcial;
+    - o servidor aplica a mesma trava, então o atendimento total também é recusado por qualquer outro caminho.
   - **Confirmação:** cada botão pede confirmação **em forma de pergunta, dentro da própria janela** (por exemplo: "Confirma o atendimento total do pedido 2026-00012?"). **Não, voltar** retorna ao pedido.
   - **Depois da ação:** confirmada a ação, a janela fecha e volta para a lista.
   - **Aguardando retirada:** a janela mostra **apenas** o botão **Entrega realizada**, a última etapa. Ao confirmar, o pedido termina como **Entrega realizada**.
