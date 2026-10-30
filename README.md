@@ -38,7 +38,7 @@ A página inicial e o topo da página de pedidos trazem o aviso institucional:
 
 > *Prezado(a) servidor(a), informamos que este catálogo destina-se à consulta da disponibilidade de materiais e à pré-aprovação dos pedidos pelo Almoxarifado.*
 
-O aviso não aparece nos pedidos (confirmação, pedido enviado, acompanhamento, PDF, planilha e e-mails). Quando o gestor aprova um pedido, o andamento registra "Pedido pré-aprovado pelo almoxarifado".
+O aviso não aparece nos pedidos (confirmação, pedido enviado, acompanhamento, PDF, planilha e e-mails). Todo pedido enviado entra automaticamente em **Em Análise / Separação**.
 
 Para mudar a redação, altere `AVISO_SIADES_TITULO` e `AVISO_SIADES` no `config.js`.
 
@@ -101,8 +101,8 @@ A aba **Relatórios** tem dois modos, com os mesmos filtros.
   - pedidos por dia da semana;
   - pedidos por horário.
 - **Tempo médio de atendimento:** mede o tempo da **solicitação até a entrega realizada**, separado em duas fases:
-  - **até a separação**: da solicitação ao status "Aguardando retirada";
-  - **aguardando retirada**: até "Entrega realizada".
+  - **em análise / separação**: da solicitação ao status "Aguardando retirada";
+  - **aguardando retirada**: até a entrega ("Entrega total realizada" ou "Entrega parcial realizada").
   - O gráfico mostra a **média geral** e a média **por setor**, em horas ou dias, conforme o tamanho, e considera só os pedidos já entregues no período.
 - **Atualização:** muda na hora ao trocar um filtro e se atualiza sozinho quando chegam pedidos.
 - **Exportação:** **Baixar PDF do dashboard** e **Imprimir dashboard** geram um relatório em paisagem só com os gráficos.
@@ -264,7 +264,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Quantidades sem casas decimais:** todas as quantidades aparecem como números inteiros, sem vírgula (ex.: 1.287), nas páginas, planilhas, PDFs e e-mails.
 - Nome completo, setor (lista suspensa de siglas), telefone e e-mail são obrigatórios.
 - **Nome completo em CAIXA ALTA:** o campo mostra e grava o nome sempre em letras maiúsculas, tamanho 11, qualquer que seja o teclado ou o texto colado. Os nomes de pedidos antigos também passam para maiúsculas automaticamente na atualização.
-- **Acompanhar pedido:** a consulta abre numa janela maior, com o **status em destaque** e uma **linha do tempo horizontal**, em forma de checklist: **Pedido recebido → Aguardando retirada → Entrega realizada**. As etapas concluídas aparecem coloridas com ✓, a próxima com um relógio e as futuras em cinza. Num pedido recusado, a última etapa aparece em vermelho com ✗.
+- **Acompanhar pedido:** a consulta abre numa janela maior, com o **status em destaque** e uma **linha do tempo horizontal**, em forma de checklist: **Pedido recebido → Em Análise / Separação → Aguardando retirada → Entrega realizada**. As etapas concluídas aparecem coloridas com ✓, a próxima com um relógio e as futuras em cinza. Num pedido recusado, a última etapa aparece em vermelho com ✗.
 - **Só e-mail institucional:** o pedido só é aceito com e-mail terminado em **@iema.es.gov.br**. O nome antes do @ pode ser qualquer um (ex.: `maria.souza@iema.es.gov.br`). Outros domínios são recusados, inclusive variações como `@iema.es.gov.br.com` ou `@sub.iema.es.gov.br`. A regra vale na página e também no servidor (`DOMINIO_EMAIL` no `Code.gs` e no `config.js`).
 - Materiais marcados pelo gestor como **sob consulta** aparecem com o balão azul "Sob consulta" e não podem ser pedidos.
 - Não aceita materiais indisponíveis nem quantidade acima do disponível ou do limite por pedido.
@@ -282,11 +282,16 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 - **Até 5 logins** (usuário e senha), que podem usar o sistema **ao mesmo tempo**. Cada um tem um **perfil de acesso** (veja "Perfis de acesso"). As telas se atualizam sozinhas a cada 6 segundos.
 - Cada ação fica no histórico com o nome de quem fez.
 - **Pedidos:**
-  - **Fluxo:** **Pendente → Aguardando retirada → Entrega realizada**. Um pedido pendente também pode ser **Recusado**.
+  - **Fluxo (status):**
+    - **Em Análise / Separação** → **Aguardando retirada** → **Entrega total realizada** ou **Entrega parcial realizada**. Um pedido em análise também pode ser **Recusado**.
+    - **Em Análise / Separação** é automático: todo pedido enviado já entra nessa etapa, logo após o "Pedido recebido".
+    - Ao confirmar o **Atendimento total** ou o **Atendimento parcial**, o pedido passa para **Aguardando retirada**.
+    - O botão **Entrega realizada** conclui o pedido como **Entrega total realizada** (todas as unidades atendidas) ou **Entrega parcial realizada** (houve atendimento parcial).
+    - Os filtros de status têm só estas cinco opções.
   - **Abrir um pedido:** clique no **número do pedido**, no **nome do solicitante** ou nos **materiais**. O pedido abre numa janela com os dados do solicitante, os materiais e o andamento.
   - **Status e linha do tempo:** a janela mostra o **status em destaque** e a mesma **linha do tempo horizontal** do solicitante.
   - **Colunas de cada material:** **Estoque inicial · Pedido · Atendido · Estoque final**, em tempo real.
-  - **Botões de um pedido pendente:**
+  - **Botões de um pedido em análise / separação:**
 
     | Botão | Cor | O que faz |
     |---|---|---|
@@ -306,9 +311,9 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
     - o servidor aplica a mesma trava, então o atendimento total também é recusado por qualquer outro caminho.
   - **Confirmação:** cada botão pede confirmação **em forma de pergunta, dentro da própria janela** (por exemplo: "Confirma o atendimento total do pedido 2026-00012?"). **Não, voltar** retorna ao pedido.
   - **Depois da ação:** confirmada a ação, a janela fecha e volta para a lista.
-  - **Aguardando retirada:** a janela mostra **apenas** o botão **Entrega realizada**, a última etapa. Ao confirmar, o pedido termina como **Entrega realizada**.
+  - **Aguardando retirada:** a janela mostra **apenas** o botão **Entrega realizada**, a última etapa. Ao confirmar, o pedido termina como **Entrega total realizada** ou **Entrega parcial realizada**, conforme o atendimento feito.
   - **E-mails:** o solicitante recebe um e-mail a cada mudança de situação.
-  - **Pedidos antigos:** pedidos anteriores a esta versão podem aparecer como "Aprovado", "Atendido" ou "Parcialmente atendido". Os aprovados continuam podendo ser atendidos.
+  - **Pedidos já existentes:** na atualização, os status antigos são convertidos sozinhos: Pendente e Aprovado → **Em Análise / Separação**; Atendido → **Entrega total realizada**; Parcialmente atendido → **Entrega parcial realizada**; Entrega realizada → total ou parcial, conforme as quantidades. Os nomes antigos deixam de existir.
 - **Visão geral:** indicadores e gráficos com **filtros** de período (incluindo datas escolhidas), setor, situação e natureza de despesa.
 - **Catálogo e estoque:**
   - **Visível**: desligado, o material some da página de pedidos;
@@ -333,9 +338,9 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
 
 | Status | Estoque |
 |---|---|
-| Pendente | Quantidades **reservadas** (saem do disponível) |
+| Em Análise / Separação | Quantidades **reservadas** (saem do disponível) |
 | Aguardando retirada | Materiais **separados** (total ou parcial). Num atendimento parcial, o que não será entregue **volta** ao estoque |
-| Entrega realizada | Baixa definitiva. Última etapa do pedido |
+| Entrega total realizada / Entrega parcial realizada | Baixa definitiva. Última etapa do pedido |
 | Recusado | Tudo **volta** ao estoque |
 | Excluído (pelo gestor, com senha) | Sai da lista. O que estava reservado ou separado **volta** ao estoque. A exclusão fica no histórico |
 

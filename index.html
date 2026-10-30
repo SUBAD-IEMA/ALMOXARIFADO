@@ -1194,6 +1194,20 @@ tr.item.indisponivel input[type=checkbox],tr.item.consulta input[type=checkbox]{
 .aviso-trava .hcq-ico{font-size:22px}
 .aviso-trava b{color:#9A5200}
 
+/* ===================== Versão 24: novo fluxo de status (Em Análise / Separação · Entrega total/parcial realizada) ===================== */
+.pill.analise{background:var(--amber-soft);color:var(--amber)}
+.status-card.s-analise{--c:#C96A00}
+.msg .st-analise{color:#C96A00} .msg .st-retirada{color:#2A5F9E} .msg .st-entregue{color:var(--pine)} .msg .st-parcial{color:#7A5195} .msg .st-recusado{color:#B42318}
+.etapas li b{overflow-wrap:break-word;hyphens:manual}
+#hc .status-painel{grid-template-columns:220px 1fr}   /* janela do gestor: o quadro do status ocupa menos e a linha do tempo ganha espaço */
+@media (max-width:760px){
+  .etapas li{padding:0 2px}
+  .etapas li b{font-size:11px;line-height:1.2}
+  .etapas li small{font-size:10px}
+  .et-ico{width:32px;height:32px} .et-ico svg{width:18px;height:18px} .etapas li::before{top:14px}
+  .dialog.consulta-pedido .et-ico,.acomp-pedido .et-ico{width:34px;height:34px} .dialog.consulta-pedido .etapas li::before,.acomp-pedido .etapas li::before{top:15px}
+}
+
 </style>
 </head>
 <body>
@@ -1222,7 +1236,7 @@ tr.item.indisponivel input[type=checkbox],tr.item.consulta input[type=checkbox]{
     <a class="porta" href="solicitante.html">
       <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/></svg></span>
       <h2>Área do solicitante</h2>
-      <p>Faça um pedido de material de consumo ou acompanhe um pedido já enviado: consulte os materiais disponíveis, envie o pedido para pré-aprovação e veja o status (pendente, aguardando retirada, entrega realizada ou recusado), com o assistente para tirar dúvidas.</p>
+      <p>Faça um pedido de material de consumo ou acompanhe um pedido já enviado: consulte os materiais disponíveis, envie o pedido para pré-aprovação e veja o status (em análise / separação, aguardando retirada, entrega total ou parcial realizada ou recusado), com o assistente para tirar dúvidas.</p>
       <span class="porta-tags"><span>Fazer pedido</span><span>Acompanhar pedido</span></span>
       <span class="ir">Entrar →</span>
     </a>
@@ -1254,7 +1268,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   const fmt = n => Math.round(Number(n || 0)).toLocaleString("pt-BR");   // quantidades sempre inteiras, sem vírgula
   const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const dataHora = iso => { if(!iso) return ""; const d = new Date(iso); if(isNaN(d)) return ""; return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };
-  const SITUACAO_CLASSE = { "Pendente": "pendente", "Aguardando retirada": "retirada", "Entrega realizada": "entregue", "Recusado": "recusado", "Aprovado": "aprovado", "Parcialmente atendido": "parcial", "Atendido": "atendido" };
+  const SITUACAO_CLASSE = { "Em Análise / Separação": "analise", "Aguardando retirada": "retirada", "Entrega total realizada": "entregue", "Entrega parcial realizada": "parcial", "Recusado": "recusado" };
   const pill = s => `<span class="pill ${SITUACAO_CLASSE[s] || ""}">${esc(s)}</span>`;
   const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || "").trim());
 
@@ -1363,13 +1377,14 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   const ICO_OK = SVG('<path d="M20 6 9 17l-5-5"/>'), ICO_X = SVG('<path d="M18 6 6 18M6 6l12 12"/>'), ICO_RELOGIO = SVG('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>');
   function etapasDoPedido(p){
     const and = p.andamento || [], achar = (...sts) => and.find(a => sts.includes(a.status));
-    const antigoFinal = ["Atendido", "Parcialmente atendido"].includes(p.status);   // pedidos de versões anteriores
     const recebido = { t: "Pedido recebido", d: (and[0] || {}).dataISO || p.dataISO, ok: true };
-    if(p.status === "Recusado") return [recebido, { t: "Recusado", d: (achar("Recusado") || {}).dataISO, ok: true, erro: true }];
-    const ret = achar("Aguardando retirada"), ent = achar("Entrega realizada") || (antigoFinal ? achar("Atendido", "Parcialmente atendido") : null);
-    return [recebido,
-      { t: "Aguardando retirada", d: ret ? ret.dataISO : (antigoFinal && ent ? ent.dataISO : null), ok: !!ret || antigoFinal || p.status === "Entrega realizada" },
-      { t: "Entrega realizada", d: ent ? ent.dataISO : null, ok: p.status === "Entrega realizada" || antigoFinal }];
+    const analise = { t: "Em Análise / Separação", d: recebido.d, ok: true };   // etapa automática, logo após o pedido recebido
+    if(p.status === "Recusado") return [recebido, analise, { t: "Recusado", d: (achar("Recusado") || {}).dataISO, ok: true, erro: true }];
+    const entregue = p.status === "Entrega total realizada" || p.status === "Entrega parcial realizada";
+    const ret = achar("Aguardando retirada"), ent = achar("Entrega total realizada", "Entrega parcial realizada");
+    return [recebido, analise,
+      { t: "Aguardando retirada", d: ret ? ret.dataISO : (entregue && ent ? ent.dataISO : null), ok: !!ret || entregue },
+      { t: entregue ? p.status : "Entrega realizada", d: ent ? ent.dataISO : null, ok: entregue }];
   }
   /* Etapas concluídas: coloridas com ✓. Próxima etapa: relógio (aguardando). Demais: em cinza, numeradas. */
   function linhaDoTempo(p){
@@ -1383,7 +1398,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   }
   function cartaoStatus(p){
     const ult = (p.andamento || []).slice(-1)[0];
-    return `<div class="status-card s-${SITUACAO_CLASSE[p.status] || "pendente"}"><span class="sc-rot">Status</span><b>${esc(p.status)}</b>${ult ? `<small>Atualizado em ${dataHora(ult.dataISO)}</small>` : ""}</div>`;
+    return `<div class="status-card s-${SITUACAO_CLASSE[p.status] || "analise"}"><span class="sc-rot">Status</span><b>${esc(p.status)}</b>${ult ? `<small>Atualizado em ${dataHora(ult.dataISO)}</small>` : ""}</div>`;
   }
   function painelStatus(p){
     const ult = (p.andamento || []).slice(-1)[0];

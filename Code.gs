@@ -28,12 +28,14 @@ const BACKUP_EMAILS = ['almoxarifado@iema.es.gov.br', 'subad@iema.es.gov.br'];
 const HORAS_SESSAO = 10;          // duração máxima de uma sessão, mesmo com atividade
 
 /* ======================= Estrutura ======================= */
-/* Fluxo do pedido: Pendente → (Atendimento total ou parcial) → Aguardando retirada → (Entrega realizada) → Entrega realizada.
-   Pendente também pode ser Recusado. "Aprovado", "Atendido" e "Parcialmente atendido" ficam só para pedidos antigos. */
-const SITUACOES = ['Pendente', 'Aguardando retirada', 'Entrega realizada', 'Recusado', 'Aprovado', 'Parcialmente atendido', 'Atendido'];
-const ABERTAS = ['Pendente', 'Aprovado'];                 // quantidades reservadas, aguardando o atendimento
+/* Fluxo do pedido: Em Análise / Separação (automático, logo após o pedido recebido) → (Atendimento total ou parcial) → Aguardando retirada
+   → (Entrega realizada) → Entrega total realizada ou Entrega parcial realizada. Em Análise / Separação também pode virar Recusado. */
+const ST_ANALISE = 'Em Análise / Separação';
 const RETIRADA = 'Aguardando retirada';                   // materiais separados, aguardando o solicitante retirar
-const FINAIS = ['Entrega realizada', 'Recusado', 'Parcialmente atendido', 'Atendido'];
+const ENTREGA_TOTAL = 'Entrega total realizada', ENTREGA_PARCIAL = 'Entrega parcial realizada';
+const SITUACOES = [ST_ANALISE, RETIRADA, ENTREGA_TOTAL, ENTREGA_PARCIAL, 'Recusado'];
+const ABERTAS = [ST_ANALISE];                             // quantidades reservadas, aguardando o atendimento
+const FINAIS = [ENTREGA_TOTAL, ENTREGA_PARCIAL, 'Recusado'];
 const ABAS = {
   catalogo: ['Catálogo', ['id', 'Código', 'Descrição', 'Unidade', 'Natureza (código)', 'Natureza (nome)', 'Conta contábil', 'Qtd. disponível', 'Limite por pedido', 'Indisponível', 'Imagem', 'Termo de busca', 'Qtd. no relatório', 'Ativo', 'Atualizado em', 'Versão da imagem', 'Oculto', 'Só visualização', 'Estoque mínimo'], 'A:B'],
   imagens:  ['Imagens enviadas', ['id', 'Imagem (parte 1)', 'Atualizado em', 'Parte 2', 'Parte 3', 'Parte 4', 'Parte 5', 'Parte 6'], 'A:A'],
@@ -286,9 +288,9 @@ function publico(it) {
 /* Carrega sozinho o catálogo inicial e os materiais acrescentados (Catálogo GOV ES), sem depender do gestor. */
 function garantirCatalogo() {
   const vazio = aba('catalogo').getLastRow() < 2;
-  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5') && props().getProperty('NOMES_MAIUSCULOS_V17') && props().getProperty('MINIMO_V20')) return;
+  if (!vazio && props().getProperty('CAT_ADICIONAL_V1') && props().getProperty('IMG_V6') && props().getProperty('HIST_ZERADO_V5') && props().getProperty('NOMES_MAIUSCULOS_V17') && props().getProperty('MINIMO_V20') && props().getProperty('STATUS_V24')) return;
   const lock = bloquear();
-  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); nomesPedidosMaiusculos(); minimosIniciais(); } finally { lock.releaseLock(); }
+  try { carregarCatalogoInicial(); aplicarCatalogoAdicional(); limparImagensV5(); zerarHistoricoUmaVez(); nomesPedidosMaiusculos(); minimosIniciais(); statusNovoFluxo(); } finally { lock.releaseLock(); }
 }
 /* Versão 6: só os materiais do Catálogo GOV ES têm foto. As imagens aproximadas colocadas na versão 5
    nos demais materiais são retiradas (os quadrinhos ficam em branco para o gestor inserir a imagem).
@@ -338,6 +340,30 @@ function aplicarCatalogoAdicional() {
 }
 
 /* ---------- Pedidos ---------- */
+/* Pedido entregue por completo? (todas as quantidades atendidas = solicitadas) */
+function entregaCompleta(itens) { return (itens || []).length > 0 && itens.every(l => Number(l.atendida) === Number(l.qtd)); }
+/* Nomes antigos dos status → nomes do fluxo atual (pedidos gravados em versões anteriores). */
+function statusAtual(st, itens) {
+  switch (String(st || '')) {
+    case '': case 'Pendente': case 'Aprovado': return ST_ANALISE;
+    case 'Atendido': return ENTREGA_TOTAL;
+    case 'Parcialmente atendido': return ENTREGA_PARCIAL;
+    case 'Entrega realizada': return entregaCompleta(itens) ? ENTREGA_TOTAL : ENTREGA_PARCIAL;
+    default: return String(st);
+  }
+}
+/* Uma única vez: grava na planilha os nomes novos dos status e do andamento. */
+function statusNovoFluxo() {
+  if (props().getProperty('STATUS_V24')) return;
+  const sh = aba('pedidos'), n = sh.getLastRow() - 1;
+  if (n > 0) {
+    const { pedidos } = lerPedidos();   // já devolve os status com os nomes novos
+    const cS = sh.getRange(2, 12, n, 1).getValues(), cA = sh.getRange(2, 15, n, 1).getValues();
+    pedidos.forEach(p => { cS[p.linha - 2][0] = p.status; cA[p.linha - 2][0] = JSON.stringify(p.andamento); });
+    sh.getRange(2, 12, n, 1).setValues(cS); sh.getRange(2, 15, n, 1).setValues(cA);
+  }
+  props().setProperty('STATUS_V24', '1');
+}
 function lerPedidos() {
   const sh = aba('pedidos');
   const pedidos = linhas(sh).map((r, i) => {
@@ -350,7 +376,8 @@ function lerPedidos() {
       linha: i + 2, numero: String(r[0]), dataISO: iso(r[1]),
       solicitante: { nome: nomeMaiusculo(r[2]), setor: String(r[3]), telefone: String(r[4]), email: String(r[5]) },
       obs: String(r[6] || ''), itens, totalItens: Number(r[8]) || 0, totalUnidades: Number(r[9]) || 0, totalAtendido: r[10] === '' ? null : Number(r[10]),
-      status: String(r[11] || 'Pendente'), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''), andamento, rascunho, conversa
+      status: statusAtual(r[11], itens), atualizadoISO: iso(r[12]), resposta: String(r[13] || ''),
+      andamento: andamento.map(a => Object.assign({}, a, { status: statusAtual(a.status, itens) })), rascunho, conversa
     };
   }).filter(p => p.numero);
   return { sh, pedidos };
@@ -646,7 +673,7 @@ function acaoSolicitar(req) {
     const numero = ano + '-' + ('0000' + seq).slice(-5);
     itens.forEach(l => { const e = mapa[l.id]; e.qtd -= l.qtd; gravarItem(sh, e); });
     pedido = { numero, dataISO: agora.toISOString(), solicitante: sol, obs, itens, totalItens: itens.length, totalUnidades: itens.reduce((a, b) => a + b.qtd, 0),
-      totalAtendido: null, status: 'Pendente', resposta: '', andamento: [{ dataISO: agora.toISOString(), status: 'Pendente', texto: 'Pedido recebido pelo almoxarifado' }] };
+      totalAtendido: null, status: ST_ANALISE, resposta: '', andamento: [{ dataISO: agora.toISOString(), status: ST_ANALISE, texto: 'Pedido recebido. Em análise e separação pelo almoxarifado.' }] };
     anexar('pedidos', [linhaPedido(pedido)]);
     registrar(itens.map(l => [agora, 'Pedido recebido', numero, l.id, l.codigo, l.descricao, mapa[l.id].qtd + l.qtd, mapa[l.id].qtd, -l.qtd, sol.nome + ' (' + sol.setor + ')']));
     novaVersao();
@@ -705,10 +732,7 @@ function acaoAtender(req) {
     };
     let novo, texto;
     const exigeAberto = () => { if (ABERTAS.indexOf(p.status) < 0) throw amigavel('O pedido ' + p.numero + ' está "' + p.status + '" e não pode mais receber esta ação.'); };
-    if (tipo === 'aprovar') {
-      if (p.status !== 'Pendente') throw amigavel('Só pedidos pendentes podem ser aprovados.');
-      novo = 'Aprovado'; texto = 'Pedido pré-aprovado pelo almoxarifado. Aguarde a separação e a entrega.';
-    } else if (tipo === 'recusar') {
+    if (tipo === 'recusar') {
       exigeAberto();
       if (!resposta) throw amigavel('Informe o motivo da recusa.');
       p.itens.forEach(l => { devolver(l, l.qtd); l.atendida = 0; });
@@ -734,7 +758,11 @@ function acaoAtender(req) {
       else { novo = RETIRADA; texto = 'Atendimento parcial: ' + total + ' de ' + p.totalUnidades + ' unidades foram separadas e estão aguardando retirada no almoxarifado. O restante voltou ao estoque.'; }
     } else if (tipo === 'entregar') {
       if (p.status !== RETIRADA) throw amigavel('Só pedidos "Aguardando retirada" podem ter a entrega registrada.');
-      novo = 'Entrega realizada'; texto = 'Entrega realizada: os materiais foram retirados. Pedido concluído.';
+      // Entrega total ou parcial, conforme o atendimento feito (Atendimento total ou Atendimento parcial)
+      const completa = entregaCompleta(p.itens), un = p.itens.reduce((a, l) => a + (Number(l.atendida) || 0), 0);
+      novo = completa ? ENTREGA_TOTAL : ENTREGA_PARCIAL;
+      texto = completa ? 'Entrega total realizada: os materiais foram retirados. Pedido concluído.'
+        : 'Entrega parcial realizada: ' + un + ' de ' + p.totalUnidades + ' unidades foram retiradas. Pedido concluído.';
     } else throw amigavel('Ação inválida.');
     if (tipo !== 'entregar') p.rascunho = null;
     p.status = novo;
@@ -1235,7 +1263,8 @@ function acaoImportarBackup(req) {
         solicitante: { nome: txt((p.solicitante || {}).nome, 120), setor: txt((p.solicitante || {}).setor, 120), telefone: txt((p.solicitante || {}).telefone, 30), email: txt((p.solicitante || {}).email, 120) },
         obs: txt(p.obs, 1000), itens: (p.itens || []).map(l => ({ id: String(l.id), codigo: txt(l.codigo, 40), descricao: txt(l.descricao), unidade: txt(l.unidade, 60), qtd: Number(l.qtd) || 0, atendida: l.atendida == null ? null : Number(l.atendida) })),
         totalUnidades: Number(p.totalUnidades) || 0, totalAtendido: p.totalAtendido == null ? null : Number(p.totalAtendido),
-        status: SITUACOES.indexOf(p.status) >= 0 ? p.status : 'Pendente', resposta: txt(p.resposta, 1000), andamento: Array.isArray(p.andamento) ? p.andamento : [] }));
+        status: String(p.status || ''), resposta: txt(p.resposta, 1000), andamento: Array.isArray(p.andamento) ? p.andamento : [] }))
+        .map(p => Object.assign(p, { status: statusAtual(p.status, p.itens), andamento: p.andamento.map(a => Object.assign({}, a, { status: statusAtual(a.status, p.itens) })) }));
       res.pedidos = novos.length;
       if (!simular && novos.length) {
         anexar('pedidos', novos.map(linhaPedido));
