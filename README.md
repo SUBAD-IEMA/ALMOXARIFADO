@@ -3,6 +3,16 @@
 > **Endereço do site:** `https://SEU-USUARIO.github.io/NOME-DO-REPOSITORIO/`
 > Esta página é o código. O site fica no endereço acima, depois de ativar o GitHub Pages (Parte 1).
 
+## Relatório "Posição do estoque": materiais na zona de estoque mínimo
+
+Em **Relatórios › Relatórios em tabela › Posição do estoque**, os materiais cuja quantidade disponível está **igual ou abaixo do estoque mínimo** aparecem destacados, com a mesma **bolinha amarela** do catálogo. Vale para a tela, o **PDF**, a **impressão** e o **Excel**:
+- **Coluna Alerta:** logo depois da imagem, traz a bolinha amarela nos materiais na zona de estoque mínimo.
+- **Linha em amarelo claro:** a linha inteira do material fica em destaque.
+- **Legenda:** uma faixa amarela acima da tabela informa a contagem (por exemplo, "126 de 254 materiais"). No PDF e no Excel a legenda fica fixa no topo.
+- **Total:** a linha de total também informa quantos materiais estão na zona.
+- **Excel:** use o filtro da coluna **Alerta** para listar só os materiais na zona de estoque mínimo.
+- **Filtros do relatório:** a contagem acompanha os filtros escolhidos (por exemplo, por natureza de despesa).
+
 ## Relatórios legíveis (tela, Excel, PDF e impressão)
 
 - **PDF e impressão:**
@@ -169,7 +179,7 @@ Depois vêm os interruptores (Visível, Sob consulta, Indisponível) e o botão 
 - o filtro **Na zona de estoque mínimo**;
 - a lista de estoque baixo da Visão geral;
 - o gráfico "Materiais com estoque baixo" do dashboard;
-- o relatório "Posição do estoque" (coluna "Mínimo" e status "Estoque mínimo");
+- o relatório **Posição do estoque**, que marca os materiais na zona de estoque mínimo (veja abaixo);
 - a planilha do catálogo.
 
 ## Acompanhar pedido e assistente do pedido

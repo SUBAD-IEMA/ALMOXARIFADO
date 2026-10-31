@@ -1208,6 +1208,12 @@ tr.item.indisponivel input[type=checkbox],tr.item.consulta input[type=checkbox]{
   .dialog.consulta-pedido .et-ico,.acomp-pedido .et-ico{width:34px;height:34px} .dialog.consulta-pedido .etapas li::before,.acomp-pedido .etapas li::before{top:15px}
 }
 
+/* ===================== Versão 25: relatório "Posição do estoque" com alerta de estoque mínimo ===================== */
+table.rel tbody tr.alerta-min td{background:#FFF8D6!important}
+table.rel td.td-alerta{text-align:center;width:54px}
+table.rel td.td-alerta .ponto-min{margin:0}
+table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
+
 </style>
 </head>
 <body>
@@ -2427,8 +2433,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     cabecalhoExcel(wb, ws, n, rel.titulo + " – " + (CFG.ALMOXARIFADO || "Almoxarifado"));
     ws.mergeCells(2, 1, 2, n); ws.getCell(2, 1).value = "Filtros: " + (rel.filtros || "nenhum"); ws.getCell(2, 1).font = { size: 9, color: { argb: CINZA } };
     ws.mergeCells(3, 1, 3, n); ws.getCell(3, 1).value = "Gerado em " + U.dataHora(new Date().toISOString()) + (rel.geradoPor ? " por " + rel.geradoPor : ""); ws.getCell(3, 1).font = { size: 9, color: { argb: CINZA } };
+    const ip = R.colunas.findIndex(c => c.ponto);   // coluna "Alerta" (materiais na zona de estoque mínimo)
+    if(rel.legendaAlerta){
+      ws.mergeCells(4, 1, 4, n); const lg = ws.getCell(4, 1);
+      lg.value = { richText: [{ text: "●  ", font: { size: 15, bold: true, color: { argb: "FFE0A800" } } }, { text: rel.legendaAlerta + " Use o filtro da coluna Alerta para ver só esses materiais.", font: { size: 10, bold: true, color: { argb: "FF5C4A00" } } }] };
+      lg.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3C4" } }; lg.alignment = { vertical: "middle", wrapText: true }; ws.getRow(4).height = 24;
+    }
     const cab = ws.getRow(5);
-    R.colunas.forEach((c, i) => { const cel = cab.getCell(i + 1); cel.value = c.t; cel.font = { bold: true, color: { argb: "FFFFFFFF" } }; cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; cel.border = borda; cel.alignment = { wrapText: true, vertical: "middle", horizontal: c.num ? "right" : "left" }; });
+    R.colunas.forEach((c, i) => { const cel = cab.getCell(i + 1); cel.value = c.t; cel.font = { bold: true, color: { argb: "FFFFFFFF" } }; cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; cel.border = borda; cel.alignment = { wrapText: true, vertical: "middle", horizontal: c.num ? "right" : c.ponto ? "center" : "left" }; });
     cab.height = 28;
     R.linhas.forEach((l, k) => {
       const row = ws.getRow(6 + k);
@@ -2437,6 +2449,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       row.height = Math.max(rel.imgs ? (R.multi ? 30 : 40) : 18, Math.min(150, 15 * linhas + 4));
       l.forEach((v, i) => { const cel = row.getCell(i + 1); cel.value = v == null ? "" : v; cel.border = borda; cel.font = { size: 10.5 }; cel.alignment = { wrapText: true, vertical: "middle", horizontal: R.colunas[i].num ? "right" : "left" }; if(typeof v === "number") cel.numFmt = "#,##0"; });
       if(k % 2) l.forEach((v, i) => { row.getCell(i + 1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF6F9F8" } }; });
+      if(rel.alertas && rel.alertas[k]){   // material na zona de estoque mínimo: linha em amarelo claro + bolinha na coluna Alerta
+        l.forEach((v, i) => { row.getCell(i + 1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3C4" } }; });
+        if(ip >= 0){ const ca = row.getCell(ip + 1); ca.font = { size: 16, bold: true, color: { argb: "FFE0A800" } }; ca.alignment = { horizontal: "center", vertical: "middle" }; }
+      }
     });
     if(R.total){ const row = ws.getRow(6 + R.linhas.length); R.total.forEach((v, i) => { const cel = row.getCell(i + 1); cel.value = v == null ? "" : v; cel.font = { bold: true }; cel.border = borda; cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: SUAVE } }; if(R.colunas[i].num) cel.alignment = { horizontal: "right" }; }); }
     if(rel.imgs){ const mapa = await prepararMinis(rel.imgs); rel.imgs.forEach((ids, k) => minisExcel(wb, ws, 6 + k, 0, ids, mapa, R.multi ? 34 : 48, R.multi ? 4 : 1)); }
@@ -2471,10 +2487,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       doc.addImage(rel.grafico.png, "PNG", (W - gw2) / 2, y + 2, gw2, gh); y += gh + 9;
     }
     const fmtv = v => v == null ? "" : (typeof v === "number" ? Math.round(v).toLocaleString("pt-BR") : String(v));
+    const ip = R.colunas.findIndex(c => c.ponto);   // coluna "Alerta" (materiais na zona de estoque mínimo)
+    const bolinha = (cx, cy, r) => { doc.setFillColor(245, 197, 24); doc.setDrawColor(212, 161, 6); doc.setLineWidth(.45); doc.circle(cx, cy, r, "FD"); };
+    if(rel.legendaAlerta){   // faixa de legenda acima da tabela
+      const lt = doc.splitTextToSize(rel.legendaAlerta, W - 2 * M - 14), hl = Math.max(8, lt.length * 4 + 4);
+      doc.setFillColor(255, 248, 214); doc.setDrawColor(243, 226, 160); doc.setLineWidth(.2); doc.roundedRect(M, y, W - 2 * M, hl, 1.5, 1.5, "FD");
+      bolinha(M + 5, y + hl / 2, 2); doc.setTextColor(92, 74, 0); doc.setFont("helvetica", "bold"); doc.setFontSize(8.6); doc.text(lt, M + 10, y + hl / 2 - (lt.length - 1) * 2 + 1.1); y += hl + 3;
+    }
     /* Larguras: colunas de valor curto cabem inteiras numa linha; as de texto longo dividem o restante pelo peso. */
-    const FS = 8.8, CURTAS = /^(Pedido|Pedido nº|Código|Data|Data e hora|Telefone|Setor|Status|Mínimo|Disponível|Reservado|Limite|Antes|Depois|Variação|Solicitado|Atendido|Materiais|Pedidos|Unidades|Visível|Pode pedir|Natureza|Imagem|Itens|Unidade)$/;
+    const FS = 8.8, CURTAS = /^(Pedido|Pedido nº|Código|Data|Data e hora|Telefone|Setor|Status|Mínimo|Disponível|Reservado|Limite|Antes|Depois|Variação|Solicitado|Atendido|Materiais|Pedidos|Unidades|Visível|Pode pedir|Natureza|Imagem|Itens|Unidade|Alerta)$/;
     const util = W - 2 * M, cols = {}, larg = R.colunas.map((c, i) => {
       if(rel.imgs && i === 0) return R.multi ? 31 : 19;
+      if(c.ponto){ doc.setFont("helvetica", "bold"); doc.setFontSize(FS); return doc.getTextWidth(c.t) + 5; }
       if(!CURTAS.test(c.t)) return null;
       doc.setFont("helvetica", "bold"); doc.setFontSize(FS); let w = doc.getTextWidth(c.t);
       doc.setFont("helvetica", "normal"); R.linhas.slice(0, 400).forEach(l => { w = Math.max(w, doc.getTextWidth(fmtv(l[i]))); });
@@ -2491,7 +2515,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       styles: { font: "helvetica", fontSize: FS, cellPadding: { top: 2, bottom: 2, left: 2.2, right: 2.2 }, textColor: [23, 32, 29], lineColor: [210, 219, 215], lineWidth: .15, overflow: "linebreak", valign: "middle" },
       headStyles: { fillColor: [30, 82, 64], textColor: 255, fontStyle: "bold", fontSize: FS, valign: "middle", minCellHeight: 9 }, footStyles: { fillColor: [226, 237, 232], textColor: [23, 32, 29], fontStyle: "bold" },
       alternateRowStyles: { fillColor: [246, 249, 248] }, showHead: "everyPage", showFoot: "lastPage", columnStyles: cols,
-      didDrawCell: d => { if(rel.imgs && d.section === "body" && d.column.index === 0) minisPdf(doc, d.cell, rel.imgs[d.row.index], mapa, R.multi ? 4 : 1); },
+      didParseCell: d => { if(d.section !== "body" || !rel.alertas) return;
+        if(rel.alertas[d.row.index]) d.cell.styles.fillColor = [255, 244, 190];   // linha na zona de estoque mínimo
+        if(d.column.index === ip) d.cell.text = [""]; },
+      didDrawCell: d => {
+        if(rel.imgs && d.section === "body" && d.column.index === 0) minisPdf(doc, d.cell, rel.imgs[d.row.index], mapa, R.multi ? 4 : 1);
+        if(ip >= 0 && d.section === "body" && d.column.index === ip && rel.alertas && rel.alertas[d.row.index]) bolinha(d.cell.x + d.cell.width / 2, d.cell.y + d.cell.height / 2, 1.9);
+      },
       didDrawPage: () => { doc.setFontSize(7.5); doc.setTextColor(91, 105, 100); doc.text("Página " + doc.internal.getNumberOfPages(), W - M, H - 6, { align: "right" }); } });
     if(paraImprimir) enviarParaImpressao(doc, w);
     else doc.save(nomeArquivo(rel.titulo.replace(/\s+/g, "_") + "_" + hoje() + ".pdf"));
