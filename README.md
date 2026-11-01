@@ -338,7 +338,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
   - filtros de período, setor, situação e natureza;
   - visualização na tela, **Excel**, **PDF** e impressão.
 - **Histórico:** tudo o que aconteceu, com filtros por tipo e por responsável. **O histórico não pode ser apagado pelo sistema**: não existe botão para zerar. As abas *Histórico* e *Pedidos* da planilha também ficam protegidas contra edição manual (veja "Backup").
-- **Backup:** o botão **Gerar backup** (em *Relatórios* e em *Histórico*) baixa três arquivos com as solicitações, o histórico e o estoque: **PDF**, **Excel** e **JSON**. Além disso, **todo dia 1º do mês** o sistema envia esses arquivos por e-mail (veja "Backup").
+- **Backup:** o botão **Gerar backup** (em *Relatórios* e em *Histórico*) baixa três arquivos com as solicitações, o histórico e o estoque: **PDF**, **Excel** e **JSON**. Além disso, **todo dia 1º do mês** o sistema envia por e-mail o backup do **mês anterior** (veja "Backup").
 - **Gestores e contato:**
   - o gestor principal cadastra até 2 outros logins, remove logins e redefine senhas;
   - cada gestor troca a própria senha;
@@ -392,7 +392,7 @@ O site já abre em **modo demonstração**, mas nesse modo cada computador tem u
    - autorize o acesso: *Continuar › sua conta › Avançado › Acessar (não seguro) › Permitir*;
    - cadastre o **gestor principal**: nome, usuário, senha e **e-mail** (usado para recuperar a senha);
    - o catálogo de 254 materiais é carregado automaticamente.
-   - o backup mensal por e-mail (dia 1º, para subad@ e almoxarifado@) é ativado, e as abas de registros são protegidas.
+   - o backup mensal por e-mail (dia 1º, para subad@iema.es.gov.br, subad.iema2026@gmail.com e almoxarifado@iema.es.gov.br) é ativado, e as abas de registros são protegidas.
 5. No Apps Script, clique em **Implantar › Nova implantação**:
    - escolha **App da Web**;
    - em *Executar como*, escolha **Eu**;
@@ -454,13 +454,18 @@ Os dados da planilha são mantidos. No primeiro acesso depois da atualização:
 
 Se o navegador perguntar, permita baixar vários arquivos. Cada backup baixado fica registrado no histórico.
 
-**Backup automático mensal:**
-- **Quando e para quem:** todo **dia 1º, às 6h**, o sistema gera o PDF, o Excel e o JSON e envia por e-mail para **almoxarifado@iema.es.gov.br** e **subad@iema.es.gov.br**. Os dois endereços já estão no código (`BACKUP_EMAILS`, no início do `Code.gs`).
-- **Ativação automática:** não é preciso usar o menu da planilha. O envio do dia 1º se ativa sozinho no primeiro acesso de um gestor depois da atualização. Se ainda aparecer "não ativado", clique em **Ativar backup mensal** na aba *Relatórios*.
-- **Garantia de envio:** se o envio do dia 1º não acontecer por algum motivo, o primeiro gestor que entrar a partir do dia 1º envia o backup do mês automaticamente. O sistema nunca envia duas vezes no mesmo mês.
-- **Envio manual:** o botão **Enviar backup por e-mail agora** envia na hora, a qualquer momento.
-- **Plano B automático:** se o Google ainda não tiver permissão para gerar os arquivos, o navegador do gestor gera o PDF, o Excel e o JSON, e o servidor só envia o e-mail.
-- **Acompanhar:** a aba *Relatórios* mostra se o backup mensal está ativo e quando foi o último envio.
+**Backup automático mensal (envio retroativo, sempre no dia 1º do mês seguinte):**
+- **Quando e para quem:** todo **dia 1º, às 6h**, o sistema gera o PDF, o Excel e o JSON e envia por e-mail o backup do **mês anterior**. Exemplo: em 01/11/2026 sai o backup de **outubro de 2026**. Os destinatários são **subad@iema.es.gov.br**, **subad.iema2026@gmail.com** e **almoxarifado@iema.es.gov.br**, definidos em `BACKUP_EMAILS`, no início do `Code.gs`.
+- **O que vai no e-mail:** o assunto traz o mês ("Backup mensal – outubro de 2026"), e os anexos levam o mês no nome (`Backup_Almoxarifado_IEMA_2026-10.pdf`, `.xlsx` e `.json`). A aba **Resumo** do Excel e o corpo do e-mail mostram os números do mês: pedidos recebidos, unidades solicitadas e atendidas, entregas concluídas, registros de histórico e materiais na zona de estoque mínimo. As demais abas e o JSON trazem todos os dados do sistema (não só o mês), para servirem de cópia de segurança completa.
+- **Primeiro mês e retroativos:** a contagem começa em **outubro de 2026** (`BACKUP_MES_INICIAL`). Ao publicar esta versão, o backup de outubro/2026 é enviado assim que um gestor abrir a área do gestor, ou na hora, com o botão **Enviar backup de outubro de 2026 agora** (aba *Relatórios*). Se algum mês ficar para trás, ele é enviado depois, marcado como "envio retroativo". Cada mês só é enviado **uma vez**.
+- **Várias camadas de segurança**, para o envio não depender de um único gatilho:
+  1. **Gatilho do dia 1º às 6h** (horário de Brasília).
+  2. **Verificação diária às 7h**, que envia qualquer mês que não tenha saído.
+  3. **Primeiro acesso de um gestor**, que envia o que estiver pendente.
+  4. **Contingência:** se o PDF e o Excel não puderem ser gerados no servidor, sai ao menos o **JSON**, com todos os dados, e o e-mail avisa.
+  5. **Aviso de falha:** se nada puder ser enviado, os mesmos e-mails recebem um alerta com o motivo (no máximo um a cada 3 dias), e o sistema tenta de novo no dia seguinte.
+- **Ativação automática:** não é preciso usar o menu da planilha. Os gatilhos se instalam sozinhos no primeiro acesso de um gestor depois da atualização (quem já tinha o gatilho antigo é atualizado, sem duplicar). Se ainda aparecer "não ativado", clique em **Ativar backup mensal** na aba *Relatórios*.
+- **Envio manual:** o botão **Enviar backup por e-mail agora** envia na hora um backup avulso (foto dos dados de agora); ele não conta como o backup mensal. No menu **Almoxarifado › Enviar backups pendentes por e-mail agora** (ou executando `enviarBackupsPendentesAgora` no Apps Script) saem os meses pendentes.
 
 **Importar backup:** botão **Importar backup (JSON)**, na aba *Relatórios*, disponível só para o gestor principal.
 1. Escolha o arquivo `.json` do backup, gerado pelo botão ou recebido no e-mail.
@@ -512,6 +517,15 @@ Isso acontece quando o Google não pediu a autorização das novas permissões a
 
 Isso é feito uma única vez.
 
+**O backup mensal não chegou aos e-mails**
+Confira nesta ordem:
+1. **Pasta de spam** de subad@iema.es.gov.br, subad.iema2026@gmail.com e almoxarifado@iema.es.gov.br. O remetente é o próprio endereço da conta que publicou o Apps Script.
+2. Na área do gestor, aba *Relatórios*, o quadro do backup mostra se o envio está **ativo**, se há mês **pendente** e o último erro ("Atenção: …").
+3. Se aparecer **"Backup pendente"**, clique em **Enviar backup de … agora**. Para enviar direto pelo Apps Script, execute a função **enviarBackupsPendentesAgora** e autorize o acesso quando o Google pedir.
+4. Se aparecer **"Envio do dia 1º ainda não ativado"**, execute **instalarBackupMensal** como acima. Isso instala o gatilho do dia 1º (6h) e a verificação diária (7h).
+5. Em *Gatilhos* (ícone de relógio, no menu do Apps Script), devem existir dois: `backupMensal` (mensal, dia 1º) e `verificarBackupPendente` (diário).
+6. Em caso de falha, os próprios endereços recebem um e-mail "ATENÇÃO: backup mensal não enviado" com o motivo.
+
 **As fotos não aparecem**
 Confira se o arquivo `imagens.js` foi enviado ao repositório, na raiz, junto com os outros.
 
@@ -528,7 +542,7 @@ Confira se o arquivo `imagens.js` foi enviado ao repositório, na raiz, junto co
 | `PRAZO_GUARDA` | Texto sobre o prazo de guarda dos dados no Aviso de privacidade |
 | `GOVERNO`, `ORGAO`, `ALMOXARIFADO` | Textos do cabeçalho, planilhas e relatórios |
 
-No início do `Code.gs`: `MAX_GESTORES` define o número de logins (3), `BACKUP_EMAILS` os destinatários do backup mensal e `ORGAO` o nome do órgão nos e-mails.
+No início do `Code.gs`: `MAX_GESTORES` define o número de logins (3), `BACKUP_EMAILS` os destinatários do backup mensal, `BACKUP_MES_INICIAL` o primeiro mês de referência e `ORGAO` o nome do órgão nos e-mails.
 
 ## Planilha Google (banco de dados)
 

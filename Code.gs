@@ -24,7 +24,8 @@ const INATIVIDADE_MIN = 15;       // regra de segurança: sessão do gestor ence
 const DOMINIO_EMAIL = 'iema.es.gov.br';
 /* Backup mensal automático (todo dia 1º, às 6h): PDF, Excel e JSON com solicitações, histórico e estoque.
    Os e-mails já estão definidos; o backup se ativa sozinho no primeiro acesso de um gestor (não precisa do menu da planilha). */
-const BACKUP_EMAILS = ['almoxarifado@iema.es.gov.br', 'subad@iema.es.gov.br'];
+const BACKUP_EMAILS = ['subad@iema.es.gov.br', 'subad.iema2026@gmail.com', 'almoxarifado@iema.es.gov.br'];   // destinatários do backup mensal
+const BACKUP_MES_INICIAL = '2026-10';   // primeiro mês de referência dos backups mensais (outubro de 2026)
 const HORAS_SESSAO = 10;          // duração máxima de uma sessão, mesmo com atividade
 
 /* ======================= Estrutura ======================= */
@@ -1088,7 +1089,7 @@ function lerHistoricoCompleto() {
     antes: r[6] === '' ? null : Number(r[6]), depois: r[7] === '' ? null : Number(r[7]), delta: r[8] === '' ? null : Number(r[8]), detalhes: String(r[9] || ''), quem: String(r[10] || '')
   }));
 }
-function montarDadosBackup() {
+function montarDadosBackupBase() {
   const cat = lerCatalogo();
   return { sistema: 'Pedidos de material – Almoxarifado – ' + ORGAO, formato: 'backup-almoxarifado-iema/1', geradoEm: new Date().toISOString(),
     contato: dadosContato(), pedidos: lerPedidos().pedidos.map(semLinha), historico: lerHistoricoCompleto(),
@@ -1096,13 +1097,13 @@ function montarDadosBackup() {
 }
 /* Backup baixado pelo gestor (o navegador monta o PDF, o Excel e o JSON). */
 function acaoBackupDados(req) {
-  const d = montarDadosBackup();
+  const d = montarDadosBackup(mesValido(req && req.mes));
   if (req && req.paraEmail) return { dados: d };   // o envio por e-mail é registrado no histórico pelo próprio envio
   registrar([[new Date(), 'Backup gerado', '', '', '', d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico', '', '', '', 'Arquivos PDF, Excel e JSON baixados pelo gestor']]);
   return { dados: d };
 }
 function dataArq(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd'); }
-function tabelasBackup(d) {
+function tabelasBackupBase(d) {
   const dt = s => s ? new Date(s) : '';
   return {
     'Pedidos': [['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Materiais', 'Solicitado', 'Atendido', 'Status', 'Observação', 'Resposta do almoxarifado']]
@@ -1116,8 +1117,8 @@ function tabelasBackup(d) {
   };
 }
 /* Gera os 3 arquivos no servidor (planilha temporária exportada pelo Google em Excel e PDF) e envia por e-mail. */
-function gerarArquivosBackup() {
-  const d = montarDadosBackup(), t = tabelasBackup(d), base = 'Backup_Almoxarifado_IEMA_' + dataArq();
+function gerarArquivosBackup(mes) {
+  const d = montarDadosBackup(mes), t = tabelasBackup(d), base = 'Backup_Almoxarifado_IEMA_' + (mesValido(mes) || dataArq());
   const tmp = SpreadsheetApp.create(base);
   Object.keys(t).forEach((nome, i) => {
     const sh = i === 0 ? tmp.getSheets()[0].setName(nome) : tmp.insertSheet(nome), rows = t[nome].map(r => r.map(seguro));
@@ -1133,18 +1134,64 @@ function gerarArquivosBackup() {
   DriveApp.getFileById(id).setTrashed(true);
   return { d: d, arquivos: [pdf, xlsx, json] };
 }
+/* ======================= Backup mensal por e-mail =======================
+   Todo dia 1º, às 6h, sai o backup do MÊS ANTERIOR (em 01/11/2026, o de outubro de 2026) para os e-mails de BACKUP_EMAILS.
+   Para não depender de um único gatilho, há várias camadas:
+   (1) gatilho do dia 1º às 6h; (2) verificação diária às 7h, que envia, retroativamente, qualquer mês que não tenha saído;
+   (3) o primeiro acesso de um gestor também envia o que estiver pendente; (4) se o PDF/Excel não puderem ser gerados,
+   sai ao menos o JSON (cópia completa); (5) se nada puder ser enviado, os mesmos e-mails recebem um aviso de falha.
+   Cada mês só é enviado uma vez (propriedade BKP_aaaa-mm). A contagem começa em BACKUP_MES_INICIAL. */
+const NOMES_MES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const mesSP = d => Utilities.formatDate(d, 'America/Sao_Paulo', 'yyyy-MM');
-function jaEnviadoEsteMes() { const u = props().getProperty('ULTIMO_BACKUP'); return !!u && mesSP(new Date(u)) === mesSP(new Date()); }
+function mesValido(m) { return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m || '')) ? String(m) : ''; }
+function mesDeslocado(m, delta) { const p = String(m).split('-'), d = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1 + delta, 1)); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2); }
+function rotuloMes(m) { const p = String(m).split('-'); return NOMES_MES[Number(p[1]) - 1] + ' de ' + p[0]; }
+function inicioMes(m) { return new Date(m + '-01T00:00:00-03:00'); }   // o Brasil não tem horário de verão desde 2019
+function temDadosBackup() { return aba('pedidos').getLastRow() > 1 || aba('historico').getLastRow() > 1; }
+/* Meses cujo backup ainda não saiu: de BACKUP_MES_INICIAL até o mês anterior ao atual. */
+function mesesPendentesBackup(agora) {
+  const fim = mesDeslocado(mesSP(agora || new Date()), -1), lista = [];
+  for (let m = BACKUP_MES_INICIAL, n = 0; m <= fim && n < 60; m = mesDeslocado(m, 1), n++) if (!props().getProperty('BKP_' + m)) lista.push(m);
+  return lista;
+}
+function resumoDoMes(d, mes) {
+  const ini = inicioMes(mes), fim = inicioMes(mesDeslocado(mes, 1)), no = x => { const t = new Date(x); return t >= ini && t < fim; };
+  const ped = d.pedidos.filter(p => no(p.dataISO)), porStatus = {};
+  SITUACOES.forEach(st => porStatus[st] = 0); ped.forEach(p => porStatus[p.status] = (porStatus[p.status] || 0) + 1);
+  return { mes, rotulo: rotuloMes(mes), pedidosRecebidos: ped.length, porStatus,
+    unidadesSolicitadas: ped.reduce((a, p) => a + (Number(p.totalUnidades) || 0), 0), unidadesAtendidas: ped.reduce((a, p) => a + (Number(p.totalAtendido) || 0), 0),
+    entregasConcluidasNoMes: d.pedidos.filter(p => (p.andamento || []).some(a => (a.status === ENTREGA_TOTAL || a.status === ENTREGA_PARCIAL) && no(a.dataISO))).length,
+    registrosHistoricoNoMes: d.historico.filter(h => no(h.dataISO)).length,
+    materiais: d.estoque.length, materiaisNaZonaMinima: d.estoque.filter(i => i.minimo != null && i.qtd <= i.minimo).length };
+}
+function montarDadosBackup(mes) {
+  const d = montarDadosBackupBase(), m = mesValido(mes);
+  if (m) { d.mesReferencia = m; d.resumoMes = resumoDoMes(d, m); }   // os dados continuam completos (para restaurar); o resumo destaca o mês
+  return d;
+}
+function tabelasBackup(d) {
+  const t = {}, r = d.resumoMes;
+  if (r) {
+    const st = r.porStatus || {};
+    t['Resumo'] = [['Item', 'Valor'], ['Mês de referência', r.rotulo], ['Gerado em', dataBR(new Date(d.geradoEm))], ['Pedidos recebidos no mês', r.pedidosRecebidos]]
+      .concat(SITUACOES.map(x => ['      ' + x + ' (status atual)', st[x] || 0]))
+      .concat([['Unidades solicitadas no mês', r.unidadesSolicitadas], ['Unidades atendidas no mês', r.unidadesAtendidas], ['Entregas concluídas no mês', r.entregasConcluidasNoMes],
+        ['Registros de histórico no mês', r.registrosHistoricoNoMes], ['Materiais cadastrados', r.materiais], ['Materiais na zona de estoque mínimo', r.materiaisNaZonaMinima],
+        ['Aviso', 'Contém dados pessoais (LGPD): guarde em local de acesso restrito. As demais abas trazem todos os dados (não só o mês).']]);
+  }
+  return Object.assign(t, tabelasBackupBase(d));
+}
+function backupGatilhoOk() { return props().getProperty('BACKUP_ATIVO') === '1' && props().getProperty('BACKUP_GATILHO_V') === '2'; }
 function situacaoBackup() {
-  const agora = new Date(), dia = Number(Utilities.formatDate(agora, 'America/Sao_Paulo', 'd')), hora = Number(Utilities.formatDate(agora, 'America/Sao_Paulo', 'H'));
-  const temDados = aba('pedidos').getLastRow() > 1 || aba('historico').getLastRow() > 1;
-  return { emails: BACKUP_EMAILS, ativo: props().getProperty('BACKUP_ATIVO') === '1', ultimo: props().getProperty('ULTIMO_BACKUP') || '',
-    erro: props().getProperty('BACKUP_ERRO') || '', pendente: temDados && !jaEnviadoEsteMes() && (dia > 1 || hora >= 8),
+  const agora = new Date(), pend = temDadosBackup() ? mesesPendentesBackup(agora) : [], atual = mesSP(agora);
+  return { emails: BACKUP_EMAILS, ativo: backupGatilhoOk(), ultimo: props().getProperty('ULTIMO_BACKUP') || '', ultimoMes: props().getProperty('ULTIMO_BACKUP_MES') || '',
+    erro: props().getProperty('BACKUP_ERRO') || '', pendente: pend.length > 0, pendentes: pend, mesInicial: BACKUP_MES_INICIAL,
+    proximoReferencia: atual, proximoEnvio: new Date(inicioMes(mesDeslocado(atual, 1)).getTime() + 6 * 36e5).toISOString(),
     google: typeof MailApp !== 'undefined' };
 }
-/* Ativa sozinho o envio do dia 1º (no máximo uma tentativa a cada 6 horas), sem precisar do menu da planilha. */
+/* Ativa (ou atualiza) sozinho os gatilhos, sem precisar do menu da planilha: no máximo uma tentativa a cada 6 horas. */
 function ativarBackupAutomatico() {
-  if (typeof ScriptApp === 'undefined' || props().getProperty('BACKUP_ATIVO') === '1') return;
+  if (typeof ScriptApp === 'undefined' || backupGatilhoOk()) return;
   const ult = Number(props().getProperty('BACKUP_TENTATIVA') || 0);
   if (Date.now() - ult < 6 * 36e5) return;
   props().setProperty('BACKUP_TENTATIVA', String(Date.now()));
@@ -1154,45 +1201,109 @@ function ativarBackupAutomatico() {
 function acaoAtivarBackup() {
   if (typeof ScriptApp === 'undefined') throw amigavel('O backup automático funciona depois de ligar a Planilha Google (modo demonstração).');
   try { instalarBackupMensal(); props().setProperty('BACKUP_ERRO', ''); try { protegerAbas(); } catch (e) {} }
-  catch (e) { props().setProperty('BACKUP_ERRO', String(e.message || e).slice(0, 300)); throw amigavel('Não foi possível ativar o envio do dia 1º: ' + e.message + '. Publique a nova versão no Apps Script e clique em “Autorizar acesso” quando o Google pedir. Mesmo assim, o sistema envia o backup do mês pelo primeiro acesso de um gestor.'); }
-  registrar([[new Date(), 'Backup mensal ativado', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'Envio automático todo dia 1º às 6h']]);
+  catch (e) { props().setProperty('BACKUP_ERRO', String(e.message || e).slice(0, 300)); throw amigavel('Não foi possível ativar o envio do dia 1º: ' + e.message + '. Publique a nova versão no Apps Script e clique em “Autorizar acesso” quando o Google pedir. Mesmo assim, os backups pendentes são enviados no primeiro acesso de um gestor.'); }
+  registrar([[new Date(), 'Backup mensal ativado', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'Envio automático todo dia 1º às 6h (mês anterior) e verificação diária às 7h']]);
   return { backup: situacaoBackup() };
 }
-/* Chamada pelo acionador do dia 1º. */
-function backupMensal() { return enviarBackupMensal(true); }
-function enviarBackupMensal(automatico) {
-  if (automatico && jaEnviadoEsteMes()) return null;
-  QUEM = QUEM === 'Sistema' ? 'Sistema (backup automático)' : QUEM;
-  const r = gerarArquivosBackup(), agora = new Date();
-  const html = '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
-    '<p>Segue o backup do sistema de pedidos de material, gerado em ' + dataBR(agora) + ':</p><ul>' +
-    '<li><b>PDF</b> – para leitura e impressão;</li><li><b>Excel</b> – abas Pedidos, Itens dos pedidos, Histórico e Estoque;</li><li><b>JSON</b> – cópia completa dos dados, para restauração.</li></ul>' +
-    '<p>Conteúdo: ' + r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico e ' + r.d.estoque.length + ' materiais.</p>' +
+/* Envia o backup de um mês de referência ('aaaa-mm') e marca o mês como enviado. degradar = se o PDF/Excel não puderem ser gerados, envia só o JSON. */
+function enviarBackupDoMes(mes, degradar, agora) {
+  agora = agora || new Date(); QUEM = QUEM === 'Sistema' ? 'Sistema (backup automático)' : QUEM;
+  let r, aviso = '';
+  try { r = gerarArquivosBackup(mes); }
+  catch (e) {
+    if (!degradar) throw e;
+    aviso = String(e.message || e).slice(0, 200);
+    const d = montarDadosBackup(mes);
+    r = { d, arquivos: [Utilities.newBlob(JSON.stringify(d, null, 1), 'application/json', 'Backup_Almoxarifado_IEMA_' + mes + '.json')] };
+  }
+  const retro = !(mesSP(agora) === mesDeslocado(mes, 1) && Number(Utilities.formatDate(agora, 'America/Sao_Paulo', 'd')) === 1);
+  enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'Backup mensal – ' + rotuloMes(mes) + ' – ' + ORGAO + ' (não responda)', htmlBody: htmlBackupMensal(r.d, mes, agora, retro, aviso), name: NOME_REMETENTE, attachments: r.arquivos });
+  props().setProperty('BKP_' + mes, agora.toISOString()); props().setProperty('ULTIMO_BACKUP', agora.toISOString()); props().setProperty('ULTIMO_BACKUP_MES', mes);
+  props().setProperty('BACKUP_ERRO', aviso ? 'O PDF e o Excel de ' + rotuloMes(mes) + ' não puderam ser gerados automaticamente (' + aviso + '). Foi enviado o JSON, com todos os dados.' : '');
+  registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'Referente a ' + rotuloMes(mes) + (retro ? ' (envio retroativo)' : '') + ': ' + (aviso ? 'somente JSON' : 'PDF, Excel e JSON') + ' – ' + r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico']]);
+  return { mes, pedidos: r.d.pedidos.length, historico: r.d.historico.length };
+}
+function htmlBackupMensal(d, mes, agora, retro, aviso) {
+  const r = d.resumoMes || { porStatus: {} }, st = r.porStatus || {}, qtd = SITUACOES.filter(x => st[x]).map(x => '<li>' + st[x] + ' ' + esc(x) + '</li>').join('');
+  return '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+    '<p>Segue o <b>backup mensal</b> do sistema de pedidos de material de consumo, referente a <b>' + esc(rotuloMes(mes)) + '</b>.</p>' +
+    '<p>Enviado em ' + dataBR(agora) + '.' + (retro ? ' <b>Envio retroativo:</b> o backup deste mês não havia saído no dia 1º.' : '') + '</p>' +
+    '<p><b>Resumo de ' + esc(rotuloMes(mes)) + ':</b></p><ul><li>' + (r.pedidosRecebidos || 0) + ' pedidos recebidos, com ' + (r.unidadesSolicitadas || 0) + ' unidades solicitadas e ' + (r.unidadesAtendidas || 0) + ' atendidas</li>' +
+    '<li>' + (r.entregasConcluidasNoMes || 0) + ' entregas concluídas no mês</li><li>' + (r.registrosHistoricoNoMes || 0) + ' registros de histórico</li><li>' + (r.materiaisNaZonaMinima || 0) + ' de ' + (r.materiais || 0) + ' materiais na zona de estoque mínimo</li></ul>' +
+    (qtd ? '<p>Situação atual dos pedidos do mês:</p><ul>' + qtd + '</ul>' : '') +
+    '<p><b>Anexos:</b></p><ul>' + (aviso ? '' : '<li><b>PDF</b> – para leitura e impressão;</li><li><b>Excel</b> – abas Resumo, Pedidos, Itens dos pedidos, Histórico e Estoque;</li>') + '<li><b>JSON</b> – cópia completa dos dados, para restauração (botão “Importar backup” na área do gestor).</li></ul>' +
+    '<p>Os arquivos trazem todos os dados do sistema (' + d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico e ' + d.estoque.length + ' materiais), não só os do mês.</p>' +
+    (aviso ? '<p style="background:#FBF0DC;border:1px solid #E6C68F;padding:8px 12px;font-size:13px"><b>Atenção:</b> o PDF e o Excel não puderam ser gerados automaticamente (' + esc(aviso) + '). O JSON em anexo tem todos os dados. Para receber também o PDF e o Excel, abra a área do gestor e use “Enviar backup por e-mail agora”.</p>' : '') +
     '<p>Sugestão: salve os anexos no Porta-arquivos do Comunica ES, numa pasta de acesso restrito. Os arquivos contêm dados pessoais (LGPD).</p>' +
     '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>';
-  enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'Backup mensal do almoxarifado – ' + dataArq(agora) + ' – ' + ORGAO + ' (não responda)', htmlBody: html, name: NOME_REMETENTE, attachments: r.arquivos });
+}
+/* Envia os meses pendentes (no máximo "max" por vez). Chamar com o lock do script já obtido. */
+function enviarBackupsPendentes(max, degradar, agora) {
+  const enviados = [];
+  if (!temDadosBackup()) return enviados;
+  const lista = mesesPendentesBackup(agora).slice(0, max || 2);
+  for (let k = 0; k < lista.length; k++) {
+    try { enviados.push(enviarBackupDoMes(lista[k], degradar, agora)); }
+    catch (e) { if (!enviados.length) throw e; props().setProperty('BACKUP_ERRO', 'Falha ao enviar ' + rotuloMes(lista[k]) + ': ' + String(e.message || e).slice(0, 200)); break; }
+  }
+  return enviados;
+}
+function avisarFalhaBackup(msg, origem) {
+  try {
+    const ult = Number(props().getProperty('BACKUP_AVISO_EM') || 0); if (Date.now() - ult < 3 * 864e5) return;   // no máximo um aviso a cada 3 dias
+    props().setProperty('BACKUP_AVISO_EM', String(Date.now()));
+    const meses = mesesPendentesBackup().map(rotuloMes).join(', ');
+    enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'ATENÇÃO: backup mensal não enviado (' + meses + ') – ' + ORGAO + ' (não responda)', name: NOME_REMETENTE,
+      htmlBody: '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
+        '<p>O backup mensal de <b>' + esc(meses) + '</b> não pôde ser enviado automaticamente (' + esc(origem) + ').</p><p><b>Motivo:</b> ' + esc(msg) + '</p>' +
+        '<p>O sistema tenta de novo todos os dias às 7h. Para enviar agora: abra a área do gestor (o envio pendente sai sozinho) ou, no Apps Script, execute a função <b>enviarBackupsPendentesAgora</b> e autorize o acesso quando o Google pedir.</p>' +
+        '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>' });
+  } catch (e) {}
+}
+function rodarBackupsPendentes(origem) {
+  if (typeof MailApp === 'undefined') return [];
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(30000)) return [];
+  try { return enviarBackupsPendentes(2, true); }
+  catch (e) { const msg = String(e.message || e).slice(0, 300); props().setProperty('BACKUP_ERRO', msg); avisarFalhaBackup(msg, origem); return []; }
+  finally { lock.releaseLock(); }
+}
+/* Gatilho do dia 1º às 6h: envia o backup do mês anterior. */
+function backupMensal() { return rodarBackupsPendentes('gatilho do dia 1º'); }
+/* Gatilho diário às 7h: rede de segurança, envia retroativamente qualquer mês que não tenha saído. */
+function verificarBackupPendente() { return rodarBackupsPendentes('verificação diária'); }
+/* Para executar no editor do Apps Script (Executar): envia na hora os backups pendentes, como o de outubro de 2026. */
+function enviarBackupsPendentesAgora() {
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(30000)) throw new Error('Já há um backup sendo enviado.');
+  try { const r = enviarBackupsPendentes(12, true); if (typeof Logger !== 'undefined') Logger.log(r.length ? 'Backups enviados: ' + r.map(x => x.mes).join(', ') + ' para ' + BACKUP_EMAILS.join(', ') : 'Nenhum backup pendente.'); return r; }
+  finally { lock.releaseLock(); }
+}
+/* Backup avulso (botão "Enviar backup por e-mail agora"): foto dos dados de agora; não conta como backup mensal. */
+function enviarBackupManual() {
+  QUEM = QUEM === 'Sistema' ? 'Sistema (backup automático)' : QUEM;
+  const r = gerarArquivosBackup(), agora = new Date();
+  enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'Backup do almoxarifado – ' + dataArq(agora) + ' – ' + ORGAO + ' (não responda)', htmlBody: htmlEmailBackup(r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico e ' + r.d.estoque.length + ' materiais', agora, ''), name: NOME_REMETENTE, attachments: r.arquivos });
   props().setProperty('ULTIMO_BACKUP', agora.toISOString());
   registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'PDF, Excel e JSON: ' + r.d.pedidos.length + ' pedidos, ' + r.d.historico.length + ' registros de histórico']]);
   return r.d;
 }
-function htmlEmailBackup(qtd, agora) {
+function htmlEmailBackup(qtd, agora, mes) {
   return '<div style="font-family:Arial,sans-serif;color:#17201D"><p style="font-size:12px;color:#5B6964">' + ORGAO + ' · Almoxarifado</p>' +
-    '<p>Segue o backup do sistema de pedidos de material, gerado em ' + dataBR(agora) + ':</p><ul>' +
+    '<p>Segue o backup do sistema de pedidos de material' + (mes ? ', referente a <b>' + esc(rotuloMes(mes)) + '</b>' : '') + ', gerado em ' + dataBR(agora) + ':</p><ul>' +
     '<li><b>PDF</b> – para leitura e impressão;</li><li><b>Excel</b> – abas Resumo, Pedidos, Itens dos pedidos, Histórico e Estoque;</li><li><b>JSON</b> – cópia completa dos dados, para restauração (botão “Importar backup” na área do gestor).</li></ul>' +
-    (qtd ? '<p>Conteúdo: ' + qtd + '.</p>' : '') +
+    (qtd ? '<p>Conteúdo: ' + esc(qtd) + '.</p>' : '') +
     '<p>Sugestão: salve os anexos no Porta-arquivos do Comunica ES, numa pasta de acesso restrito. Os arquivos contêm dados pessoais (LGPD).</p>' +
     '<p style="color:#5B6964;font-size:12px">E-mail automático. Não responda.</p></div>';
 }
-/* Botão "Enviar backup por e-mail agora" (e envio do mês pelo primeiro acesso de um gestor). */
+/* Botão "Enviar backup por e-mail agora" e envio dos meses pendentes pelo primeiro acesso de um gestor. */
 function acaoBackupEmailAgora(req) {
   if (typeof MailApp === 'undefined') throw amigavel('O envio por e-mail funciona depois de ligar a Planilha Google (modo demonstração).');
   if (typeof UrlFetchApp === 'undefined' || typeof ScriptApp === 'undefined') throw amigavel('GERAR_NO_NAVEGADOR');
   const lock = LockService.getScriptLock(); if (!lock.tryLock(30000)) throw amigavel('Já há um backup sendo enviado. Aguarde um instante.');
-  let d;
-  try { d = enviarBackupMensal(!!req.automatico); }
+  let res = [], d = null;
+  try { if (req.automatico) res = enviarBackupsPendentes(2, false); else d = enviarBackupManual(); }
   catch (e) { throw amigavel('GERAR_NO_NAVEGADOR'); }
   finally { lock.releaseLock(); }
-  if (!d) return { jaEnviado: true, enviadoPara: BACKUP_EMAILS };
+  if (req.automatico) return res.length ? { enviadoPara: BACKUP_EMAILS, meses: res.map(x => x.mes), pedidos: res[0].pedidos, historico: res[0].historico } : { jaEnviado: true, enviadoPara: BACKUP_EMAILS };
   return { enviadoPara: BACKUP_EMAILS, pedidos: d.pedidos.length, historico: d.historico.length };
 }
 /* Plano B: os 3 arquivos são gerados no navegador do gestor e o servidor só envia o e-mail (usa apenas a permissão de e-mail). */
@@ -1200,7 +1311,8 @@ function acaoBackupEnviarArquivos(req) {
   if (typeof MailApp === 'undefined') throw amigavel('O envio por e-mail funciona depois de ligar a Planilha Google (modo demonstração).');
   const lock = LockService.getScriptLock(); if (!lock.tryLock(30000)) throw amigavel('Já há um backup sendo enviado. Aguarde um instante.');
   try {
-    if (req.automatico && jaEnviadoEsteMes()) return { jaEnviado: true, enviadoPara: BACKUP_EMAILS };
+    const pend = mesesPendentesBackup(), mes = req.automatico ? (mesValido(req.mes) || pend[0] || '') : '';
+    if (req.automatico && (!mes || pend.indexOf(mes) < 0)) return { jaEnviado: true, enviadoPara: BACKUP_EMAILS };
     const tipos = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', json: 'application/json' };
     const anexos = (req.arquivos || []).slice(0, 3).map(a => {
       const ext = String(a.nome || '').split('.').pop().toLowerCase();
@@ -1208,11 +1320,12 @@ function acaoBackupEnviarArquivos(req) {
       return Utilities.newBlob(Utilities.base64Decode(String(a.base64 || '')), tipos[ext], a.nome);
     });
     if (anexos.length !== 3) throw amigavel('O backup precisa ter os 3 arquivos (PDF, Excel e JSON).');
-    const agora = new Date();
-    enviarEmail({ to: BACKUP_EMAILS.join(','), subject: 'Backup ' + (req.automatico ? 'mensal ' : '') + 'do almoxarifado – ' + dataArq(agora) + ' – ' + ORGAO + ' (não responda)', htmlBody: htmlEmailBackup(String(req.resumo || '').slice(0, 200), agora), name: NOME_REMETENTE, attachments: anexos });
+    const agora = new Date(), resumo = String(req.resumo || '').slice(0, 200);
+    enviarEmail({ to: BACKUP_EMAILS.join(','), subject: (mes ? 'Backup mensal – ' + rotuloMes(mes) : 'Backup do almoxarifado – ' + dataArq(agora)) + ' – ' + ORGAO + ' (não responda)', htmlBody: htmlEmailBackup(resumo, agora, mes), name: NOME_REMETENTE, attachments: anexos });
     props().setProperty('ULTIMO_BACKUP', agora.toISOString());
-    registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'PDF, Excel e JSON gerados na área do gestor' + (req.automatico ? ' (envio do mês)' : '') + (req.resumo ? ': ' + String(req.resumo).slice(0, 200) : '')]]);
-    return { enviadoPara: BACKUP_EMAILS };
+    if (mes) { props().setProperty('BKP_' + mes, agora.toISOString()); props().setProperty('ULTIMO_BACKUP_MES', mes); props().setProperty('BACKUP_ERRO', ''); }
+    registrar([[agora, 'Backup enviado por e-mail', '', '', '', BACKUP_EMAILS.join(', '), '', '', '', 'PDF, Excel e JSON gerados na área do gestor' + (mes ? ' (referente a ' + rotuloMes(mes) + ')' : '') + (resumo ? ': ' + resumo : '')]]);
+    return { enviadoPara: BACKUP_EMAILS, meses: mes ? [mes] : [] };
   } finally { lock.releaseLock(); }
 }
 
@@ -1294,10 +1407,11 @@ function acaoImportarBackup(req) {
   return { resultado: res, simulacao: simular };
 }
 function instalarBackupMensal() {
-  ScriptApp.getProjectTriggers().forEach(t => { if (t.getHandlerFunction() === 'backupMensal') ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('backupMensal').timeBased().onMonthDay(1).atHour(6).inTimezone('America/Sao_Paulo').create();
+  ScriptApp.getProjectTriggers().forEach(t => { const h = t.getHandlerFunction(); if (h === 'backupMensal' || h === 'verificarBackupPendente') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('backupMensal').timeBased().onMonthDay(1).atHour(6).inTimezone('America/Sao_Paulo').create();             // dia 1º, 6h: backup do mês anterior
+  ScriptApp.newTrigger('verificarBackupPendente').timeBased().everyDays(1).atHour(7).inTimezone('America/Sao_Paulo').create();   // todo dia, 7h: envia o que estiver pendente
   DriveApp.getRootFolder(); UrlFetchApp.getRequest('https://docs.google.com');   // pede as autorizações necessárias
-  props().setProperty('BACKUP_ATIVO', '1');
+  props().setProperty('BACKUP_ATIVO', '1'); props().setProperty('BACKUP_GATILHO_V', '2');
 }
 /* Registros só podem ser editados à mão pelo dono da planilha (o sistema continua gravando normalmente). */
 function protegerAbas() {
@@ -1348,7 +1462,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('Almoxarifado')
     .addItem('Configurar sistema (primeira vez)', 'configurarSistema')
     .addItem('Ativar backup mensal por e-mail (dia 1º)', 'menuBackup')
-    .addItem('Enviar backup por e-mail agora', 'menuBackupAgora')
+    .addItem('Enviar backups pendentes por e-mail agora', 'menuBackupAgora')
     .addItem('Redefinir a senha de um gestor', 'menuRedefinirSenha')
     .addItem('Desconectar todos os gestores', 'menuDesconectar')
     .addToUi();
@@ -1388,12 +1502,22 @@ function menuRedefinirSenha() {
 }
 function menuBackup() {
   const ui = SpreadsheetApp.getUi();
-  try { instalarBackupMensal(); protegerAbas(); ui.alert('Backup mensal ativado', 'Todo dia 1º, às 6h, o PDF, o Excel e o JSON serão enviados para:\n' + BACKUP_EMAILS.join('\n') + '\n\nAs abas Histórico e Pedidos foram protegidas contra edição manual.', ui.ButtonSet.OK); }
+  try {
+    instalarBackupMensal(); protegerAbas();
+    const env = rodarBackupsPendentes('ativação pelo menu'), pend = mesesPendentesBackup().map(rotuloMes);
+    ui.alert('Backup mensal ativado', 'Todo dia 1º, às 6h, o backup do mês anterior (PDF, Excel e JSON) será enviado para:\n' + BACKUP_EMAILS.join('\n') + '\n\nHá também uma verificação diária às 7h, que envia qualquer mês que tenha ficado para trás.' +
+      (env.length ? '\n\nBackups enviados agora: ' + env.map(x => rotuloMes(x.mes)).join(', ') + '.' : '') + (pend.length ? '\n\nAinda pendente (veja o erro na área do gestor): ' + pend.join(', ') + '.' : '') +
+      '\n\nAs abas Histórico e Pedidos foram protegidas contra edição manual.', ui.ButtonSet.OK);
+  }
   catch (e) { ui.alert('Não foi possível ativar: ' + e.message); }
 }
 function menuBackupAgora() {
   const ui = SpreadsheetApp.getUi();
-  try { const d = backupMensal(); ui.alert('Backup enviado para ' + BACKUP_EMAILS.join(', ') + ' (' + d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico).'); }
+  try {
+    const pend = mesesPendentesBackup();
+    if (pend.length) { const r = enviarBackupsPendentesAgora(); ui.alert('Backups pendentes enviados para ' + BACKUP_EMAILS.join(', '), r.map(x => rotuloMes(x.mes) + ': ' + x.pedidos + ' pedidos, ' + x.historico + ' registros de histórico').join('\n') || 'Nenhum.', ui.ButtonSet.OK); }
+    else { const d = enviarBackupManual(); ui.alert('Nenhum mês pendente. Foi enviado um backup avulso de agora para ' + BACKUP_EMAILS.join(', ') + ' (' + d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico).'); }
+  }
   catch (e) { ui.alert('Não foi possível enviar: ' + e.message); }
 }
 function menuDesconectar() { chavesSessao().forEach(k => props().deleteProperty(k)); SpreadsheetApp.getUi().alert('Todos os gestores foram desconectados.'); }
