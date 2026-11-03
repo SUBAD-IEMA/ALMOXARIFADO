@@ -344,7 +344,7 @@ Os dados e as funções são os mesmos em qualquer tela. No celular, tocar na im
   - **Confirmação:** cada botão pede confirmação **em forma de pergunta, dentro da própria janela** (por exemplo: "Confirma o atendimento total do pedido 2026-00012?"). **Não, voltar** retorna ao pedido.
   - **Depois da ação:** confirmada a ação, a janela fecha e volta para a lista.
   - **Aguardando retirada:** a janela mostra **apenas** o botão **Entrega realizada**, a última etapa. Ao confirmar, o pedido termina como **Entrega total realizada** ou **Entrega parcial realizada**, conforme o atendimento feito.
-  - **E-mails:** o solicitante recebe um e-mail a cada mudança de situação.
+  - **E-mails:** o solicitante recebe e-mail **somente em duas etapas**: **Aguardando retirada** ("Materiais disponíveis para retirada", com a lista e as quantidades, onde e quando retirar e o link de acompanhamento; no atendimento parcial, quantas unidades foram separadas) e **Recusado** ("Pedido recusado", com o motivo informado pelo almoxarifado e os itens do pedido). São só informativos: saem como **"não responda"**, sem possibilidade de resposta. Nas outras etapas (pedido recebido e entregas) não há e-mail; o solicitante acompanha pela aba *Acompanhar pedido*.
   - **Pedidos já existentes:** na atualização, os status antigos são convertidos sozinhos: Pendente e Aprovado → **Em Análise / Separação**; Atendido → **Entrega total realizada**; Parcialmente atendido → **Entrega parcial realizada**; Entrega realizada → total ou parcial, conforme as quantidades. Os nomes antigos deixam de existir.
 - **Visão geral:** indicadores e gráficos com **filtros** de período (incluindo datas escolhidas), setor, situação e natureza de despesa.
 - **Catálogo e estoque:**
@@ -514,7 +514,11 @@ O PDF e o Excel servem para leitura. A restauração usa o arquivo **JSON**.
 
 ## E-mails (somente consulta)
 
-- **Quando são enviados:** o solicitante recebe um e-mail quando o pedido é registrado e a cada mudança de situação.
+- **Quando são enviados:** o solicitante recebe e-mail somente nas etapas **Aguardando retirada** e **Recusado**. Não há e-mail de pedido recebido nem de entrega realizada.
+- **Escolher as etapas com e-mail:** a lista `EMAILS_DE_ETAPA`, no início do `Code.gs`, define as etapas que geram e-mail (hoje, `'Aguardando retirada'` e `'Recusado'`). Para avisar também em outras, acrescente o nome: `'Em Análise / Separação'` (confirmação do pedido, com cópia oculta ao almoxarifado), `'Entrega total realizada'` ou `'Entrega parcial realizada'`. Com `ENVIAR_EMAIL = false`, nenhum e-mail de etapa é enviado.
+- **Continuam sendo enviados** (não são e-mails de etapa): o aviso ao almoxarifado quando o solicitante deixa uma mensagem, a resposta do gestor ao solicitante, o código de recuperação de senha e os backups.
+- **Materiais disponíveis para retirada:** ao passar para **Aguardando retirada**, sai um e-mail específico ("Materiais disponíveis para retirada – pedido …"), no lugar do e-mail genérico de mudança de status. O local e o horário citados vêm de `LOCAL_RETIRADA` ("no Almoxarifado do IEMA") e `HORARIO_RETIRADA` ("em horário de expediente"), no início do `Code.gs`.
+- **Sem resposta:** todos os e-mails do sistema saem como "não responda" (`noReply`). Em contas Gmail comuns, que não aceitam esse recurso, a resposta é desviada para um endereço inexistente, então ninguém recebe respostas.
 - **Aviso no e-mail:** a mensagem informa, em destaque, que é **automática e não deve ser respondida**, e traz o link para acompanhar o pedido.
 - **Cópia ao almoxarifado:** o e-mail do contato do almoxarifado recebe **cópia oculta** de cada pedido novo. O solicitante não vê esse endereço.
 - **Contas Google Workspace (institucionais):** o e-mail sai de um endereço **no-reply** do domínio, que não aceita resposta.

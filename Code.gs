@@ -15,9 +15,15 @@
  */
 
 /* ======================= Opções ======================= */
-const ENVIAR_EMAIL = true;        // avisa o solicitante quando o pedido é recebido e quando muda de situação
+const ENVIAR_EMAIL = true;        // liga/desliga os e-mails de etapa do pedido
+/* Etapas do pedido que geram e-mail para o solicitante. Hoje só duas: "Aguardando retirada" (materiais disponíveis para retirada)
+   e "Recusado" (pedido recusado, com o motivo). Para avisar também em outras etapas, acrescente o nome:
+   'Em Análise / Separação' (confirmação do pedido), 'Entrega total realizada' ou 'Entrega parcial realizada'. */
+const EMAILS_DE_ETAPA = ['Aguardando retirada', 'Recusado'];
 const ORGAO = 'IEMA - Instituto Estadual de Meio Ambiente';
 const NOME_REMETENTE = 'IEMA - Almoxarifado (não responda)';
+const LOCAL_RETIRADA = 'no Almoxarifado do IEMA';          // onde retirar os materiais (e-mail "disponíveis para retirada")
+const HORARIO_RETIRADA = 'em horário de expediente';       // quando retirar
 const MAX_GESTORES = 5;           // número máximo de logins de gestor (incluindo o gestor principal/master)
 const INATIVIDADE_MIN = 15;       // regra de segurança: sessão do gestor encerra após 15 minutos sem atividade
 /* Pedidos só são aceitos com e-mail institucional deste domínio (qualquer nome antes do @). */
@@ -1437,8 +1443,60 @@ function enviarEmail(o) {
     MailApp.sendEmail(o);
   }
 }
+/* E-mail enviado quando o pedido passa para "Aguardando retirada": informa que os materiais estão disponíveis para retirada.
+   É só informativo: sai como "não responda" (sem possibilidade de resposta). */
+function avisarRetirada(p) {
+  try {
+    const g = dadosContato(), site = props().getProperty('SITE_URL') || '', link = site ? site + 'solicitante.html?pedido=' + encodeURIComponent(p.numero) : '';
+    const parcial = p.itens.some(l => Number(l.atendida) < Number(l.qtd)), nome = p.solicitante.nome.split(' ')[0];
+    const totalAt = p.itens.reduce((a, l) => a + (Number(l.atendida) || 0), 0);
+    const tabela = '<table border="1" cellpadding="5" style="border-collapse:collapse;font-size:13px" bordercolor="#D9E1DE"><tr style="background:#1E5240;color:#fff"><th>Código</th><th>Material</th><th>Unidade</th>' + (parcial ? '<th>Solicitado</th>' : '') + '<th>Disponível para retirada</th></tr>' +
+      p.itens.map(l => '<tr><td>' + esc(l.codigo) + '</td><td>' + esc(l.descricao) + '</td><td>' + esc(l.unidade) + '</td>' + (parcial ? '<td align="right">' + l.qtd + '</td>' : '') + '<td align="right"><b>' + (Number(l.atendida) || 0) + '</b></td></tr>').join('') + '</table>';
+    const html = '<div style="font-family:Arial,sans-serif;color:#17201D">' +
+      '<p style="font-size:12px;color:#5B6964;margin:0 0 8px">' + ORGAO + ' · Almoxarifado</p>' +
+      '<p style="background:#FBF0DC;border:1px solid #E6C68F;padding:8px 12px;font-size:13px"><b>Mensagem automática, somente informativa. Não responda este e-mail</b>: as respostas não são recebidas.</p>' +
+      '<p>Olá, ' + esc(nome) + '.</p>' +
+      '<div style="background:#E2EDE8;border-left:5px solid #1E5240;padding:12px 14px;margin:12px 0"><b style="font-size:16px;color:#1E5240">Os materiais do seu pedido estão disponíveis para retirada.</b></div>' +
+      '<p>O pedido <b>' + esc(p.numero) + '</b> está com o status <b>Aguardando retirada</b>. Os materiais já foram separados e podem ser retirados ' + esc(LOCAL_RETIRADA) + ', ' + esc(HORARIO_RETIRADA) + '. Informe o número do pedido e confira os itens no momento da retirada.</p>' +
+      (parcial ? '<p><b>Atendimento parcial:</b> foram separadas ' + totalAt + ' de ' + p.totalUnidades + ' unidades. O restante não foi atendido neste pedido.</p>' : '') +
+      (p.resposta ? '<p><b>Mensagem do almoxarifado:</b> ' + esc(p.resposta) + '</p>' : '') +
+      tabela +
+      (link ? '<p><a href="' + link + '">Acompanhar o pedido</a> (informe o e-mail usado no pedido). Na página de acompanhamento você também pode tirar dúvidas ou deixar uma mensagem para o almoxarifado.</p>' : '') +
+      (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +
+      '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado – ' + ORGAO + '. Não responda.</p></div>';
+    const texto = 'Olá, ' + nome + '. Os materiais do seu pedido ' + p.numero + ' estão disponíveis para retirada ' + LOCAL_RETIRADA + ', ' + HORARIO_RETIRADA + '. Informe o número do pedido na retirada. Mensagem automática, somente informativa: não responda este e-mail.';
+    enviarEmail({ to: p.solicitante.email, subject: 'Materiais disponíveis para retirada – pedido ' + p.numero + ' – ' + ORGAO + ' (não responda)', body: texto, htmlBody: html, name: NOME_REMETENTE });
+    return true;
+  } catch (err) { console.error('Falha no e-mail de retirada: ' + err); return false; }
+}
+/* E-mail enviado quando o pedido é recusado: informa o motivo. Só informativo: sai como "não responda". */
+function avisarRecusa(p) {
+  try {
+    const g = dadosContato(), site = props().getProperty('SITE_URL') || '', link = site ? site + 'solicitante.html?pedido=' + encodeURIComponent(p.numero) : '';
+    const nome = p.solicitante.nome.split(' ')[0];
+    const tabela = '<table border="1" cellpadding="5" style="border-collapse:collapse;font-size:13px" bordercolor="#D9E1DE"><tr style="background:#1E5240;color:#fff"><th>Código</th><th>Material</th><th>Unidade</th><th>Solicitado</th></tr>' +
+      p.itens.map(l => '<tr><td>' + esc(l.codigo) + '</td><td>' + esc(l.descricao) + '</td><td>' + esc(l.unidade) + '</td><td align="right">' + l.qtd + '</td></tr>').join('') + '</table>';
+    const html = '<div style="font-family:Arial,sans-serif;color:#17201D">' +
+      '<p style="font-size:12px;color:#5B6964;margin:0 0 8px">' + ORGAO + ' · Almoxarifado</p>' +
+      '<p style="background:#FBF0DC;border:1px solid #E6C68F;padding:8px 12px;font-size:13px"><b>Mensagem automática, somente informativa. Não responda este e-mail</b>: as respostas não são recebidas.</p>' +
+      '<p>Olá, ' + esc(nome) + '.</p>' +
+      '<div style="background:#FBE4E4;border-left:5px solid #B42318;padding:12px 14px;margin:12px 0"><b style="font-size:16px;color:#B42318">O seu pedido foi recusado.</b></div>' +
+      '<p>O pedido <b>' + esc(p.numero) + '</b> está com o status <b>Recusado</b>. Nenhum material foi separado e as quantidades solicitadas voltaram ao estoque.</p>' +
+      (p.resposta ? '<p><b>Motivo informado pelo almoxarifado:</b> ' + esc(p.resposta) + '</p>' : '') +
+      '<p>Itens do pedido:</p>' + tabela +
+      '<p>Se ainda precisar dos materiais, faça um novo pedido' + (link ? ' ou <a href="' + link + '">acompanhe este pedido</a> (informe o e-mail usado no pedido) e deixe uma mensagem para o almoxarifado na página de acompanhamento' : '') + '.</p>' +
+      (g.telefone ? '<p>Em caso de dúvida, ligue para o almoxarifado: ' + esc(g.telefone) + '.</p>' : '') +
+      '<p style="color:#5B6964;font-size:12px">Mensagem automática do sistema de pedidos do Almoxarifado – ' + ORGAO + '. Não responda.</p></div>';
+    const texto = 'Olá, ' + nome + '. O seu pedido ' + p.numero + ' foi recusado.' + (p.resposta ? ' Motivo: ' + p.resposta + '.' : '') + ' Mensagem automática, somente informativa: não responda este e-mail.';
+    enviarEmail({ to: p.solicitante.email, subject: 'Pedido recusado – pedido ' + p.numero + ' – ' + ORGAO + ' (não responda)', body: texto, htmlBody: html, name: NOME_REMETENTE });
+    return true;
+  } catch (err) { console.error('Falha no e-mail de recusa: ' + err); return false; }
+}
 function avisar(p, novo) {
   if (!ENVIAR_EMAIL || typeof MailApp === 'undefined') return false;
+  if (EMAILS_DE_ETAPA.indexOf(p.status) < 0) return false;   // só as etapas listadas em EMAILS_DE_ETAPA geram e-mail
+  if (!novo && p.status === RETIRADA) return avisarRetirada(p);
+  if (!novo && p.status === 'Recusado') return avisarRecusa(p);   // e-mail próprio, com o motivo da recusa   // etapa "Aguardando retirada": e-mail próprio, informando que os materiais estão disponíveis
   try {
     const g = dadosContato(), site = props().getProperty('SITE_URL') || '';
     const link = site ? site + 'solicitante.html?pedido=' + encodeURIComponent(p.numero) : '';
