@@ -81,7 +81,7 @@ As tabelas passam a ter uma coluna com a mini imagem de cada material. Os materi
 | Relatórios por pedido, por material, consumo, estoque e histórico | ✓ | ✓ | ✓ |
 | Dashboard: materiais com estoque baixo | ✓ | – | ✓ |
 
-A impressão usa o próprio PDF, então sai igual a ele, com as imagens. Nos relatórios, a opção **Incluir imagens dos materiais** pode ser desmarcada para gerar arquivos mais leves.
+A impressão usa o próprio PDF, então sai igual a ele, com as imagens. Nos relatórios, a opção **Incluir imagens dos materiais** pode ser desmarcada para gerar arquivos mais leves. O relatório **Pedidos (resumo)** nunca traz imagens dos itens (tela, PDF, impressão e Excel); nele a opção fica desligada.
 
 ## Gráficos e dashboard (aba Relatórios)
 

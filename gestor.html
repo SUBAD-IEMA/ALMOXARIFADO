@@ -1258,6 +1258,10 @@ body.pp-unico.pp-com-barra .dash-box,body.pp-unico.pp-com-barra .dash-box.alto{h
 body.pp-unico.sem-cab.pp-com-barra .dash-box,body.pp-unico.sem-cab.pp-com-barra .dash-box.alto{height:calc(100vh - 128px)}
 @media (max-width:640px){ .pp-resumo{flex-basis:100%} .pp-periodo select{max-width:56vw} }
 
+/* Versão 30: opção de imagens desligada no relatório Pedidos (resumo) */
+.check.desligado{opacity:.5;cursor:not-allowed}
+.check.desligado input{cursor:not-allowed}
+
 </style>
 </head>
 <body>
@@ -4138,7 +4142,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
   /* ---------- Relatórios ---------- */
   const TIPOS = [
-    { id: "resumo", t: "Pedidos (resumo)", d: "Uma linha por pedido: solicitante, setor, contato, quantidades, status e imagens dos itens.", usa: "ped" },
+    { id: "resumo", t: "Pedidos (resumo)", d: "Uma linha por pedido: solicitante, setor, contato, quantidades e status.", usa: "ped" },
     { id: "itens", t: "Pedidos por material", d: "Cada material de cada pedido, com imagem e quantidade solicitada e atendida.", usa: "ped" },
     { id: "consumo", t: "Consumo por material", d: "Total solicitado e atendido de cada material no período, com imagem.", usa: "ped" },
     { id: "setores", t: "Consumo por setor", d: "Pedidos, materiais e unidades por setor.", usa: "ped" },
@@ -4198,7 +4202,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(tipo === "resumo"){
       rel.colunas = [C("Pedido", 0, 12), C("Data", 0, 16), C("Solicitante", 0, 28), C("Setor", 0, 12), C("Telefone", 0, 16), C("E-mail", 0, 28), C("Materiais", 1, 10), C("Solicitado", 1, 11), C("Atendido", 1, 10), C("Status", 0, 20)];
       rel.linhas = peds.map(p => [p.numero, dataHora(p.dataISO), p.solicitante.nome, p.solicitante.setor, p.solicitante.telefone, p.solicitante.email, p.itens.length, p.itens.reduce((a, l) => a + l.qtd, 0), p.totalAtendido == null ? null : p.itens.reduce((a, l) => a + (l.atendida || 0), 0), p.status]);
-      rel.imgs = peds.map(p => p.itens.map(l => l.id));
+      /* Sem imagens dos itens neste relatório (na tela, no PDF, na impressão e no Excel): elas sobrepunham as informações. */
+      rel.imgs = null;
       rel.total = ["Total", `${peds.length} pedidos`, "", "", "", "", peds.reduce((a, p) => a + p.itens.length, 0), somaSol(peds), somaAt(peds), ""];
     } else if(tipo === "itens"){
       rel.colunas = [C("Pedido", 0, 12), C("Data", 0, 16), C("Solicitante", 0, 26), C("Setor", 0, 12), C("Código", 0, 12), C("Material", 0, 46), C("Unidade", 0, 18), C("Solicitado", 1, 11), C("Atendido", 1, 10), C("Status", 0, 20)];
@@ -4309,6 +4314,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const multi = rel.imgs && rel.imgs.some(l => l.length > 1);
     const minis = ids => (ids || []).slice(0, 4).map(id => IMAGENS.miniHtml(porId[id] || { id })).join("") + ((ids || []).length > 4 ? `<span class="minis-mais">+${ids.length - 4}</span>` : "");
     const comGraf = $("#rel-com-graf").checked;
+    const semImg = rel.tipo === "resumo", cbImg = $("#rel-com-img"), lbImg = cbImg.closest("label");   // este relatório nunca traz imagens: a opção fica desligada
+    cbImg.disabled = semImg; lbImg.classList.toggle("desligado", semImg); lbImg.title = semImg ? "O relatório Pedidos (resumo) não traz imagens dos itens" : "";
     rel.espec = comGraf && rel.linhas.length ? especGrafico(rel) : null;
     $("#rel-saida").innerHTML = `<div class="rel-cab"><div><h3>${esc(rel.titulo)}</h3><small>Filtros: ${esc(rel.filtros)}</small></div><span class="rel-cont">${fmt(rel.linhas.length)} ${rel.linhas.length === 1 ? "linha" : "linhas"}</span></div>
       ${rel.resumo && rel.resumo.length && rel.linhas.length ? `<div class="rel-chips">${rel.resumo.map(c => `<div class="rel-chip"><b>${esc(c.v)}</b><span>${esc(c.t)}</span></div>`).join("")}</div>` : ""}
