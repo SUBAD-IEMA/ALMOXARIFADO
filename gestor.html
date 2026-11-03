@@ -1215,6 +1215,49 @@ table.rel td.td-alerta{text-align:center;width:54px}
 table.rel td.td-alerta .ponto-min{margin:0}
 table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
 
+/* ===================== Versão 28: relatório carrega ao escolher ===================== */
+.rel-carregando{display:flex;align-items:center;gap:10px;margin:18px 0;padding:18px;border:1px dashed var(--rule-strong);border-radius:12px;color:var(--muted);font-weight:600;background:var(--surface-2)}
+
+/* ===================== Versão 28: relatórios – cabeçalho, números e gráfico com título ===================== */
+.rel-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.rel-cab h3{margin:0 0 2px;font-size:19px}
+.rel-cab small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;max-width:100%;overflow-wrap:anywhere}
+.rel-cont{flex:none;font-size:12.5px;font-weight:700;color:var(--pine);background:var(--pine-soft);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.rel-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 12px}
+.rel-chip{display:flex;flex-direction:column;gap:2px;border:1px solid var(--rule);border-left:4px solid var(--pine);border-radius:10px;background:var(--surface);padding:8px 12px;min-width:0}
+.rel-chip b{font-size:20px;line-height:1.15;color:var(--ink);overflow-wrap:anywhere}
+.rel-chip span{font-size:12px;color:var(--muted);line-height:1.25}
+.rel-graf{padding:14px 16px 10px}
+.rel-graf-cab{display:flex;flex-direction:column;gap:2px;margin:0 0 8px}
+.rel-graf-cab b{font-size:15.5px;color:var(--ink)}
+.rel-graf-cab span{font-size:12.5px;color:var(--muted);line-height:1.4}
+.dash-box.rel-box{height:auto}
+.dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:410px}
+@media (max-width:760px){
+  .rel-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rel-chip b{font-size:17px}
+  .rel-cab h3{font-size:17px}
+  .dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:390px}
+}
+
+/* ===================== Versão 28: painel do Looker Studio – botão de período (somente consulta) ===================== */
+.pp-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:2px 2px 12px}
+.pp-barra[hidden]{display:none}
+.pp-periodo{position:relative;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--pine);border-radius:999px;background:#fff;color:var(--pine);padding:6px 12px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 1px 3px rgba(16,24,20,.08);max-width:100%}
+.pp-periodo:hover{background:var(--pine-soft)}
+.pp-periodo:focus-within{outline:3px solid color-mix(in srgb,var(--pine) 35%,transparent);outline-offset:2px}
+.pp-periodo svg{flex:none}
+.pp-periodo select{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;font-weight:800;color:inherit;cursor:pointer;padding:2px 20px 2px 2px;max-width:min(62vw,340px);text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231E5240' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center}
+.pp-periodo select:focus{outline:none}
+.pp-custom{display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;font-weight:700;color:var(--muted)}
+.pp-custom input{font:inherit;font-size:13px;border:1px solid var(--rule-strong);border-radius:8px;padding:4px 8px;margin-left:4px;color:var(--ink);background:#fff}
+.pp-resumo{font-size:12px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+body.sem-cab .pp-barra{padding:2px 2px 8px}
+body.pp-unico.pp-com-barra .dash-box,body.pp-unico.pp-com-barra .dash-box.alto{height:calc(100vh - 156px)}
+body.pp-unico.sem-cab.pp-com-barra .dash-box,body.pp-unico.sem-cab.pp-com-barra .dash-box.alto{height:calc(100vh - 128px)}
+@media (max-width:640px){ .pp-resumo{flex-basis:100%} .pp-periodo select{max-width:56vw} }
+
 </style>
 </head>
 <body>
@@ -1375,7 +1418,8 @@ table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
         <button class="rel-modo" type="button" role="tab" aria-selected="false" data-modo="dash"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg> Dashboard com gráficos</button>
       </div>
       <div id="modo-tabela-tipos">
-        <h2 style="font-size:18px;margin:0 0 10px">Gerar relatório</h2>
+        <h2 style="font-size:18px;margin:0 0 4px">Escolha o relatório</h2>
+        <p class="hint-txt" style="margin:0 0 10px">O relatório e o gráfico carregam assim que você escolhe. Use os filtros para refinar e os botões abaixo para baixar ou imprimir.</p>
         <div class="rel-tipos" id="rel-tipos"></div>
       </div>
       <div class="filtros" role="group" aria-label="Filtros">
@@ -1392,9 +1436,8 @@ table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
       </div>
       <div id="modo-tabela">
         <div class="rel-acoes">
-          <button class="btn primary" type="button" id="rel-gerar">Gerar relatório</button>
-          <button class="btn" type="button" id="rel-xls" disabled>Baixar Excel</button>
-          <button class="btn" type="button" id="rel-pdf" disabled>Baixar PDF</button>
+          <button class="btn primary" type="button" id="rel-xls" disabled>Baixar Excel</button>
+          <button class="btn primary" type="button" id="rel-pdf" disabled>Baixar PDF</button>
           <button class="btn" type="button" id="rel-print" disabled>Imprimir</button>
           <label class="check"><input type="checkbox" id="rel-com-graf" checked> Incluir gráfico</label>
           <label class="check"><input type="checkbox" id="rel-com-img" checked> Incluir imagens dos materiais</label>
@@ -2379,11 +2422,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function cabecalhoExcel(wb, ws, ncol, titulo){
     ws.mergeCells(1, 1, 1, ncol);
     const t = ws.getCell(1, 1);
-    t.value = { richText: [{ text: ORG() + "\n", font: { bold: true, size: 13, color: { argb: "FFFFFFFF" } } }, { text: titulo, font: { size: 11, color: { argb: "FFE2EDE8" } } }] };
-    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; t.alignment = { vertical: "middle", wrapText: true, indent: 9 };
-    ws.getRow(1).height = 56;
+    const REC = "\u00A0".repeat(20);   // recuo fixo: o texto nunca fica por baixo do brasão (no Excel e no LibreOffice)
+    t.value = { richText: [{ text: REC + ORG() + "\n", font: { bold: true, size: 13, color: { argb: "FFFFFFFF" } } }, { text: REC + titulo, font: { size: 11, color: { argb: "FFE2EDE8" } } }] };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; t.alignment = { vertical: "middle", wrapText: true, indent: 2 };
+    ws.getRow(1).height = 58;
     const b = BRASAO();
-    if(b){ const id = wb.addImage({ base64: b.split(",")[1], extension: "png" }); ws.addImage(id, { tl: { col: 0.08, row: 0.08 }, ext: { width: 66, height: 66 }, editAs: "oneCell" }); }
+    if(b){ const id = wb.addImage({ base64: b.split(",")[1], extension: "png" }); ws.addImage(id, { tl: { col: 0.05, row: 0.08 }, ext: { width: 50, height: 50 }, editAs: "oneCell" }); }
   }
   /* Cabeçalho dos PDFs: faixa verde com o brasão numa placa branca. */
   function cabecalhoPdf(doc, W, altura){
@@ -2563,6 +2607,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       ws.mergeCells(4, 1, 4, n); const lg = ws.getCell(4, 1);
       lg.value = { richText: [{ text: "●  ", font: { size: 15, bold: true, color: { argb: "FFE0A800" } } }, { text: rel.legendaAlerta + " Use o filtro da coluna Alerta para ver só esses materiais.", font: { size: 10, bold: true, color: { argb: "FF5C4A00" } } }] };
       lg.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3C4" } }; lg.alignment = { vertical: "middle", wrapText: true }; ws.getRow(4).height = 24;
+    } else if(rel.resumo && rel.resumo.length){   // números principais do relatório
+      ws.mergeCells(4, 1, 4, n); const rs = ws.getCell(4, 1), txt = "Resumo:  " + rel.resumo.map(c => c.t + " " + c.v).join("   ·   "), larg = R.colunas.reduce((a, c) => a + (c.w || (c.num ? 12 : 24)), 0);
+      rs.value = txt; rs.font = { size: 10, bold: true, color: { argb: PINHO } }; rs.fill = { type: "pattern", pattern: "solid", fgColor: { argb: SUAVE } }; rs.alignment = { vertical: "middle", wrapText: true };
+      ws.getRow(4).height = Math.max(22, 14 * Math.ceil(txt.length / Math.max(30, larg * 1.05)) + 8);
     }
     const cab = ws.getRow(5);
     R.colunas.forEach((c, i) => { const cel = cab.getCell(i + 1); cel.value = c.t; cel.font = { bold: true, color: { argb: "FFFFFFFF" } }; cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; cel.border = borda; cel.alignment = { wrapText: true, vertical: "middle", horizontal: c.num ? "right" : c.ponto ? "center" : "left" }; });
@@ -2584,11 +2632,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: n } };
     ws.pageSetup.printTitlesRow = "5:5"; ws.pageSetup.margins = { left: .4, right: .4, top: .5, bottom: .5, header: .2, footer: .2 };
     if(rel.grafico && rel.grafico.png){
-      const wg = wb.addWorksheet("Gráfico", { views: [{ showGridLines: false }] }); wg.columns = [{ width: 110 }];
-      wg.getCell(1, 1).value = rel.titulo + " – gráfico"; wg.getCell(1, 1).font = { bold: true, size: 13, color: { argb: PINHO } };
-      wg.getCell(2, 1).value = "Filtros: " + (rel.filtros || "nenhum"); wg.getCell(2, 1).font = { size: 9, color: { argb: CINZA } };
-      const id = wb.addImage({ base64: rel.grafico.png.split(",")[1], extension: "png" }), k = Math.min(1, 780 / rel.grafico.w);
-      wg.addImage(id, { tl: { col: 0, row: 3 }, ext: { width: Math.round(rel.grafico.w * k), height: Math.round(rel.grafico.h * k) } });
+      const wg = wb.addWorksheet("Gráfico", { pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1, margins: { left: .5, right: .5, top: .6, bottom: .6, header: .3, footer: .3 } }, views: [{ showGridLines: false }] });
+      wg.columns = [{ width: 135 }];
+      wg.getCell(1, 1).value = rel.grafico.titulo || (rel.titulo + " – gráfico"); wg.getCell(1, 1).font = { bold: true, size: 14, color: { argb: PINHO } };
+      wg.getCell(2, 1).value = rel.grafico.sub || ""; wg.getCell(2, 1).font = { size: 10, color: { argb: CINZA } }; wg.getCell(2, 1).alignment = { wrapText: true, vertical: "top" }; wg.getRow(2).height = 30;
+      wg.getCell(3, 1).value = rel.titulo + " · Filtros: " + (rel.filtros || "nenhum"); wg.getCell(3, 1).font = { size: 9, color: { argb: CINZA } };
+      wg.getCell(4, 1).value = rel.resumo && rel.resumo.length ? "Resumo:  " + rel.resumo.map(c => c.t + " " + c.v).join("   ·   ") : ""; wg.getCell(4, 1).font = { size: 10, bold: true, color: { argb: PINHO } }; wg.getCell(4, 1).alignment = { wrapText: true, vertical: "middle" }; wg.getRow(4).height = 22;
+      const id = wb.addImage({ base64: rel.grafico.png.split(",")[1], extension: "png" }), k = 880 / rel.grafico.w;
+      wg.addImage(id, { tl: { col: 0, row: 5 }, ext: { width: Math.round(rel.grafico.w * k), height: Math.round(rel.grafico.h * k) } });
     }
     await baixar(wb, rel.titulo.replace(/\s+/g, "_") + "_" + hoje() + ".xlsx");
   }
@@ -2606,14 +2657,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     doc.setTextColor(91, 105, 100); doc.setFontSize(8.5);
     const filt = doc.splitTextToSize("Filtros: " + (rel.filtros || "nenhum"), W - 2 * M); doc.text(filt, M, 28);
     let y = 30 + filt.length * 3.6;
+    if(rel.resumo && rel.resumo.length && rel.linhas.length){   // números principais, em caixas
+      const n = rel.resumo.length, gap = 3, kw = (W - 2 * M - gap * (n - 1)) / n, kh = 15;
+      rel.resumo.forEach((c, k) => {
+        const x = M + k * (kw + gap);
+        doc.setFillColor(244, 247, 246); doc.setDrawColor(217, 225, 222); doc.setLineWidth(.2); doc.roundedRect(x, y, kw, kh, 1.6, 1.6, "FD");
+        doc.setFillColor(30, 82, 64); doc.rect(x, y + 2, 1, kh - 4, "F");
+        doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(23, 32, 29); doc.text(String(c.v), x + 3.5, y + 6.6);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(6.9); doc.setTextColor(91, 105, 100); doc.text(doc.splitTextToSize(c.t, kw - 5).slice(0, 2), x + 3.5, y + 10.4, { lineHeightFactor: 1.05 });
+      });
+      y += kh + 5;
+    }
     if(rel.grafico && rel.grafico.png){
-      const gw = Math.min(W - 2 * M, deitado ? 220 : W - 2 * M), gh = Math.min(deitado ? 112 : 130, gw * rel.grafico.h / rel.grafico.w), gw2 = gh * rel.grafico.w / rel.grafico.h;
-      doc.setDrawColor(217, 225, 222); doc.roundedRect((W - gw2) / 2 - 2, y, gw2 + 4, gh + 4, 2, 2);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(30, 82, 64); doc.text(rel.grafico.titulo || "", M, y + 3.5);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(91, 105, 100);
+      const st = doc.splitTextToSize(rel.grafico.sub || "", W - 2 * M); doc.text(st, M, y + 8); y += 9.5 + st.length * 3.4;
+      const asp = rel.grafico.h / rel.grafico.w, maxW = deitado ? 250 : W - 2 * M, maxH = deitado ? 128 : 150;
+      const gh = Math.min(maxH, maxW * asp), gw2 = gh / asp;
+      doc.setDrawColor(217, 225, 222); doc.setLineWidth(.2); doc.roundedRect((W - gw2) / 2 - 2, y, gw2 + 4, gh + 4, 2, 2);
       doc.addImage(rel.grafico.png, "PNG", (W - gw2) / 2, y + 2, gw2, gh); y += gh + 9;
     }
     const fmtv = v => v == null ? "" : (typeof v === "number" ? Math.round(v).toLocaleString("pt-BR") : String(v));
     const ip = R.colunas.findIndex(c => c.ponto);   // coluna "Alerta" (materiais na zona de estoque mínimo)
     const bolinha = (cx, cy, r) => { doc.setFillColor(245, 197, 24); doc.setDrawColor(212, 161, 6); doc.setLineWidth(.45); doc.circle(cx, cy, r, "FD"); };
+    if(H - y < 42 + (rel.legendaAlerta ? 14 : 0)){ doc.addPage(); y = 14; }   // a legenda e a tabela ficam juntas
     if(rel.legendaAlerta){   // faixa de legenda acima da tabela
       const lt = doc.splitTextToSize(rel.legendaAlerta, W - 2 * M - 14), hl = Math.max(8, lt.length * 4 + 4);
       doc.setFillColor(255, 248, 214); doc.setDrawColor(243, 226, 160); doc.setLineWidth(.2); doc.roundedRect(M, y, W - 2 * M, hl, 1.5, 1.5, "FD");
@@ -2635,6 +2702,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     R.colunas.forEach((c, i) => { cols[i] = { halign: c.num ? "right" : "left" };
       if(cabe) cols[i].cellWidth = larg[i] != null ? (somaFlex ? larg[i] : larg[i] * util / fixo) : sobra * flex[i] / somaFlex; });
     if(rel.imgs) Object.assign(cols[0], { minCellHeight: R.multi ? 10 : 14 });
+    if(H - y < 42){ doc.addPage(); y = 14; }   // evita o cabeçalho da tabela sozinho no pé da página
     doc.autoTable({ startY: y, margin: { left: M, right: M, bottom: 12 }, head: [R.colunas.map(c => c.t)],
       body: R.linhas.map(l => l.map(fmtv)), foot: R.total ? [R.total.map(fmtv)] : undefined,
       styles: { font: "helvetica", fontSize: FS, cellPadding: { top: 2, bottom: 2, left: 2.2, right: 2.2 }, textColor: [23, 32, 29], lineColor: [210, 219, 215], lineWidth: .15, overflow: "linebreak", valign: "middle" },
@@ -2675,7 +2743,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       doc.setFont("helvetica", "normal"); doc.setFontSize(7.4); doc.setTextColor(91, 105, 100); doc.text(doc.splitTextToSize(k.t, kw - 6), x + 4, y + 14);
     });
     if(n) y += 25;
-    const cw = (W - 2 * M - 6) / 2, ch = 64;
+    const cw = (W - 2 * M - 6) / 2, ch = 78;   // dois cartões por página, ocupando a folha toda
     let col = 0;
     d.graficos.forEach((g, i) => {
       if(g.largo && col === 1){ col = 0; y += ch + 5; }
@@ -2683,8 +2751,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       const x = M + col * (cw + 6), cw0 = cw;
       const cwg = g.largo ? W - 2 * M : cw0;
       doc.setDrawColor(217, 225, 222); doc.setFillColor(255, 255, 255); doc.roundedRect(x, y, cwg, ch, 2, 2, "FD");
-      doc.setTextColor(30, 82, 64); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.text(g.titulo, x + 4, y + 6);
-      if(g.png){ const ah = ch - 11, aw = cwg - 8, k = Math.min(aw / g.w, ah / g.h); doc.addImage(g.png, "PNG", x + 4 + (aw - g.w * k) / 2, y + 9 + (ah - g.h * k) / 2, g.w * k, g.h * k); }
+      doc.setTextColor(30, 82, 64); doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(g.titulo, x + 4, y + 6);
+      if(g.sub){ doc.setFont("helvetica", "normal"); doc.setFontSize(7.2); doc.setTextColor(91, 105, 100); doc.text(doc.splitTextToSize(g.sub, cwg - 8).slice(0, 2), x + 4, y + 10.2, { lineHeightFactor: 1.05 }); }
+      if(g.png){ const ah = ch - 19, aw = cwg - 8, k = Math.min(aw / g.w, ah / g.h); doc.addImage(g.png, "PNG", x + 4 + (aw - g.w * k) / 2, y + 16 + (ah - g.h * k) / 2, g.w * k, g.h * k); }
       else { doc.setFontSize(8.5); doc.setTextColor(91, 105, 100); doc.text("Sem dados para os filtros escolhidos.", x + cwg / 2, y + ch / 2, { align: "center" }); }
       if(g.largo || col === 1){ col = 0; y += ch + 5; } else col = 1;
       if(i === d.graficos.length - 1 && col === 1){ col = 0; y += ch + 5; }
@@ -2850,7 +2919,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     sit: ["Pedidos por status", "Distribuição dos pedidos do filtro"],
     tempo: ["Tempo médio de atendimento", "Da solicitação até a entrega realizada"],
     top: ["Materiais mais solicitados", "Os 10 materiais com mais unidades solicitadas"],
-    setor: ["Consumo por setor", "Unidades solicitadas e atendidas (10 maiores)"],
+    setor: ["Consumo por setor", "Atendido de solicitado, em unidades (10 maiores)"],
     nat: ["Consumo por natureza de despesa", "Unidades solicitadas"],
     est: ["Estoque por natureza de despesa", "Disponível e reservado agora"],
     baixo: ["Materiais com estoque baixo", "Sem estoque ou na zona de estoque mínimo, por natureza de despesa"],
@@ -2861,7 +2930,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   const ORDEM = ["evol", "sit", "tempo", "top", "setor", "taxa", "nat", "est", "baixo", "semana", "hora"];
   const LARGOS = ["evol", "top", "nat"];   // ocupam a largura toda (nomes longos inteiros e sem sobreposição)
   const graficos = {};
-  const curto = (r, n) => { n = n || (innerWidth < 640 ? 18 : 30); r = String(r); return r.length > n ? r.slice(0, n - 1) + "…" : r; };
+  /* Modo papel: os gráficos de PDF/impressão/Excel são redesenhados fora da tela, num tamanho próprio, com fonte maior e rótulos mais curtos. */
+  let PAPEL = null;
+  const tam = n => PAPEL ? Math.round(n * PAPEL.escala * 10) / 10 : n;
+  const estreito = () => PAPEL ? PAPEL.estreito : innerWidth < 640;
+  const rotMax = padrao => PAPEL ? PAPEL.rotMax : padrao;
+  const curto = (r, n) => { n = n || (PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 18 : 30)); r = String(r); return r.length > n ? r.slice(0, n - 1) + "…" : r; };
   const dia0 = d => { d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
   const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 
@@ -2876,7 +2950,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   const nomeNatureza = (nome, cod) => nome ? titulo(nome) : (cod ? "Outras naturezas" : "Outros");
   /* Quebra rótulos longos em até 2 linhas (o gráfico fica limpo e legível). */
   function quebrar(t, n){
-    n = n || (innerWidth < 640 ? 18 : 26); t = String(t);
+    n = n || (PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 18 : 26)); t = String(t);
     if(t.length <= n) return t;
     const pal = t.split(" "), lin = [""];
     pal.forEach(p => { const l = lin[lin.length - 1]; if((l + " " + p).trim().length <= n) lin[lin.length - 1] = (l + " " + p).trim(); else lin.push(p); });
@@ -2887,17 +2961,27 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   /* ---------- Plugin: valores escritos nas barras ---------- */
   const valoresPlugin = { id: "valores", afterDatasetsDraw(c, args, o){
     if(!o || !o.ativo) return;
-    const k = c.ctx, horiz = c.options.indexAxis === "y", sc = c.options.scales || {}, pilha = (sc.x && sc.x.stacked) || (sc.y && sc.y.stacked);
-    const f = o.fmt || fmt;
-    k.save(); k.font = '600 11px "Public Sans", system-ui, sans-serif'; k.fillStyle = cor("--ink") || "#17201D";
-    const escreve = (txt, el) => { if(horiz){ k.textAlign = "left"; k.textBaseline = "middle"; k.fillText(txt, el.x + 6, el.y); } else { k.textAlign = "center"; k.textBaseline = "bottom"; k.fillText(txt, el.x, el.y - 4); } };
-    if(pilha){
-      for(let i = 0; i < c.data.labels.length; i++){
+    const k = c.ctx, horiz = c.options.indexAxis === "y", sx = c.scales.x, sy = c.scales.y, sc = c.options.scales || {}, pilha = (sc.x && sc.x.stacked) || (sc.y && sc.y.stacked);
+    const f = o.fmt || fmt, n = (c.data.labels || []).length;
+    k.save(); k.font = `600 ${tam(11)}px "Public Sans", system-ui, sans-serif`; k.fillStyle = cor("--ink") || "#17201D";
+    /* O texto vai sempre na posição FINAL do valor (pela escala), então nunca cai sobre os nomes das categorias, nem durante a animação. */
+    const escreve = (txt, valor, el) => {
+      const x = horiz ? sx.getPixelForValue(valor) + tam(6) : el.x, y = horiz ? el.y : sy.getPixelForValue(valor) - tam(4);
+      if(!isFinite(x) || !isFinite(y)) return;
+      k.textAlign = horiz ? "left" : "center"; k.textBaseline = horiz ? "middle" : "bottom"; k.fillText(txt, x, y);
+    };
+    if(o.modo === "par"){   // "atendido de solicitado": um único rótulo por categoria
+      for(let i = 0; i < n; i++){
+        const a = Number(c.data.datasets[0].data[i]) || 0, b = Number(c.data.datasets[1].data[i]) || 0, el = c.getDatasetMeta(1).data[i] || c.getDatasetMeta(0).data[i];
+        if(el && (a || b)) escreve(`${f(b)} de ${f(a)}`, Math.max(a, b), el);
+      }
+    } else if(pilha){
+      for(let i = 0; i < n; i++){
         let tot = 0, ult = null;
         c.data.datasets.forEach((d, di) => { const m = c.getDatasetMeta(di); if(m.hidden) return; const v = Number(d.data[i]) || 0; tot += v; if(v) ult = m.data[i]; });
-        if(ult && tot) escreve(f(tot), ult);
+        if(ult && tot) escreve(f(tot), tot, ult);
       }
-    } else c.data.datasets.forEach((d, di) => { const m = c.getDatasetMeta(di); if(m.hidden) return; m.data.forEach((el, i) => { const v = Number(d.data[i]) || 0; if(v) escreve(f(v), el); }); });
+    } else c.data.datasets.forEach((d, di) => { const m = c.getDatasetMeta(di); if(m.hidden) return; m.data.forEach((el, i) => { const v = Number(d.data[i]) || 0; if(v) escreve(f(v), v, el); }); });
     k.restore();
   } };
   let registrado = false;
@@ -2911,11 +2995,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(av) av.remove(); cv.style.display = "";
     if(typeof Chart === "undefined") return null;
     if(!registrado){ Chart.register(valoresPlugin); registrado = true; }
-    Chart.defaults.font.family = '"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif'; Chart.defaults.font.size = 12;
+    Chart.defaults.font.family = '"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif'; Chart.defaults.font.size = tam(12);
     Chart.defaults.color = cor("--muted") || "#5B6964"; Chart.defaults.locale = "pt-BR";
-    const base = { responsive: true, maintainAspectRatio: false, animation: { duration: 600, easing: "easeOutQuart" }, layout: { padding: { top: 6, right: 8 } },
+    const base = { responsive: true, maintainAspectRatio: false, animation: PAPEL ? false : { duration: 450, easing: "easeOutQuart" }, devicePixelRatio: PAPEL ? 2 : undefined, layout: { padding: { top: 6, right: 8 } },
       plugins: {
-        legend: { labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, boxHeight: 8, padding: 16, font: { size: 12, weight: "600" }, color: cor("--ink") || "#17201D" } },
+        legend: { labels: { usePointStyle: true, pointStyle: "circle", boxWidth: tam(8), boxHeight: tam(8), padding: tam(16), font: { size: tam(12), weight: "600" }, color: cor("--ink") || "#17201D" } },
         tooltip: { backgroundColor: "rgba(23,32,29,.94)", titleColor: "#fff", bodyColor: "#E9EFEC", padding: 12, cornerRadius: 10, boxPadding: 6, usePointStyle: true,
           titleFont: { weight: "700", size: 13 }, bodyFont: { size: 12.5 }, caretSize: 6, displayColors: true } } };
     const o = cfg.options || {};
@@ -2929,10 +3013,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function eixo(horizontal, extra){
     const grade = { color: cor("--rule") || "#E3E9E6", drawTicks: false }, sem = { display: false, drawTicks: false };
     const borda = { display: false, dash: [3, 4] };
-    const tit = t => t ? { display: true, text: t, color: cor("--muted"), font: { size: 11.5, weight: "600" }, padding: { top: 6, bottom: 2 } } : undefined;
+    const tit = t => t ? { display: true, text: t, color: cor("--muted"), font: { size: tam(11.5), weight: "600" }, padding: { top: 6, bottom: 2 } } : undefined;
     const e = extra || {};
     /* Eixo de valores: números compactos (ex.: 10 mil) e sem inclinação; eixo de categorias: mostra todos os nomes. */
-    const num = { precision: 0, padding: 6, maxRotation: 0, callback: v => Math.abs(v) >= 1000 ? fmt1(v / 1000).replace(/,0$/, "") + " mil" : fmt(v) };
+    const num = { precision: 0, padding: 6, maxRotation: 0, maxTicksLimit: 7, callback: v => Math.abs(v) >= 1000 ? fmt1(v / 1000).replace(/,0$/, "") + " mil" : fmt(v) };
     const cat = horizontal ? { padding: 8, autoSkip: false } : { padding: 6, maxRotation: 0 };
     return {
       x: Object.assign({ grid: horizontal ? grade : sem, border: borda, ticks: horizontal ? num : cat, beginAtZero: true, title: tit(e.tx) }, e.x),
@@ -2942,27 +3026,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   const degrade = rgb => ctx => { const { chart } = ctx, a = chart.chartArea; if(!a) return `rgba(${rgb},.18)`;
     const g = chart.ctx.createLinearGradient(0, a.top, 0, a.bottom); g.addColorStop(0, `rgba(${rgb},.32)`); g.addColorStop(1, `rgba(${rgb},.02)`); return g; };
   const centro = (txt, sub) => ({ id: "centro", afterDraw(c){ const a = c.chartArea; if(!a) return; const x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2, k = c.ctx;
-    k.save(); k.textAlign = "center"; k.fillStyle = cor("--ink"); k.font = '800 26px "Public Sans", system-ui'; k.fillText(txt, x, y + 5);
-    k.font = '600 12px "Public Sans", system-ui'; k.fillStyle = cor("--muted"); k.fillText(sub, x, y + 23); k.restore(); } });
+    k.save(); k.textAlign = "center"; k.fillStyle = cor("--ink"); k.font = `800 ${tam(26)}px "Public Sans", system-ui`; k.fillText(txt, x, y + tam(5));
+    k.font = `600 ${tam(12)}px "Public Sans", system-ui`; k.fillStyle = cor("--muted"); k.fillText(sub, x, y + tam(23)); k.restore(); } });
   /* Barras horizontais com valores; rótulos sem códigos e quebrados em 2 linhas. */
   function barrasH(id, rot, series, opts){
     opts = opts || {};
-    const dados = series.map((s, i) => ({ label: s.t, data: s.v, backgroundColor: s.c || PAL[i], borderRadius: 6, borderSkipped: false, maxBarThickness: series.length > 1 ? 14 : 20, categoryPercentage: .72, barPercentage: .86 }));
-    return desenhar(id, { type: "bar", data: { labels: rot.map(r => opts.umaLinha ? curto(r, opts.maxRotulo || (innerWidth < 640 ? 20 : 30)) : quebrar(r)), datasets: dados },
-      options: { indexAxis: "y", layout: { padding: { right: 16 + 7 * Math.max(3, ...series.flatMap(x => x.v).map(v => (opts.fmtValor || fmt)(v).length)) } }, scales: eixo(true, Object.assign({ tx: opts.unidade ? titulo(opts.unidade) : "" }, opts.eixo || {})),
-        plugins: { valores: { ativo: true, fmt: opts.fmtValor }, legend: { display: series.length > 1, position: "bottom" },
-          tooltip: { callbacks: { title: i => (opts.titulos || rot)[i[0].dataIndex], label: i => ` ${i.dataset.label}: ${(opts.fmtValor || fmt)(i.raw)}${opts.unidade ? " " + opts.unidade : ""}` } } } } },
-      !series.some(s => s.v.some(v => v > 0)) && (opts.vazio || true));
+    const par = !!opts.sobrepor && series.length === 2;   // barra larga = solicitado, barra estreita por cima = atendido (uma linha por categoria)
+    const dados = series.map((x, i) => par
+      ? { label: x.t, data: x.v, backgroundColor: x.c, borderRadius: 5, borderSkipped: false, grouped: false, order: i === 0 ? 2 : 1, barThickness: tam(i === 0 ? 20 : 10) }
+      : { label: x.t, data: x.v, backgroundColor: x.c || PAL[i], borderRadius: 6, borderSkipped: false, maxBarThickness: tam(series.length > 1 ? 16 : 22), categoryPercentage: .8, barPercentage: .92 });
+    const fv = opts.fmtValor || fmt, maiorTxt = Math.max(3, ...(par ? series[0].v.map((a, i) => `${fv(series[1].v[i])} de ${fv(a)}`.length) : series.flatMap(x => x.v).map(v => fv(v).length)));
+    return desenhar(id, { type: "bar", data: { labels: rot.map(r => opts.umaLinha ? curto(r, opts.maxRotulo || (PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 20 : 30))) : quebrar(r)), datasets: dados },
+      options: Object.assign({ indexAxis: "y", layout: { padding: { right: 12 + tam(7) * maiorTxt } }, scales: eixo(true, Object.assign({ tx: opts.unidade ? titulo(opts.unidade) : "" }, opts.eixo || {})),
+        plugins: { valores: { ativo: true, fmt: opts.fmtValor, modo: par ? "par" : undefined }, legend: { display: series.length > 1, position: "bottom", labels: par ? { sort: (a, b) => a.datasetIndex - b.datasetIndex } : {} },
+          tooltip: { callbacks: { title: i => (opts.titulos || rot)[i[0].dataIndex], label: i => ` ${i.dataset.label}: ${fv(i.raw)}${opts.unidade ? " " + opts.unidade : ""}` } } } }, opts.semAnimacao ? { animation: false } : {}) },
+      !series.some(x => x.v.some(v => v > 0)) && (opts.vazio || true));
   }
   /* Rosca: ao passar o mouse mostra a quantidade e o percentual; a legenda também traz o percentual. */
   function rosca(id, rot, val, cores, sub, unidade, extra){
     extra = extra || {};
     const total = val.reduce((a, b) => a + b, 0), un = unidade || sub || "";
     return desenhar(id, { type: "doughnut", data: { labels: rot, datasets: [{ data: val, backgroundColor: cores || PAL, borderColor: cor("--surface") || "#fff", borderWidth: 3, hoverOffset: 10, spacing: 1 }] },
-      options: { cutout: "66%", layout: { padding: 8 }, plugins: {
-        legend: { position: extra.legenda && innerWidth >= 640 ? extra.legenda : (innerWidth < 640 ? "bottom" : "right"), maxWidth: extra.maxLegenda, align: "center", labels: { font: { size: extra.legendaQtd ? 13 : 12, weight: "600" }, padding: extra.legendaQtd ? 14 : 16,
+      options: Object.assign({ cutout: "66%", layout: { padding: 8 }, plugins: {
+        legend: { position: extra.legenda && !estreito() ? extra.legenda : (PAPEL ? "right" : (innerWidth < 640 ? "bottom" : "right")), maxWidth: extra.maxLegenda, align: "center", labels: { font: { size: tam(extra.legendaQtd ? 13 : 12), weight: "600" }, padding: estreito() ? tam(7) : tam(extra.legendaQtd ? 14 : 16),
           generateLabels: ch => Chart.overrides.doughnut.plugins.legend.labels.generateLabels(ch).map(l => Object.assign(l, { text: extra.legendaQtd ? `${l.text} – ${fmt(val[l.index])} ${un} (${pct(val[l.index], total)})` : `${l.text}  ${pct(val[l.index], total)}` })) } },
-        tooltip: { callbacks: { title: i => extra.titulos ? extra.titulos[i[0].dataIndex] : i[0].label, label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? un.replace(/s$/, "") : un} (${pct(i.raw, total)})`, footer: () => `Total: ${fmt(total)} ${un}` }, footerColor: "#C9D6D0", footerFont: { weight: "600", size: 11.5 } } } },
+        tooltip: { callbacks: { title: i => extra.titulos ? extra.titulos[i[0].dataIndex] : i[0].label, label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? un.replace(/s$/, "") : un} (${pct(i.raw, total)})`, footer: () => `Total: ${fmt(total)} ${un}` }, footerColor: "#C9D6D0", footerFont: { weight: "600", size: 11.5 } } } }, extra.semAnimacao ? { animation: false } : {}),
       plugins: [centro(fmt(total), sub || "")] }, !total);
   }
   /* Imagem do gráfico com fundo branco (para PDF e Excel). */
@@ -3034,7 +3122,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     g.evol = desenhar(id("evol"), { type: "line", data: { labels: rot, datasets: [
         { label: "Solicitado", data: vs, borderColor: C.pinho, backgroundColor: degrade("30,82,64"), fill: true, tension: .38, pointRadius: pontos, pointBackgroundColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 6, borderWidth: 2.6 },
         { label: "Atendido", data: va, borderColor: C.ambar, backgroundColor: degrade("217,146,46"), fill: true, tension: .38, pointRadius: pontos, pointBackgroundColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 6, borderWidth: 2.6 }] },
-      options: { interaction: { mode: "index", intersect: false }, scales: eixo(false, { ty: "Unidades", x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: innerWidth < 640 ? 6 : 14, padding: 6 } } }),
+      options: { interaction: { mode: "index", intersect: false }, scales: eixo(false, { ty: "Unidades", x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: PAPEL ? 9 : (innerWidth < 640 ? 6 : 14), padding: 6 } } }),
         plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${fmt(i.raw)} unidades` } } } } }, !totS && !totA);
     /* Status (rosca com percentual) */
     const sits = SITS.filter(s => peds.some(p => p.status === s));
@@ -3057,15 +3145,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     /* Materiais mais solicitados (só o nome do material) */
     const mm = {}; linhas.forEach(({ p, l }) => { if(p.status === "Recusado") return; const nome = nomeMaterial(l.descricao); mm[l.id] = mm[l.id] || { t: nome, full: titulo(l.descricao), s: 0 }; mm[l.id].s += l.qtd; });
     const top = Object.values(mm).sort((a, b) => b.s - a.s).slice(0, 10);
-    g.top = barrasH(id("top"), top.map(x => x.t), [{ t: "Unidades solicitadas", v: top.map(x => x.s), c: C.pinho }], { titulos: top.map(x => x.full), unidade: "unidades", umaLinha: true, maxRotulo: innerWidth < 640 ? 24 : 64 });
+    g.top = barrasH(id("top"), top.map(x => x.t), [{ t: "Unidades solicitadas", v: top.map(x => x.s), c: C.pinho }], { titulos: top.map(x => x.full), unidade: "unidades", umaLinha: true, maxRotulo: PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 24 : 64) });
     /* Setores */
     const ms = {}; linhas.forEach(({ p, l }) => { const k = p.setor || "Sem setor"; ms[k] = ms[k] || { s: 0, a: 0, fs: 0, fa: 0 }; if(p.status !== "Recusado") ms[k].s += l.qtd; ms[k].a += l.atendida || 0; if(FINALIZADOS.includes(p.status)){ ms[k].fs += l.qtd; ms[k].fa += l.atendida || 0; } });
     const st = Object.entries(ms).sort((a, b) => b[1].s - a[1].s).slice(0, 10);
-    g.setor = barrasH(id("setor"), st.map(x => x[0]), [{ t: "Solicitado", v: st.map(x => x[1].s), c: C.pinho }, { t: "Atendido", v: st.map(x => x[1].a), c: C.ambar }], { unidade: "unidades" });
+    g.setor = barrasH(id("setor"), st.map(x => x[0]), [{ t: "Solicitado", v: st.map(x => x[1].s), c: "#A9CCBA" }, { t: "Atendido", v: st.map(x => x[1].a), c: C.pinho }], { unidade: "unidades", sobrepor: true });
     /* Natureza de despesa (rosca com percentual, só nomes) */
     const mn = {}; linhas.forEach(({ p, l }) => { if(p.status === "Recusado") return; const it = porId[l.id] || {}, k = nomeNatureza(it.naturezaNome, it.natureza); mn[k] = (mn[k] || 0) + l.qtd; });
     const nt = Object.entries(mn).sort((a, b) => b[1] - a[1]);
-    g.nat = rosca(id("nat"), nt.map(x => innerWidth < 640 ? curto(x[0], 34) : x[0]), nt.map(x => x[1]), PAL, "unidades", "unidades", { legenda: "left", maxLegenda: 620, legendaQtd: innerWidth >= 640, titulos: nt.map(x => x[0]) });
+    g.nat = rosca(id("nat"), nt.map(x => estreito() ? curto(x[0], PAPEL ? Math.min(PAPEL.rotMax, 22) : 34) : x[0]), nt.map(x => x[1]), PAL, "unidades", "unidades", { legenda: "left", maxLegenda: 620, legendaQtd: !estreito(), titulos: nt.map(x => x[0]) });
     /* Estoque por natureza (barras horizontais, só nomes) */
     const visiveis = dados.itens.filter(i => (!f.nat || i.natureza === f.nat) && (!f.mat || i.id === f.mat));
     const me = {}; visiveis.forEach(i => { const k = nomeNatureza(i.naturezaNome, i.natureza); me[k] = me[k] || { t: k, d: 0, r: 0 }; me[k].d += i.qtd; me[k].r += i.reservado || 0; });
@@ -3085,7 +3173,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     /* Dia da semana */
     const sem = [0, 0, 0, 0, 0, 0, 0]; peds.forEach(p => sem[new Date(p.dataISO).getDay()]++);
     const maior = Math.max(...sem), nomesSem = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-    g.semana = desenhar(id("semana"), { type: "bar", data: { labels: nomesSem.map(n => innerWidth < 640 ? n.slice(0, 3) : n), datasets: [{ label: "Pedidos", data: sem, backgroundColor: sem.map(v => v === maior && v > 0 ? C.ambar : C.pinho2), borderRadius: 8, borderSkipped: false, maxBarThickness: 42 }] },
+    g.semana = desenhar(id("semana"), { type: "bar", data: { labels: nomesSem.map(n => !PAPEL && innerWidth < 640 ? n.slice(0, 3) : n), datasets: [{ label: "Pedidos", data: sem, backgroundColor: sem.map(v => v === maior && v > 0 ? C.ambar : C.pinho2), borderRadius: 8, borderSkipped: false, maxBarThickness: 42 }] },
       options: { layout: { padding: { top: 20 } }, scales: eixo(false, { ty: "Pedidos" }), plugins: { valores: { ativo: true }, legend: { display: false }, tooltip: { callbacks: { title: i => nomesSem[i[0].dataIndex], label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? "pedido" : "pedidos"}` } } } } }, !peds.length);
     /* Horário */
     const hora = Array(24).fill(0); peds.forEach(p => hora[new Date(p.dataISO).getHours()]++);
@@ -3095,11 +3183,41 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       options: { scales: eixo(false, { ty: "Pedidos" }), plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? "pedido" : "pedidos"}` } } } } }, !peds.length);
     return g;
   }
+  const rotuloMax = padrao => PAPEL ? PAPEL.rotMax : padrao;   // tamanho máximo dos nomes: o da tela ou o do papel
+  /* ---------- Gráficos para papel (PDF, impressão e Excel) ----------
+     Cada gráfico é redesenhado FORA DA TELA, num tamanho próprio (largura × altura em px) e com fonte maior; depois vira imagem e é descartado. */
+  function areaPapel(){ const d = document.createElement("div"); d.style.cssText = "position:fixed;left:-20000px;top:0;visibility:hidden;pointer-events:none"; document.body.appendChild(d); return d; }
+  function novoCanvas(area, id, w, h){ const box = document.createElement("div"); box.style.cssText = `position:relative;width:${w}px;height:${h}px`; const cv = document.createElement("canvas"); cv.id = id; box.appendChild(cv); area.appendChild(box); return cv; }
+  /* itens: [{ w, h, desenhar: idCanvas => chart }]  →  [{ png, w, h } | null] */
+  function paraPapel(itens, opc){
+    const area = areaPapel(), saida = [];
+    try{
+      itens.forEach((it, k) => {
+        const id = "papel-" + k; novoCanvas(area, id, it.w, it.h);
+        PAPEL = Object.assign({ escala: 1.25, rotMax: 30, estreito: false }, opc || {}, it.opc || {});
+        const ch = it.desenhar(id); saida.push(ch ? pngDe(ch) : null);
+        if(graficos[id]){ graficos[id].destroy(); delete graficos[id]; }
+      });
+    } finally { PAPEL = null; area.remove(); }
+    return saida;
+  }
+  /* Todos os gráficos do dashboard no tamanho de papel. medidas: { chave: [w, h] } → { chave: { png, w, h } | null } */
+  function dashboardParaPapel(dados, f, medidas, opc){
+    const area = areaPapel(), saida = {};
+    try{
+      ORDEM.forEach(k => { const m = medidas[k] || [640, 340]; novoCanvas(area, "papel-" + k, m[0], m[1]); });
+      PAPEL = Object.assign({ escala: 1.3, rotMax: 26, estreito: true }, opc || {});
+      const g = dashboard(dados, f, "papel-");
+      ORDEM.forEach(k => { saida[k] = g[k] ? pngDe(g[k]) : null; });
+      ORDEM.forEach(k => { const id = "papel-" + k; if(graficos[id]){ graficos[id].destroy(); delete graficos[id]; } });
+    } finally { PAPEL = null; area.remove(); }
+    return saida;
+  }
   /* HTML dos cartões de gráfico (mesmo visual na área do gestor e no painel). */
   function cartoes(prefixo, quais){
     return (quais || ORDEM).map(k => `<section class="dash-card${LARGOS.includes(k) ? " largo" : ""}" data-graf="${k}"><h3>${TITULOS[k][0]}</h3><p id="${prefixo}${k}-sub">${TITULOS[k][1]}</p><div class="dash-box${LARGOS.includes(k) ? " alto" : ""}"><canvas id="${prefixo}${k}"></canvas></div></section>`).join("");
   }
-  window.GRAF = { PAL, SIT_COR, SITS, ABERTOS, TITULOS, ORDEM, LARGOS, cor, fmt, curto, dia0, iso, desenhar, eixo, degrade, centro, barrasH, rosca, pngDe, filtrar, dashboard, cartoes,
+  window.GRAF = { PAL, SIT_COR, SITS, ABERTOS, TITULOS, ORDEM, LARGOS, cor, fmt, curto, dia0, iso, desenhar, eixo, degrade, centro, barrasH, rosca, pngDe, filtrar, dashboard, cartoes, paraPapel, dashboardParaPapel, C, rotuloMax,
     titulo, nomeMaterial, nomeNatureza, quebrar, fmtTempo, temposDoPedido };
 })();
 
@@ -3369,7 +3487,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function abrirAba(nome){
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.tab === nome));
     document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "p-" + nome);
-    if(nome === "relatorios") setTimeout(() => { try{ renderDashboard(); }catch(e){} }, 0);
+    if(nome === "relatorios") setTimeout(() => { try{ renderDashboard(); if(typeof modoRel !== "undefined" && modoRel === "tabela") carregarRelatorio(); }catch(e){} }, 0);
     fecharCard(true);
     if(nome === "geral") Object.values(graficos).forEach(c => c && c.resize());
   }
@@ -4103,6 +4221,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       rel.total = ["Total", peds.length, "", sol(peds), at(peds)];
     } else if(tipo === "estoque"){
       const its = D.itens.filter(i => (!f.nat || i.natureza === f.nat) && (!f.mat || i.id === f.mat));
+      rel.itensEst = its;   // os mesmos materiais da tabela (o gráfico respeita os filtros mesmo sem imagens)
       /* Alerta: bolinha amarela nos materiais na zona de estoque mínimo (disponível igual ou abaixo do mínimo), igual ao catálogo */
       const emZona = its.map(i => naZonaMinima(i)), nZona = emZona.filter(Boolean).length;
       rel.alertas = emZona;
@@ -4126,31 +4245,61 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       rel.hist = hs;
     }
     rel.peds = peds;
+    rel.resumo = resumoDoRelatorio(rel, f);
     if(!$("#rel-com-img").checked) rel.imgs = null;
     return rel;
   }
-  /* Gráfico que acompanha cada tipo de relatório */
-  function graficoDoRelatorio(rel){
-    const id = "rel-chart";
-    /* Altura do gráfico conforme o número de linhas (nomes legíveis, sem sobreposição) */
-    const altura = n => { const cv = document.getElementById(id); if(cv) cv.parentElement.style.height = Math.max(330, n * 30 + 100) + "px"; };
-    const UM = { umaLinha: true, maxRotulo: innerWidth < 640 ? 24 : 48 };
-    if(rel.tipo === "resumo"){ const sits = sitsUsadas(rel.peds).filter(s => rel.peds.some(p => p.status === s)); return rosca(id, sits, sits.map(s => rel.peds.filter(p => p.status === s).length), sits.map(s => SIT_COR[s]), "pedidos", "pedidos"); }
-    if(rel.tipo === "itens" || rel.tipo === "consumo"){
-      const m = {}; rel.peds.forEach(p => linhasDoFiltro(p, lerFiltros()).forEach(l => { m[l.id] = m[l.id] || { t: GRAF.nomeMaterial(l.descricao), full: GRAF.titulo(l.descricao), s: 0, a: 0 }; m[l.id].s += l.qtd; m[l.id].a += l.atendida || 0; }));
-      const top = Object.values(m).sort((a, b) => b.s - a.s).slice(0, 15); altura(top.length);
-      return barrasH(id, top.map(x => x.t), [{ t: "Solicitado", v: top.map(x => x.s), c: PAL[0] }, { t: "Atendido", v: top.map(x => x.a), c: "#D9922E" }], Object.assign({ titulos: top.map(x => x.full), unidade: "unidades" }, UM));
+  /* Números principais de cada relatório (aparecem na tela, no PDF e no Excel). */
+  function resumoDoRelatorio(rel, f){
+    const R = (t, v) => ({ t, v: typeof v === "number" ? fmt(v) : v });
+    const fin = ["Aguardando retirada", "Entrega total realizada", "Entrega parcial realizada", "Recusado"], ps = rel.peds || [];
+    const sol = a => a.reduce((x, p) => x + linhasDoFiltro(p, f).reduce((y, l) => y + l.qtd, 0), 0), at = a => a.reduce((x, p) => x + linhasDoFiltro(p, f).reduce((y, l) => y + (l.atendida || 0), 0), 0);
+    const taxa = a => { let s1 = 0, a1 = 0; a.forEach(p => { if(fin.includes(p.status)) linhasDoFiltro(p, f).forEach(l => { s1 += l.qtd; a1 += l.atendida || 0; }); }); return s1 ? Math.round(a1 / s1 * 100) + "%" : "—"; };
+    const h = rel.hist || [];
+    switch(rel.tipo){
+      case "resumo": { const tps = ps.map(p => GRAF.temposDoPedido(p)).filter(Boolean); return [R("Pedidos", ps.length), R("Unidades solicitadas", sol(ps)), R("Unidades atendidas", at(ps)), R("Taxa de atendimento", taxa(ps)), R("Tempo médio até a entrega", tps.length ? GRAF.fmtTempo(tps.reduce((x, t) => x + t.tot, 0) / tps.length) : "—")]; }
+      case "itens": return [R("Linhas", rel.linhas.length), R("Pedidos", ps.length), R("Materiais diferentes", new Set(ps.flatMap(p => linhasDoFiltro(p, f).map(l => l.id))).size), R("Unidades solicitadas", sol(ps)), R("Unidades atendidas", at(ps))];
+      case "consumo": return [R("Materiais", rel.linhas.length), R("Pedidos", ps.length), R("Unidades solicitadas", sol(ps)), R("Unidades atendidas", at(ps)), R("Taxa de atendimento", taxa(ps))];
+      case "setores": return [R("Setores", rel.linhas.length), R("Pedidos", ps.length), R("Unidades solicitadas", sol(ps)), R("Unidades atendidas", at(ps)), R("Taxa de atendimento", taxa(ps))];
+      case "estoque": { const its = rel.itensEst || []; return [R("Materiais", its.length), R("Unidades disponíveis", its.reduce((x, i) => x + i.qtd, 0)), R("Unidades reservadas", its.reduce((x, i) => x + reservado(i.id), 0)), R("Na zona de estoque mínimo", (rel.alertas || []).filter(Boolean).length), R("Indisponíveis", its.filter(i => i.indisponivel).length)]; }
+      case "historico": return [R("Registros", rel.linhas.length), R("Tipos de registro", new Set(h.map(x => x.tipo)).size), R("Responsáveis", new Set(h.map(x => x.quem).filter(Boolean)).size)];
+      default: return [R("Pedidos excluídos", rel.linhas.length), R("Responsáveis", new Set(h.map(x => x.quem).filter(Boolean)).size)];
     }
-    if(rel.tipo === "setores"){ altura(rel.linhas.length); return barrasH(id, rel.linhas.map(l => l[0]), [{ t: "Solicitado", v: rel.linhas.map(l => l[3]), c: PAL[0] }, { t: "Atendido", v: rel.linhas.map(l => l[4]), c: "#D9922E" }], Object.assign({ unidade: "unidades" }, UM)); }
+  }
+  /* Gráfico que acompanha cada tipo de relatório: título, subtítulo, altura ideal e a função que desenha (na tela ou, redesenhado, para o papel). */
+  const alturaBarras = (n, par) => Math.max(230, n * (par ? 38 : 32) + 112);
+  function especGrafico(rel){
+    const f = lerFiltros(), CLARO = "#A9CCBA", rotulo = () => GRAF.rotuloMax(innerWidth < 640 ? 24 : 46);
+    const par = (id, lista, extra) => barrasH(id, lista.map(x => x.t), [{ t: "Solicitado", v: lista.map(x => x.s), c: CLARO }, { t: "Atendido", v: lista.map(x => x.a), c: PAL[0] }], Object.assign({ unidade: "unidades", umaLinha: true, sobrepor: true, maxRotulo: rotulo(), semAnimacao: true }, extra || {}));
+    if(rel.tipo === "resumo"){
+      const sits = SITS.filter(x => rel.peds.some(p => p.status === x));
+      return { titulo: "Pedidos por status", sub: `${fmt(rel.peds.length)} ${rel.peds.length === 1 ? "pedido" : "pedidos"} no filtro escolhido`, altura: 330,
+        desenha: id => rosca(id, sits, sits.map(x => rel.peds.filter(p => p.status === x).length), sits.map(x => SIT_COR[x]), "pedidos", "pedidos", { semAnimacao: true }) };
+    }
+    if(rel.tipo === "itens" || rel.tipo === "consumo"){
+      const m = {}; rel.peds.forEach(p => linhasDoFiltro(p, f).forEach(l => { m[l.id] = m[l.id] || { t: GRAF.nomeMaterial(l.descricao), full: GRAF.titulo(l.descricao), s: 0, a: 0 }; m[l.id].s += l.qtd; m[l.id].a += l.atendida || 0; }));
+      const todos = Object.values(m).sort((a, b) => b.s - a.s), top = todos.slice(0, 15);
+      return { titulo: rel.tipo === "itens" ? "Materiais mais pedidos" : "Consumo por material",
+        sub: `${top.length === todos.length ? "Todos os " + fmt(todos.length) : "Os " + top.length + " maiores de " + fmt(todos.length)} materiais, em unidades. Barra larga: solicitado. Barra estreita: atendido.`, altura: alturaBarras(top.length, true),
+        desenha: id => par(id, top, { titulos: top.map(x => x.full) }) };
+    }
+    if(rel.tipo === "setores"){
+      const todos = rel.linhas.map(l => ({ t: l[0], s: l[3], a: l[4] })), top = todos.slice(0, 15), resto = todos.slice(15);
+      const lista = resto.length ? top.concat([{ t: `Demais setores (${resto.length})`, s: resto.reduce((x, y) => x + y.s, 0), a: resto.reduce((x, y) => x + y.a, 0) }]) : top;
+      return { titulo: "Consumo por setor", sub: `${resto.length ? "Os 15 maiores de " + fmt(todos.length) + " setores; os demais somados numa só barra" : "Todos os " + fmt(todos.length) + " setores"}. Barra larga: solicitado. Barra estreita: atendido.`, altura: alturaBarras(lista.length, true),
+        desenha: id => par(id, lista) };
+    }
     if(rel.tipo === "estoque"){
-      const m = {}; D.itens.filter(i => rel.imgs ? rel.imgs.some(x => x[0] === i.id) : true).forEach(i => { const k = GRAF.nomeNatureza(i.naturezaNome, i.natureza); m[k] = m[k] || { t: k, d: 0, r: 0 }; m[k].d += i.qtd; m[k].r += reservado(i.id); });
-      const l = Object.values(m).sort((a, b) => b.d - a.d); altura(l.length);
-      return barrasH(id, l.map(x => x.t), [{ t: "Disponível", v: l.map(x => x.d), c: PAL[0] }, { t: "Reservado", v: l.map(x => x.r), c: "#D9922E" }], Object.assign({ titulos: l.map(x => x.t), unidade: "unidades", eixo: { x: { stacked: true }, y: { stacked: true } } }, UM));
+      const m = {}; (rel.itensEst || []).forEach(i => { const k = GRAF.nomeNatureza(i.naturezaNome, i.natureza); m[k] = m[k] || { t: k, d: 0, r: 0 }; m[k].d += i.qtd; m[k].r += reservado(i.id); });
+      const l = Object.values(m).sort((a, b) => b.d - a.d);
+      return { titulo: "Estoque por natureza de despesa", sub: `Disponível e reservado agora, em unidades (${l.length} ${l.length === 1 ? "natureza" : "naturezas"}).`, altura: alturaBarras(l.length, false),
+        desenha: id => barrasH(id, l.map(x => x.t), [{ t: "Disponível", v: l.map(x => x.d), c: PAL[0] }, { t: "Reservado", v: l.map(x => x.r), c: "#D9922E" }], { titulos: l.map(x => x.t), unidade: "unidades", umaLinha: true, maxRotulo: rotulo(), semAnimacao: true, eixo: { x: { stacked: true }, y: { stacked: true } } }) };
     }
     const chave = rel.tipo === "excluidos" ? (h => h.quem || "—") : (h => h.tipo);
     const m = {}; (rel.hist || []).forEach(h => { const k = chave(h); m[k] = (m[k] || 0) + 1; });
-    const l = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 15); altura(l.length);
-    return barrasH(id, l.map(x => x[0]), [{ t: rel.tipo === "excluidos" ? "Pedidos excluídos" : "Registros", v: l.map(x => x[1]), c: "#3B6FA0" }], Object.assign({ unidade: rel.tipo === "excluidos" ? "pedidos" : "registros" }, UM));
+    const todos = Object.entries(m).sort((a, b) => b[1] - a[1]), l = todos.slice(0, 15);
+    return { titulo: rel.tipo === "excluidos" ? "Pedidos excluídos por responsável" : "Registros por tipo", sub: `${l.length === todos.length ? "Todos os " + todos.length : "Os " + l.length + " mais frequentes de " + todos.length} ${rel.tipo === "excluidos" ? "responsáveis" : "tipos de registro"}.`, altura: alturaBarras(l.length, false),
+      desenha: id => barrasH(id, l.map(x => x[0]), [{ t: rel.tipo === "excluidos" ? "Pedidos excluídos" : "Registros", v: l.map(x => x[1]), c: "#3B6FA0" }], { unidade: rel.tipo === "excluidos" ? "pedidos" : "registros", umaLinha: true, maxRotulo: rotulo(), semAnimacao: true }) };
   }
 
   /* Colunas de valor curto: não quebram no meio (ex.: nº do pedido, código, data). */
@@ -4160,20 +4309,42 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const multi = rel.imgs && rel.imgs.some(l => l.length > 1);
     const minis = ids => (ids || []).slice(0, 4).map(id => IMAGENS.miniHtml(porId[id] || { id })).join("") + ((ids || []).length > 4 ? `<span class="minis-mais">+${ids.length - 4}</span>` : "");
     const comGraf = $("#rel-com-graf").checked;
-    $("#rel-saida").innerHTML = `<div class="rel-cab"><h3>${esc(rel.titulo)}</h3><small>Filtros: ${esc(rel.filtros)} · ${rel.linhas.length} ${rel.linhas.length === 1 ? "linha" : "linhas"}</small></div>
-      ${comGraf && rel.linhas.length ? `<div class="dash-card rel-graf"><div class="dash-box alto"><canvas id="rel-chart"></canvas></div></div>` : ""}
+    rel.espec = comGraf && rel.linhas.length ? especGrafico(rel) : null;
+    $("#rel-saida").innerHTML = `<div class="rel-cab"><div><h3>${esc(rel.titulo)}</h3><small>Filtros: ${esc(rel.filtros)}</small></div><span class="rel-cont">${fmt(rel.linhas.length)} ${rel.linhas.length === 1 ? "linha" : "linhas"}</span></div>
+      ${rel.resumo && rel.resumo.length && rel.linhas.length ? `<div class="rel-chips">${rel.resumo.map(c => `<div class="rel-chip"><b>${esc(c.v)}</b><span>${esc(c.t)}</span></div>`).join("")}</div>` : ""}
+      ${rel.espec ? `<div class="dash-card rel-graf"><div class="rel-graf-cab"><b>${esc(rel.espec.titulo)}</b><span>${esc(rel.espec.sub)}</span></div><div class="dash-box rel-box" style="height:${rel.espec.altura}px"><canvas id="rel-chart"></canvas></div></div>` : ""}
       ${rel.legendaAlerta && rel.linhas.length ? `<p class="legenda-min"><span class="ponto-min" aria-hidden="true"></span><span>${esc(rel.legendaAlerta)}</span></p>` : ""}
       <div class="table-wrap"><table class="rel cartoes"><thead><tr>${rel.imgs ? `<th>${multi ? "Itens" : "Imagem"}</th>` : ""}${rel.colunas.map(c => `<th${c.num ? ' class="num"' : ""}>${esc(c.t)}</th>`).join("")}</tr></thead>
       <tbody>${rel.linhas.length ? rel.linhas.slice(0, 1000).map((l, k) => `<tr${rel.alertas && rel.alertas[k] ? ' class="alerta-min"' : ""}>${rel.imgs ? `<td class="td-minis">${minis(rel.imgs[k])}</td>` : ""}${l.map((x, i) => `<td class="${rel.colunas[i].num ? "num " : ""}${CURTAS.test(rel.colunas[i].t) ? "nw" : ""}${rel.colunas[i].ponto ? " td-alerta" : ""}">${rel.colunas[i].ponto ? (x ? '<span class="ponto-min" title="Na zona de estoque mínimo" aria-label="Na zona de estoque mínimo"></span>' : "") : v(x)}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${rel.colunas.length + (rel.imgs ? 1 : 0)}" class="empty">Nenhum dado para os filtros escolhidos.</td></tr>`}</tbody>
       ${rel.total && rel.linhas.length ? `<tfoot><tr>${rel.imgs ? "<td></td>" : ""}${rel.total.map((x, i) => `<td${rel.colunas[i].num ? ' class="num"' : ""}>${v(x)}</td>`).join("")}</tr></tfoot>` : ""}</table></div>
       ${rel.linhas.length > 1000 ? `<p class="saved-note">Mostrando as primeiras 1.000 linhas. O Excel e o PDF trazem todas.</p>` : ""}`;
-    if(comGraf && rel.linhas.length) rel.chart = graficoDoRelatorio(rel);
+    if(rel.espec) rel.chart = rel.espec.desenha("rel-chart");
     ["#rel-xls", "#rel-pdf", "#rel-print"].forEach(s => $(s).disabled = !rel.linhas.length);
   }
-  const prepararExport = () => { if(!relAtual) return null; relAtual.grafico = $("#rel-com-graf").checked && relAtual.chart ? pngDe(relAtual.chart, 900, Math.max(400, ((relAtual.chart.data.labels || []).length) * 30 + 110)) : null; return relAtual; };
-  $("#rel-gerar").onclick = () => { relAtual = montarRelatorio(); mostrarRelatorio(relAtual); };
-  $("#rel-tipos").addEventListener("change", () => { relAtual = null; $("#rel-saida").innerHTML = ""; ["#rel-xls", "#rel-pdf", "#rel-print"].forEach(s => $(s).disabled = true); });
-  ["#rel-com-graf", "#rel-com-img"].forEach(s => $(s).addEventListener("change", () => { if(relAtual){ relAtual = montarRelatorio(); mostrarRelatorio(relAtual); } }));
+  const prepararExport = () => {
+    if(!relAtual) return null;
+    relAtual.grafico = null;
+    if($("#rel-com-graf").checked && relAtual.linhas.length && relAtual.espec){   // o gráfico é redesenhado fora da tela, em tamanho de papel (fonte maior, sem sobreposição)
+      const e = relAtual.espec, r = GRAF.paraPapel([{ w: 940, h: Math.round(e.altura * 0.88), desenhar: e.desenha }], { escala: 1.2, rotMax: 40, estreito: false })[0];
+      if(r) relAtual.grafico = Object.assign({ titulo: e.titulo, sub: e.sub }, r);
+    }
+    return relAtual;
+  };
+  /* O relatório (tabela + gráfico) carrega sozinho ao escolher um dos quadros, ao mudar um filtro ou uma opção; os botões habilitam junto. */
+  let relSeq = 0;
+  function carregarRelatorio(){
+    if(typeof modoRel !== "undefined" && modoRel !== "tabela") return;
+    const seq = ++relSeq;
+    ["#rel-xls", "#rel-pdf", "#rel-print"].forEach(s => $(s).disabled = true);
+    $("#rel-saida").innerHTML = `<p class="rel-carregando" role="status"><span class="spin"></span> Carregando o relatório…</p>`;
+    setTimeout(() => {
+      if(seq !== relSeq) return;   // uma escolha mais nova já assumiu
+      try{ relAtual = montarRelatorio(); mostrarRelatorio(relAtual); }
+      catch(e){ console.error(e); relAtual = null; $("#rel-saida").innerHTML = `<div class="errbox">Não foi possível montar o relatório: ${esc(e.message)}</div>`; }
+    }, 30);
+  }
+  $("#rel-tipos").addEventListener("change", carregarRelatorio);
+  ["#rel-com-graf", "#rel-com-img"].forEach(s => $(s).addEventListener("change", carregarRelatorio));
   $("#rel-xls").onclick = async e => { const r = prepararExport(); if(!r) return; const b = e.currentTarget; ocupado(b, "Gerando…"); try{ await DOCS.excelRelatorio(r); }catch(err){ console.error(err); toast("Falha ao gerar o Excel"); } livre(b, "Baixar Excel"); };
   $("#rel-pdf").onclick = async e => { const r = prepararExport(); if(!r) return; const b = e.currentTarget; ocupado(b, "Gerando…"); try{ await DOCS.pdfRelatorio(r, false); }catch(err){ console.error(err); toast("Falha ao gerar o PDF"); } livre(b, "Baixar PDF"); };
   $("#rel-print").onclick = () => { const r = prepararExport(); if(r) DOCS.pdfRelatorio(r, true); };
@@ -4185,11 +4356,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     modoRel = b.dataset.modo;
     document.querySelectorAll(".rel-modo").forEach(x => x.setAttribute("aria-selected", x === b));
     $("#modo-tabela").hidden = $("#modo-tabela-tipos").hidden = modoRel !== "tabela"; $("#modo-dash").hidden = modoRel !== "dash";
-    if(modoRel === "dash") renderDashboard();
+    if(modoRel === "dash") renderDashboard(); else carregarRelatorio();
   });
   function filtrosMudaram(){
     if(modoRel === "dash") renderDashboard();
-    else if(relAtual){ relAtual = montarRelatorio(); mostrarRelatorio(relAtual); }
+    else carregarRelatorio();
   }
   /* Mesmo formato de dados do painel público do Looker Studio (sem nomes, e-mails ou telefones). */
   const dadosGraficos = () => ({ baixo: BAIXO,
@@ -4204,7 +4375,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   async function exportarDashboard(imprimir, botao){
     if(!dashAtual) renderDashboard(); if(!dashAtual) return;
-    const graficos = GRAF.ORDEM.map(k => Object.assign({ titulo: GRAF.TITULOS[k][0], largo: GRAF.LARGOS.includes(k) }, pngDe(dashAtual.g[k], GRAF.LARGOS.includes(k) ? 1000 : 640, GRAF.LARGOS.includes(k) ? 330 : 340) || {}));
+    const medidas = {}; GRAF.ORDEM.forEach(k => medidas[k] = k === "evol" ? [1000, 223] : [700, 329]);   // proporção do cartão no PDF (só a evolução ocupa a linha toda)
+    const imgs = GRAF.dashboardParaPapel(dadosGraficos(), dashAtual.f, medidas, { escala: 1.25, rotMax: 26, estreito: true });
+    const sub = k => { const e = document.getElementById("d-" + k + "-sub"); return e ? e.textContent : GRAF.TITULOS[k][1]; };
+    const graficos = GRAF.ORDEM.map(k => Object.assign({ titulo: GRAF.TITULOS[k][0], sub: sub(k), largo: k === "evol" }, imgs[k] || {}));
     const d = { titulo: "Dashboard do almoxarifado", filtros: dashAtual.f.txt, geradoPor: eu ? eu.nome : "", kpis: [], graficos };
     const rot = botao.textContent; if(!imprimir) ocupado(botao, "Gerando…");
     try{ await DOCS.pdfDashboard(d, imprimir); }catch(e){ console.error(e); toast("Falha ao gerar o PDF do dashboard"); }
@@ -4214,7 +4388,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   $("#dash-print").onclick = e => exportarDashboard(true, e.currentTarget);
 
   /* ---------- Link do dashboard para o Google Looker Studio (Inserir › Incorporar URL) ---------- */
-  function urlPainel(chave, graf, cab){
+  function urlPainel(chave, graf, cab, pf){
     const q = new URLSearchParams(); q.set("t", chave);
     const per = $("#rf-per").value;
     if(per) q.set("per", per); else { if($("#rf-de").value) q.set("de", $("#rf-de").value); if($("#rf-ate").value) q.set("ate", $("#rf-ate").value); }
@@ -4222,6 +4396,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const f = lerFiltros(); if(f.mat && porId[f.mat]) q.set("mat", porId[f.mat].codigo);
     if(graf && graf !== "todos") q.set("g", graf);
     if(!cab) q.set("cab", "0");
+    if(pf === false) q.set("pf", "0");   // esconde o botão de período no painel
     return location.href.replace(/[^/]*([?#].*)?$/, "") + "painel.html?" + q.toString();
   }
   async function copiar(txt){
@@ -4237,12 +4412,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <div class="body">
         ${API.modoDemo ? `<div class="errbox" style="margin:0 0 12px">Modo demonstração: o link só funciona depois de ligar a Planilha Google (API_URL no config.js).</div>` : ""}
         <div class="grid2"><label class="field">Gráficos do link<select id="lk-graf"><option value="todos">Todos os gráficos (painel completo)</option>${GRAF.ORDEM.map(k => `<option value="${k}">Só: ${esc(GRAF.TITULOS[k][0])}</option>`).join("")}</select></label>
-          <label class="check" style="align-self:end;margin-bottom:10px"><input type="checkbox" id="lk-cab" checked> Mostrar o título do painel</label></div>
+          <div style="align-self:end;margin-bottom:10px;display:grid;gap:6px"><label class="check"><input type="checkbox" id="lk-cab" checked> Mostrar o título do painel</label>
+            <label class="check"><input type="checkbox" id="lk-pf" checked> Mostrar o botão de período no painel</label></div></div>
         <p class="hint-txt" style="margin:0 0 10px">Os filtros atuais do dashboard vão junto no link: <b>${esc(($("#rf-per").value ? [$("#rf-per").selectedOptions[0].textContent.toLowerCase()].concat(lerFiltros().txt.split(" · ").filter(x => !/^(de|até) \d/.test(x) && x !== "nenhum")) : [lerFiltros().txt]).join(" · "))}</b>. Com um período rápido (ex.: “Últimos 30 dias” ou “Este mês”), o período avança sozinho com o passar dos dias.</p>
         <div id="lk-area"></div>
         <h3 style="font-size:14.5px;margin:16px 0 6px">Como usar no Looker Studio</h3>
         <ol class="lk-passos"><li>Abra o relatório no Looker Studio e clique em <b>Editar</b>.</li><li>No menu, escolha <b>Inserir › Incorporar URL</b> (<i>Embed URL</i>).</li><li>Desenhe o quadro na página e cole o link em <b>URL do conteúdo incorporado</b>.</li><li>Ajuste o tamanho do quadro. O painel se atualiza sozinho a cada minuto, sem precisar recarregar.</li></ol>
         <p class="hint-txt">Dica: para montar o relatório gráfico por gráfico, gere um link para cada gráfico (opção “Só: …”) e coloque cada um num quadro.</p>
+        <p class="hint-txt">No painel, quem estiver vendo pode trocar o <b>período</b> (botão no topo) para ver os gráficos em outras datas. Essa escolha vale só para quem a fez e <b>não altera nenhum dado</b> nem o portal: é apenas uma consulta.</p>
         <p class="hint-txt">Quem tiver o link vê <b>somente os gráficos</b>, com números agregados, sem nomes, e-mails ou telefones. Para cortar o acesso de todos os links já distribuídos, use <b>Gerar novo link</b> ou <b>Desativar link</b>.</p>
         <div id="lk-err"></div>
       </div>
@@ -4250,13 +4427,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     const q = x => c.querySelector(x);
     const desenharArea = () => {
       if(!chave){ q("#lk-area").innerHTML = `<div class="notice" style="margin:0"><div>Ainda não há link ativo. ${admin ? "Clique em <b>Criar link</b>." : "Peça a quem tem a permissão “Configurações e regras” para criar o link."}</div></div>`; return; }
-      const url = urlPainel(chave, q("#lk-graf").value, q("#lk-cab").checked);
+      const url = urlPainel(chave, q("#lk-graf").value, q("#lk-cab").checked, q("#lk-pf").checked);
       q("#lk-area").innerHTML = `<label class="field">Link do painel<textarea id="lk-url" rows="3" readonly>${esc(url)}</textarea></label>
         <div class="rel-acoes" style="margin:8px 0 0"><button class="btn primary sm" type="button" id="lk-copiar">Copiar link</button><a class="btn sm" id="lk-abrir" href="${esc(url)}" target="_blank" rel="noopener">Abrir o painel (pré-visualizar)</a></div>`;
       q("#lk-copiar").onclick = async () => { toast(await copiar(url) ? "Link copiado. Cole no Looker Studio em Inserir › Incorporar URL." : "Selecione o link e copie com Ctrl+C."); q("#lk-url").select(); };
     };
     desenharArea();
-    q("#lk-graf").onchange = desenharArea; q("#lk-cab").onchange = desenharArea;
+    q("#lk-graf").onchange = desenharArea; q("#lk-cab").onchange = desenharArea; q("#lk-pf").onchange = desenharArea;
     q("#lk-fechar").onclick = fecharDialogo;
     const trocar = async (op, b) => {
       if(op === "novo" && chave && !(await confirmar("Gerar um novo link?", "O link atual deixa de funcionar em todos os lugares onde foi usado (inclusive no Looker Studio). Será preciso colar o novo link.", "Gerar novo link"))) return abrirLooker();

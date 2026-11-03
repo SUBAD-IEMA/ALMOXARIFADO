@@ -1214,6 +1214,49 @@ table.rel td.td-alerta{text-align:center;width:54px}
 table.rel td.td-alerta .ponto-min{margin:0}
 table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
 
+/* ===================== Versão 28: relatório carrega ao escolher ===================== */
+.rel-carregando{display:flex;align-items:center;gap:10px;margin:18px 0;padding:18px;border:1px dashed var(--rule-strong);border-radius:12px;color:var(--muted);font-weight:600;background:var(--surface-2)}
+
+/* ===================== Versão 28: relatórios – cabeçalho, números e gráfico com título ===================== */
+.rel-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.rel-cab h3{margin:0 0 2px;font-size:19px}
+.rel-cab small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;max-width:100%;overflow-wrap:anywhere}
+.rel-cont{flex:none;font-size:12.5px;font-weight:700;color:var(--pine);background:var(--pine-soft);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.rel-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 12px}
+.rel-chip{display:flex;flex-direction:column;gap:2px;border:1px solid var(--rule);border-left:4px solid var(--pine);border-radius:10px;background:var(--surface);padding:8px 12px;min-width:0}
+.rel-chip b{font-size:20px;line-height:1.15;color:var(--ink);overflow-wrap:anywhere}
+.rel-chip span{font-size:12px;color:var(--muted);line-height:1.25}
+.rel-graf{padding:14px 16px 10px}
+.rel-graf-cab{display:flex;flex-direction:column;gap:2px;margin:0 0 8px}
+.rel-graf-cab b{font-size:15.5px;color:var(--ink)}
+.rel-graf-cab span{font-size:12.5px;color:var(--muted);line-height:1.4}
+.dash-box.rel-box{height:auto}
+.dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:410px}
+@media (max-width:760px){
+  .rel-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rel-chip b{font-size:17px}
+  .rel-cab h3{font-size:17px}
+  .dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:390px}
+}
+
+/* ===================== Versão 28: painel do Looker Studio – botão de período (somente consulta) ===================== */
+.pp-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:2px 2px 12px}
+.pp-barra[hidden]{display:none}
+.pp-periodo{position:relative;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--pine);border-radius:999px;background:#fff;color:var(--pine);padding:6px 12px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 1px 3px rgba(16,24,20,.08);max-width:100%}
+.pp-periodo:hover{background:var(--pine-soft)}
+.pp-periodo:focus-within{outline:3px solid color-mix(in srgb,var(--pine) 35%,transparent);outline-offset:2px}
+.pp-periodo svg{flex:none}
+.pp-periodo select{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;font-weight:800;color:inherit;cursor:pointer;padding:2px 20px 2px 2px;max-width:min(62vw,340px);text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231E5240' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center}
+.pp-periodo select:focus{outline:none}
+.pp-custom{display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;font-weight:700;color:var(--muted)}
+.pp-custom input{font:inherit;font-size:13px;border:1px solid var(--rule-strong);border-radius:8px;padding:4px 8px;margin-left:4px;color:var(--ink);background:#fff}
+.pp-resumo{font-size:12px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+body.sem-cab .pp-barra{padding:2px 2px 8px}
+body.pp-unico.pp-com-barra .dash-box,body.pp-unico.pp-com-barra .dash-box.alto{height:calc(100vh - 156px)}
+body.pp-unico.sem-cab.pp-com-barra .dash-box,body.pp-unico.sem-cab.pp-com-barra .dash-box.alto{height:calc(100vh - 128px)}
+@media (max-width:640px){ .pp-resumo{flex-basis:100%} .pp-periodo select{max-width:56vw} }
+
 </style>
 </head>
 <body>
@@ -2254,11 +2297,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function cabecalhoExcel(wb, ws, ncol, titulo){
     ws.mergeCells(1, 1, 1, ncol);
     const t = ws.getCell(1, 1);
-    t.value = { richText: [{ text: ORG() + "\n", font: { bold: true, size: 13, color: { argb: "FFFFFFFF" } } }, { text: titulo, font: { size: 11, color: { argb: "FFE2EDE8" } } }] };
-    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; t.alignment = { vertical: "middle", wrapText: true, indent: 9 };
-    ws.getRow(1).height = 56;
+    const REC = "\u00A0".repeat(20);   // recuo fixo: o texto nunca fica por baixo do brasão (no Excel e no LibreOffice)
+    t.value = { richText: [{ text: REC + ORG() + "\n", font: { bold: true, size: 13, color: { argb: "FFFFFFFF" } } }, { text: REC + titulo, font: { size: 11, color: { argb: "FFE2EDE8" } } }] };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; t.alignment = { vertical: "middle", wrapText: true, indent: 2 };
+    ws.getRow(1).height = 58;
     const b = BRASAO();
-    if(b){ const id = wb.addImage({ base64: b.split(",")[1], extension: "png" }); ws.addImage(id, { tl: { col: 0.08, row: 0.08 }, ext: { width: 66, height: 66 }, editAs: "oneCell" }); }
+    if(b){ const id = wb.addImage({ base64: b.split(",")[1], extension: "png" }); ws.addImage(id, { tl: { col: 0.05, row: 0.08 }, ext: { width: 50, height: 50 }, editAs: "oneCell" }); }
   }
   /* Cabeçalho dos PDFs: faixa verde com o brasão numa placa branca. */
   function cabecalhoPdf(doc, W, altura){
@@ -2438,6 +2482,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       ws.mergeCells(4, 1, 4, n); const lg = ws.getCell(4, 1);
       lg.value = { richText: [{ text: "●  ", font: { size: 15, bold: true, color: { argb: "FFE0A800" } } }, { text: rel.legendaAlerta + " Use o filtro da coluna Alerta para ver só esses materiais.", font: { size: 10, bold: true, color: { argb: "FF5C4A00" } } }] };
       lg.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF3C4" } }; lg.alignment = { vertical: "middle", wrapText: true }; ws.getRow(4).height = 24;
+    } else if(rel.resumo && rel.resumo.length){   // números principais do relatório
+      ws.mergeCells(4, 1, 4, n); const rs = ws.getCell(4, 1), txt = "Resumo:  " + rel.resumo.map(c => c.t + " " + c.v).join("   ·   "), larg = R.colunas.reduce((a, c) => a + (c.w || (c.num ? 12 : 24)), 0);
+      rs.value = txt; rs.font = { size: 10, bold: true, color: { argb: PINHO } }; rs.fill = { type: "pattern", pattern: "solid", fgColor: { argb: SUAVE } }; rs.alignment = { vertical: "middle", wrapText: true };
+      ws.getRow(4).height = Math.max(22, 14 * Math.ceil(txt.length / Math.max(30, larg * 1.05)) + 8);
     }
     const cab = ws.getRow(5);
     R.colunas.forEach((c, i) => { const cel = cab.getCell(i + 1); cel.value = c.t; cel.font = { bold: true, color: { argb: "FFFFFFFF" } }; cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: PINHO } }; cel.border = borda; cel.alignment = { wrapText: true, vertical: "middle", horizontal: c.num ? "right" : c.ponto ? "center" : "left" }; });
@@ -2459,11 +2507,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: n } };
     ws.pageSetup.printTitlesRow = "5:5"; ws.pageSetup.margins = { left: .4, right: .4, top: .5, bottom: .5, header: .2, footer: .2 };
     if(rel.grafico && rel.grafico.png){
-      const wg = wb.addWorksheet("Gráfico", { views: [{ showGridLines: false }] }); wg.columns = [{ width: 110 }];
-      wg.getCell(1, 1).value = rel.titulo + " – gráfico"; wg.getCell(1, 1).font = { bold: true, size: 13, color: { argb: PINHO } };
-      wg.getCell(2, 1).value = "Filtros: " + (rel.filtros || "nenhum"); wg.getCell(2, 1).font = { size: 9, color: { argb: CINZA } };
-      const id = wb.addImage({ base64: rel.grafico.png.split(",")[1], extension: "png" }), k = Math.min(1, 780 / rel.grafico.w);
-      wg.addImage(id, { tl: { col: 0, row: 3 }, ext: { width: Math.round(rel.grafico.w * k), height: Math.round(rel.grafico.h * k) } });
+      const wg = wb.addWorksheet("Gráfico", { pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1, margins: { left: .5, right: .5, top: .6, bottom: .6, header: .3, footer: .3 } }, views: [{ showGridLines: false }] });
+      wg.columns = [{ width: 135 }];
+      wg.getCell(1, 1).value = rel.grafico.titulo || (rel.titulo + " – gráfico"); wg.getCell(1, 1).font = { bold: true, size: 14, color: { argb: PINHO } };
+      wg.getCell(2, 1).value = rel.grafico.sub || ""; wg.getCell(2, 1).font = { size: 10, color: { argb: CINZA } }; wg.getCell(2, 1).alignment = { wrapText: true, vertical: "top" }; wg.getRow(2).height = 30;
+      wg.getCell(3, 1).value = rel.titulo + " · Filtros: " + (rel.filtros || "nenhum"); wg.getCell(3, 1).font = { size: 9, color: { argb: CINZA } };
+      wg.getCell(4, 1).value = rel.resumo && rel.resumo.length ? "Resumo:  " + rel.resumo.map(c => c.t + " " + c.v).join("   ·   ") : ""; wg.getCell(4, 1).font = { size: 10, bold: true, color: { argb: PINHO } }; wg.getCell(4, 1).alignment = { wrapText: true, vertical: "middle" }; wg.getRow(4).height = 22;
+      const id = wb.addImage({ base64: rel.grafico.png.split(",")[1], extension: "png" }), k = 880 / rel.grafico.w;
+      wg.addImage(id, { tl: { col: 0, row: 5 }, ext: { width: Math.round(rel.grafico.w * k), height: Math.round(rel.grafico.h * k) } });
     }
     await baixar(wb, rel.titulo.replace(/\s+/g, "_") + "_" + hoje() + ".xlsx");
   }
@@ -2481,14 +2532,30 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     doc.setTextColor(91, 105, 100); doc.setFontSize(8.5);
     const filt = doc.splitTextToSize("Filtros: " + (rel.filtros || "nenhum"), W - 2 * M); doc.text(filt, M, 28);
     let y = 30 + filt.length * 3.6;
+    if(rel.resumo && rel.resumo.length && rel.linhas.length){   // números principais, em caixas
+      const n = rel.resumo.length, gap = 3, kw = (W - 2 * M - gap * (n - 1)) / n, kh = 15;
+      rel.resumo.forEach((c, k) => {
+        const x = M + k * (kw + gap);
+        doc.setFillColor(244, 247, 246); doc.setDrawColor(217, 225, 222); doc.setLineWidth(.2); doc.roundedRect(x, y, kw, kh, 1.6, 1.6, "FD");
+        doc.setFillColor(30, 82, 64); doc.rect(x, y + 2, 1, kh - 4, "F");
+        doc.setFont("helvetica", "bold"); doc.setFontSize(11.5); doc.setTextColor(23, 32, 29); doc.text(String(c.v), x + 3.5, y + 6.6);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(6.9); doc.setTextColor(91, 105, 100); doc.text(doc.splitTextToSize(c.t, kw - 5).slice(0, 2), x + 3.5, y + 10.4, { lineHeightFactor: 1.05 });
+      });
+      y += kh + 5;
+    }
     if(rel.grafico && rel.grafico.png){
-      const gw = Math.min(W - 2 * M, deitado ? 220 : W - 2 * M), gh = Math.min(deitado ? 112 : 130, gw * rel.grafico.h / rel.grafico.w), gw2 = gh * rel.grafico.w / rel.grafico.h;
-      doc.setDrawColor(217, 225, 222); doc.roundedRect((W - gw2) / 2 - 2, y, gw2 + 4, gh + 4, 2, 2);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(30, 82, 64); doc.text(rel.grafico.titulo || "", M, y + 3.5);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(91, 105, 100);
+      const st = doc.splitTextToSize(rel.grafico.sub || "", W - 2 * M); doc.text(st, M, y + 8); y += 9.5 + st.length * 3.4;
+      const asp = rel.grafico.h / rel.grafico.w, maxW = deitado ? 250 : W - 2 * M, maxH = deitado ? 128 : 150;
+      const gh = Math.min(maxH, maxW * asp), gw2 = gh / asp;
+      doc.setDrawColor(217, 225, 222); doc.setLineWidth(.2); doc.roundedRect((W - gw2) / 2 - 2, y, gw2 + 4, gh + 4, 2, 2);
       doc.addImage(rel.grafico.png, "PNG", (W - gw2) / 2, y + 2, gw2, gh); y += gh + 9;
     }
     const fmtv = v => v == null ? "" : (typeof v === "number" ? Math.round(v).toLocaleString("pt-BR") : String(v));
     const ip = R.colunas.findIndex(c => c.ponto);   // coluna "Alerta" (materiais na zona de estoque mínimo)
     const bolinha = (cx, cy, r) => { doc.setFillColor(245, 197, 24); doc.setDrawColor(212, 161, 6); doc.setLineWidth(.45); doc.circle(cx, cy, r, "FD"); };
+    if(H - y < 42 + (rel.legendaAlerta ? 14 : 0)){ doc.addPage(); y = 14; }   // a legenda e a tabela ficam juntas
     if(rel.legendaAlerta){   // faixa de legenda acima da tabela
       const lt = doc.splitTextToSize(rel.legendaAlerta, W - 2 * M - 14), hl = Math.max(8, lt.length * 4 + 4);
       doc.setFillColor(255, 248, 214); doc.setDrawColor(243, 226, 160); doc.setLineWidth(.2); doc.roundedRect(M, y, W - 2 * M, hl, 1.5, 1.5, "FD");
@@ -2510,6 +2577,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     R.colunas.forEach((c, i) => { cols[i] = { halign: c.num ? "right" : "left" };
       if(cabe) cols[i].cellWidth = larg[i] != null ? (somaFlex ? larg[i] : larg[i] * util / fixo) : sobra * flex[i] / somaFlex; });
     if(rel.imgs) Object.assign(cols[0], { minCellHeight: R.multi ? 10 : 14 });
+    if(H - y < 42){ doc.addPage(); y = 14; }   // evita o cabeçalho da tabela sozinho no pé da página
     doc.autoTable({ startY: y, margin: { left: M, right: M, bottom: 12 }, head: [R.colunas.map(c => c.t)],
       body: R.linhas.map(l => l.map(fmtv)), foot: R.total ? [R.total.map(fmtv)] : undefined,
       styles: { font: "helvetica", fontSize: FS, cellPadding: { top: 2, bottom: 2, left: 2.2, right: 2.2 }, textColor: [23, 32, 29], lineColor: [210, 219, 215], lineWidth: .15, overflow: "linebreak", valign: "middle" },
@@ -2550,7 +2618,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       doc.setFont("helvetica", "normal"); doc.setFontSize(7.4); doc.setTextColor(91, 105, 100); doc.text(doc.splitTextToSize(k.t, kw - 6), x + 4, y + 14);
     });
     if(n) y += 25;
-    const cw = (W - 2 * M - 6) / 2, ch = 64;
+    const cw = (W - 2 * M - 6) / 2, ch = 78;   // dois cartões por página, ocupando a folha toda
     let col = 0;
     d.graficos.forEach((g, i) => {
       if(g.largo && col === 1){ col = 0; y += ch + 5; }
@@ -2558,8 +2626,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       const x = M + col * (cw + 6), cw0 = cw;
       const cwg = g.largo ? W - 2 * M : cw0;
       doc.setDrawColor(217, 225, 222); doc.setFillColor(255, 255, 255); doc.roundedRect(x, y, cwg, ch, 2, 2, "FD");
-      doc.setTextColor(30, 82, 64); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.text(g.titulo, x + 4, y + 6);
-      if(g.png){ const ah = ch - 11, aw = cwg - 8, k = Math.min(aw / g.w, ah / g.h); doc.addImage(g.png, "PNG", x + 4 + (aw - g.w * k) / 2, y + 9 + (ah - g.h * k) / 2, g.w * k, g.h * k); }
+      doc.setTextColor(30, 82, 64); doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text(g.titulo, x + 4, y + 6);
+      if(g.sub){ doc.setFont("helvetica", "normal"); doc.setFontSize(7.2); doc.setTextColor(91, 105, 100); doc.text(doc.splitTextToSize(g.sub, cwg - 8).slice(0, 2), x + 4, y + 10.2, { lineHeightFactor: 1.05 }); }
+      if(g.png){ const ah = ch - 19, aw = cwg - 8, k = Math.min(aw / g.w, ah / g.h); doc.addImage(g.png, "PNG", x + 4 + (aw - g.w * k) / 2, y + 16 + (ah - g.h * k) / 2, g.w * k, g.h * k); }
       else { doc.setFontSize(8.5); doc.setTextColor(91, 105, 100); doc.text("Sem dados para os filtros escolhidos.", x + cwg / 2, y + ch / 2, { align: "center" }); }
       if(g.largo || col === 1){ col = 0; y += ch + 5; } else col = 1;
       if(i === d.graficos.length - 1 && col === 1){ col = 0; y += ch + 5; }

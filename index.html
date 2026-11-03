@@ -1214,6 +1214,49 @@ table.rel td.td-alerta{text-align:center;width:54px}
 table.rel td.td-alerta .ponto-min{margin:0}
 table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
 
+/* ===================== Versão 28: relatório carrega ao escolher ===================== */
+.rel-carregando{display:flex;align-items:center;gap:10px;margin:18px 0;padding:18px;border:1px dashed var(--rule-strong);border-radius:12px;color:var(--muted);font-weight:600;background:var(--surface-2)}
+
+/* ===================== Versão 28: relatórios – cabeçalho, números e gráfico com título ===================== */
+.rel-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.rel-cab h3{margin:0 0 2px;font-size:19px}
+.rel-cab small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;max-width:100%;overflow-wrap:anywhere}
+.rel-cont{flex:none;font-size:12.5px;font-weight:700;color:var(--pine);background:var(--pine-soft);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.rel-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 12px}
+.rel-chip{display:flex;flex-direction:column;gap:2px;border:1px solid var(--rule);border-left:4px solid var(--pine);border-radius:10px;background:var(--surface);padding:8px 12px;min-width:0}
+.rel-chip b{font-size:20px;line-height:1.15;color:var(--ink);overflow-wrap:anywhere}
+.rel-chip span{font-size:12px;color:var(--muted);line-height:1.25}
+.rel-graf{padding:14px 16px 10px}
+.rel-graf-cab{display:flex;flex-direction:column;gap:2px;margin:0 0 8px}
+.rel-graf-cab b{font-size:15.5px;color:var(--ink)}
+.rel-graf-cab span{font-size:12.5px;color:var(--muted);line-height:1.4}
+.dash-box.rel-box{height:auto}
+.dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:410px}
+@media (max-width:760px){
+  .rel-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rel-chip b{font-size:17px}
+  .rel-cab h3{font-size:17px}
+  .dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:390px}
+}
+
+/* ===================== Versão 28: painel do Looker Studio – botão de período (somente consulta) ===================== */
+.pp-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:2px 2px 12px}
+.pp-barra[hidden]{display:none}
+.pp-periodo{position:relative;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--pine);border-radius:999px;background:#fff;color:var(--pine);padding:6px 12px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 1px 3px rgba(16,24,20,.08);max-width:100%}
+.pp-periodo:hover{background:var(--pine-soft)}
+.pp-periodo:focus-within{outline:3px solid color-mix(in srgb,var(--pine) 35%,transparent);outline-offset:2px}
+.pp-periodo svg{flex:none}
+.pp-periodo select{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;font-weight:800;color:inherit;cursor:pointer;padding:2px 20px 2px 2px;max-width:min(62vw,340px);text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231E5240' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center}
+.pp-periodo select:focus{outline:none}
+.pp-custom{display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;font-weight:700;color:var(--muted)}
+.pp-custom input{font:inherit;font-size:13px;border:1px solid var(--rule-strong);border-radius:8px;padding:4px 8px;margin-left:4px;color:var(--ink);background:#fff}
+.pp-resumo{font-size:12px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+body.sem-cab .pp-barra{padding:2px 2px 8px}
+body.pp-unico.pp-com-barra .dash-box,body.pp-unico.pp-com-barra .dash-box.alto{height:calc(100vh - 156px)}
+body.pp-unico.sem-cab.pp-com-barra .dash-box,body.pp-unico.sem-cab.pp-com-barra .dash-box.alto{height:calc(100vh - 128px)}
+@media (max-width:640px){ .pp-resumo{flex-basis:100%} .pp-periodo select{max-width:56vw} }
+
 </style>
 </head>
 <body>

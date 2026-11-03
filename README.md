@@ -13,6 +13,23 @@ Em **Relatórios › Relatórios em tabela › Posição do estoque**, os materi
 - **Excel:** use o filtro da coluna **Alerta** para listar só os materiais na zona de estoque mínimo.
 - **Filtros do relatório:** a contagem acompanha os filtros escolhidos (por exemplo, por natureza de despesa).
 
+## Relatórios em tabela: carregam ao escolher
+
+Em **Relatórios › Relatórios em tabela**, o relatório e o gráfico carregam assim que você escolhe um dos 7 quadros, ao mudar um filtro ou ao marcar "Incluir gráfico" ou "Incluir imagens". Não há botão "Gerar relatório". Os botões **Baixar Excel**, **Baixar PDF** e **Imprimir** ficam habilitados sozinhos.
+
+Cada relatório mostra:
+- **Cabeçalho** com o título, os filtros e o número de linhas.
+- **Números principais** em caixas (pedidos, unidades solicitadas e atendidas, taxa de atendimento, tempo médio até a entrega, materiais na zona de estoque mínimo etc., conforme o relatório). Aparecem também no PDF, na impressão e no Excel.
+- **Gráfico com título e subtítulo.**
+- **Tabela.**
+
+**Gráficos:**
+- Onde há "solicitado" e "atendido" (pedidos por material, consumo por material e por setor), uma **barra larga** mostra o solicitado e uma **barra estreita**, por cima, o atendido. O rótulo diz "83 de 98".
+- O relatório de setores mostra os **15 maiores** e soma os demais numa barra ("Demais setores").
+- Os valores ficam sempre ao lado da barra, sem cobrir os nomes.
+
+**Gráficos de PDF, impressão e Excel:** são redesenhados fora da tela, em tamanho de papel, com fonte maior e nomes mais curtos, para não se sobreporem. No Excel, o título fica ao lado do brasão, a aba "Gráfico" cabe numa página e o resumo aparece abaixo do cabeçalho. No PDF do dashboard, os gráficos ocupam a página inteira, 2 linhas por página.
+
 ## Relatórios legíveis (tela, Excel, PDF e impressão)
 
 - **PDF e impressão:**
@@ -118,6 +135,11 @@ A aba **Relatórios** tem dois modos, com os mesmos filtros.
 - **Exportação:** **Baixar PDF do dashboard** e **Imprimir dashboard** geram um relatório em paisagem só com os gráficos.
 
 ### Dashboard no Google Looker Studio
+
+**Botão de período (somente consulta):** o painel tem, no topo, um botão **Período**. Quem estiver vendo o painel pode escolher últimos 7, 30 ou 90 dias, este mês, mês anterior, este ano, últimos 12 meses, todo o período ou um intervalo **Personalizado** (De/Até). "Padrão do link" volta ao período do link.
+- **Não altera nada:** o painel só lê dados. A escolha vale apenas para quem a fez, no próprio navegador, e não muda o link, o portal nem os dados.
+- **Esconder o botão:** no diálogo do link, desmarque "Mostrar o botão de período no painel" (o link ganha `pf=0`).
+
 
 O botão **Link para o Looker Studio**, em *Relatórios › Dashboard com gráficos*, gera o link do painel de gráficos (`painel.html`). Colado no Looker Studio, o painel mostra os gráficos e **se atualiza sozinho**.
 

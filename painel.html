@@ -1214,6 +1214,49 @@ table.rel td.td-alerta{text-align:center;width:54px}
 table.rel td.td-alerta .ponto-min{margin:0}
 table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
 
+/* ===================== Versão 28: relatório carrega ao escolher ===================== */
+.rel-carregando{display:flex;align-items:center;gap:10px;margin:18px 0;padding:18px;border:1px dashed var(--rule-strong);border-radius:12px;color:var(--muted);font-weight:600;background:var(--surface-2)}
+
+/* ===================== Versão 28: relatórios – cabeçalho, números e gráfico com título ===================== */
+.rel-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.rel-cab h3{margin:0 0 2px;font-size:19px}
+.rel-cab small{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;max-width:100%;overflow-wrap:anywhere}
+.rel-cont{flex:none;font-size:12.5px;font-weight:700;color:var(--pine);background:var(--pine-soft);border-radius:999px;padding:4px 12px;white-space:nowrap}
+.rel-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 12px}
+.rel-chip{display:flex;flex-direction:column;gap:2px;border:1px solid var(--rule);border-left:4px solid var(--pine);border-radius:10px;background:var(--surface);padding:8px 12px;min-width:0}
+.rel-chip b{font-size:20px;line-height:1.15;color:var(--ink);overflow-wrap:anywhere}
+.rel-chip span{font-size:12px;color:var(--muted);line-height:1.25}
+.rel-graf{padding:14px 16px 10px}
+.rel-graf-cab{display:flex;flex-direction:column;gap:2px;margin:0 0 8px}
+.rel-graf-cab b{font-size:15.5px;color:var(--ink)}
+.rel-graf-cab span{font-size:12.5px;color:var(--muted);line-height:1.4}
+.dash-box.rel-box{height:auto}
+.dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:410px}
+@media (max-width:760px){
+  .rel-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rel-chip b{font-size:17px}
+  .rel-cab h3{font-size:17px}
+  .dash-card[data-graf="setor"] .dash-box,.dash-card[data-graf="taxa"] .dash-box{height:390px}
+}
+
+/* ===================== Versão 28: painel do Looker Studio – botão de período (somente consulta) ===================== */
+.pp-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:2px 2px 12px}
+.pp-barra[hidden]{display:none}
+.pp-periodo{position:relative;display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--pine);border-radius:999px;background:#fff;color:var(--pine);padding:6px 12px;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 1px 3px rgba(16,24,20,.08);max-width:100%}
+.pp-periodo:hover{background:var(--pine-soft)}
+.pp-periodo:focus-within{outline:3px solid color-mix(in srgb,var(--pine) 35%,transparent);outline-offset:2px}
+.pp-periodo svg{flex:none}
+.pp-periodo select{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;font-weight:800;color:inherit;cursor:pointer;padding:2px 20px 2px 2px;max-width:min(62vw,340px);text-overflow:ellipsis;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231E5240' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center}
+.pp-periodo select:focus{outline:none}
+.pp-custom{display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;font-weight:700;color:var(--muted)}
+.pp-custom input{font:inherit;font-size:13px;border:1px solid var(--rule-strong);border-radius:8px;padding:4px 8px;margin-left:4px;color:var(--ink);background:#fff}
+.pp-resumo{font-size:12px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+body.sem-cab .pp-barra{padding:2px 2px 8px}
+body.pp-unico.pp-com-barra .dash-box,body.pp-unico.pp-com-barra .dash-box.alto{height:calc(100vh - 156px)}
+body.pp-unico.sem-cab.pp-com-barra .dash-box,body.pp-unico.sem-cab.pp-com-barra .dash-box.alto{height:calc(100vh - 128px)}
+@media (max-width:640px){ .pp-resumo{flex-basis:100%} .pp-periodo select{max-width:56vw} }
+
 </style>
 </head>
 <body class="painel-publico">
@@ -1223,6 +1266,18 @@ table.rel + .legenda-min,.rel-cab + .legenda-min{margin-top:8px}
   <div class="pp-info"><span id="pp-filtros"></span><span id="pp-atual">Carregando…</span></div>
 </header>
 <main class="pp-main">
+  <div class="pp-barra" id="pp-barra" hidden>
+    <label class="pp-periodo" title="Escolha o período dos gráficos. É só uma consulta: não altera nenhum dado nem o portal.">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span class="pp-rot">Período</span>
+      <select id="pp-per" aria-label="Período dos gráficos (somente consulta)"></select>
+    </label>
+    <span class="pp-custom" id="pp-custom" hidden>
+      <label>De <input type="date" id="pp-de" aria-label="Data inicial"></label>
+      <label>Até <input type="date" id="pp-ate" aria-label="Data final"></label>
+    </span>
+    <span class="pp-resumo" id="pp-resumo"></span>
+  </div>
   <div class="dash-grid" id="pp-grid"></div>
   <div class="pp-erro" id="pp-erro" hidden></div>
 </main>
@@ -1551,7 +1606,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     sit: ["Pedidos por status", "Distribuição dos pedidos do filtro"],
     tempo: ["Tempo médio de atendimento", "Da solicitação até a entrega realizada"],
     top: ["Materiais mais solicitados", "Os 10 materiais com mais unidades solicitadas"],
-    setor: ["Consumo por setor", "Unidades solicitadas e atendidas (10 maiores)"],
+    setor: ["Consumo por setor", "Atendido de solicitado, em unidades (10 maiores)"],
     nat: ["Consumo por natureza de despesa", "Unidades solicitadas"],
     est: ["Estoque por natureza de despesa", "Disponível e reservado agora"],
     baixo: ["Materiais com estoque baixo", "Sem estoque ou na zona de estoque mínimo, por natureza de despesa"],
@@ -1562,7 +1617,12 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   const ORDEM = ["evol", "sit", "tempo", "top", "setor", "taxa", "nat", "est", "baixo", "semana", "hora"];
   const LARGOS = ["evol", "top", "nat"];   // ocupam a largura toda (nomes longos inteiros e sem sobreposição)
   const graficos = {};
-  const curto = (r, n) => { n = n || (innerWidth < 640 ? 18 : 30); r = String(r); return r.length > n ? r.slice(0, n - 1) + "…" : r; };
+  /* Modo papel: os gráficos de PDF/impressão/Excel são redesenhados fora da tela, num tamanho próprio, com fonte maior e rótulos mais curtos. */
+  let PAPEL = null;
+  const tam = n => PAPEL ? Math.round(n * PAPEL.escala * 10) / 10 : n;
+  const estreito = () => PAPEL ? PAPEL.estreito : innerWidth < 640;
+  const rotMax = padrao => PAPEL ? PAPEL.rotMax : padrao;
+  const curto = (r, n) => { n = n || (PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 18 : 30)); r = String(r); return r.length > n ? r.slice(0, n - 1) + "…" : r; };
   const dia0 = d => { d = new Date(d); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
   const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 
@@ -1577,7 +1637,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   const nomeNatureza = (nome, cod) => nome ? titulo(nome) : (cod ? "Outras naturezas" : "Outros");
   /* Quebra rótulos longos em até 2 linhas (o gráfico fica limpo e legível). */
   function quebrar(t, n){
-    n = n || (innerWidth < 640 ? 18 : 26); t = String(t);
+    n = n || (PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 18 : 26)); t = String(t);
     if(t.length <= n) return t;
     const pal = t.split(" "), lin = [""];
     pal.forEach(p => { const l = lin[lin.length - 1]; if((l + " " + p).trim().length <= n) lin[lin.length - 1] = (l + " " + p).trim(); else lin.push(p); });
@@ -1588,17 +1648,27 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   /* ---------- Plugin: valores escritos nas barras ---------- */
   const valoresPlugin = { id: "valores", afterDatasetsDraw(c, args, o){
     if(!o || !o.ativo) return;
-    const k = c.ctx, horiz = c.options.indexAxis === "y", sc = c.options.scales || {}, pilha = (sc.x && sc.x.stacked) || (sc.y && sc.y.stacked);
-    const f = o.fmt || fmt;
-    k.save(); k.font = '600 11px "Public Sans", system-ui, sans-serif'; k.fillStyle = cor("--ink") || "#17201D";
-    const escreve = (txt, el) => { if(horiz){ k.textAlign = "left"; k.textBaseline = "middle"; k.fillText(txt, el.x + 6, el.y); } else { k.textAlign = "center"; k.textBaseline = "bottom"; k.fillText(txt, el.x, el.y - 4); } };
-    if(pilha){
-      for(let i = 0; i < c.data.labels.length; i++){
+    const k = c.ctx, horiz = c.options.indexAxis === "y", sx = c.scales.x, sy = c.scales.y, sc = c.options.scales || {}, pilha = (sc.x && sc.x.stacked) || (sc.y && sc.y.stacked);
+    const f = o.fmt || fmt, n = (c.data.labels || []).length;
+    k.save(); k.font = `600 ${tam(11)}px "Public Sans", system-ui, sans-serif`; k.fillStyle = cor("--ink") || "#17201D";
+    /* O texto vai sempre na posição FINAL do valor (pela escala), então nunca cai sobre os nomes das categorias, nem durante a animação. */
+    const escreve = (txt, valor, el) => {
+      const x = horiz ? sx.getPixelForValue(valor) + tam(6) : el.x, y = horiz ? el.y : sy.getPixelForValue(valor) - tam(4);
+      if(!isFinite(x) || !isFinite(y)) return;
+      k.textAlign = horiz ? "left" : "center"; k.textBaseline = horiz ? "middle" : "bottom"; k.fillText(txt, x, y);
+    };
+    if(o.modo === "par"){   // "atendido de solicitado": um único rótulo por categoria
+      for(let i = 0; i < n; i++){
+        const a = Number(c.data.datasets[0].data[i]) || 0, b = Number(c.data.datasets[1].data[i]) || 0, el = c.getDatasetMeta(1).data[i] || c.getDatasetMeta(0).data[i];
+        if(el && (a || b)) escreve(`${f(b)} de ${f(a)}`, Math.max(a, b), el);
+      }
+    } else if(pilha){
+      for(let i = 0; i < n; i++){
         let tot = 0, ult = null;
         c.data.datasets.forEach((d, di) => { const m = c.getDatasetMeta(di); if(m.hidden) return; const v = Number(d.data[i]) || 0; tot += v; if(v) ult = m.data[i]; });
-        if(ult && tot) escreve(f(tot), ult);
+        if(ult && tot) escreve(f(tot), tot, ult);
       }
-    } else c.data.datasets.forEach((d, di) => { const m = c.getDatasetMeta(di); if(m.hidden) return; m.data.forEach((el, i) => { const v = Number(d.data[i]) || 0; if(v) escreve(f(v), el); }); });
+    } else c.data.datasets.forEach((d, di) => { const m = c.getDatasetMeta(di); if(m.hidden) return; m.data.forEach((el, i) => { const v = Number(d.data[i]) || 0; if(v) escreve(f(v), v, el); }); });
     k.restore();
   } };
   let registrado = false;
@@ -1612,11 +1682,11 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     if(av) av.remove(); cv.style.display = "";
     if(typeof Chart === "undefined") return null;
     if(!registrado){ Chart.register(valoresPlugin); registrado = true; }
-    Chart.defaults.font.family = '"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif'; Chart.defaults.font.size = 12;
+    Chart.defaults.font.family = '"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif'; Chart.defaults.font.size = tam(12);
     Chart.defaults.color = cor("--muted") || "#5B6964"; Chart.defaults.locale = "pt-BR";
-    const base = { responsive: true, maintainAspectRatio: false, animation: { duration: 600, easing: "easeOutQuart" }, layout: { padding: { top: 6, right: 8 } },
+    const base = { responsive: true, maintainAspectRatio: false, animation: PAPEL ? false : { duration: 450, easing: "easeOutQuart" }, devicePixelRatio: PAPEL ? 2 : undefined, layout: { padding: { top: 6, right: 8 } },
       plugins: {
-        legend: { labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, boxHeight: 8, padding: 16, font: { size: 12, weight: "600" }, color: cor("--ink") || "#17201D" } },
+        legend: { labels: { usePointStyle: true, pointStyle: "circle", boxWidth: tam(8), boxHeight: tam(8), padding: tam(16), font: { size: tam(12), weight: "600" }, color: cor("--ink") || "#17201D" } },
         tooltip: { backgroundColor: "rgba(23,32,29,.94)", titleColor: "#fff", bodyColor: "#E9EFEC", padding: 12, cornerRadius: 10, boxPadding: 6, usePointStyle: true,
           titleFont: { weight: "700", size: 13 }, bodyFont: { size: 12.5 }, caretSize: 6, displayColors: true } } };
     const o = cfg.options || {};
@@ -1630,10 +1700,10 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   function eixo(horizontal, extra){
     const grade = { color: cor("--rule") || "#E3E9E6", drawTicks: false }, sem = { display: false, drawTicks: false };
     const borda = { display: false, dash: [3, 4] };
-    const tit = t => t ? { display: true, text: t, color: cor("--muted"), font: { size: 11.5, weight: "600" }, padding: { top: 6, bottom: 2 } } : undefined;
+    const tit = t => t ? { display: true, text: t, color: cor("--muted"), font: { size: tam(11.5), weight: "600" }, padding: { top: 6, bottom: 2 } } : undefined;
     const e = extra || {};
     /* Eixo de valores: números compactos (ex.: 10 mil) e sem inclinação; eixo de categorias: mostra todos os nomes. */
-    const num = { precision: 0, padding: 6, maxRotation: 0, callback: v => Math.abs(v) >= 1000 ? fmt1(v / 1000).replace(/,0$/, "") + " mil" : fmt(v) };
+    const num = { precision: 0, padding: 6, maxRotation: 0, maxTicksLimit: 7, callback: v => Math.abs(v) >= 1000 ? fmt1(v / 1000).replace(/,0$/, "") + " mil" : fmt(v) };
     const cat = horizontal ? { padding: 8, autoSkip: false } : { padding: 6, maxRotation: 0 };
     return {
       x: Object.assign({ grid: horizontal ? grade : sem, border: borda, ticks: horizontal ? num : cat, beginAtZero: true, title: tit(e.tx) }, e.x),
@@ -1643,27 +1713,31 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
   const degrade = rgb => ctx => { const { chart } = ctx, a = chart.chartArea; if(!a) return `rgba(${rgb},.18)`;
     const g = chart.ctx.createLinearGradient(0, a.top, 0, a.bottom); g.addColorStop(0, `rgba(${rgb},.32)`); g.addColorStop(1, `rgba(${rgb},.02)`); return g; };
   const centro = (txt, sub) => ({ id: "centro", afterDraw(c){ const a = c.chartArea; if(!a) return; const x = (a.left + a.right) / 2, y = (a.top + a.bottom) / 2, k = c.ctx;
-    k.save(); k.textAlign = "center"; k.fillStyle = cor("--ink"); k.font = '800 26px "Public Sans", system-ui'; k.fillText(txt, x, y + 5);
-    k.font = '600 12px "Public Sans", system-ui'; k.fillStyle = cor("--muted"); k.fillText(sub, x, y + 23); k.restore(); } });
+    k.save(); k.textAlign = "center"; k.fillStyle = cor("--ink"); k.font = `800 ${tam(26)}px "Public Sans", system-ui`; k.fillText(txt, x, y + tam(5));
+    k.font = `600 ${tam(12)}px "Public Sans", system-ui`; k.fillStyle = cor("--muted"); k.fillText(sub, x, y + tam(23)); k.restore(); } });
   /* Barras horizontais com valores; rótulos sem códigos e quebrados em 2 linhas. */
   function barrasH(id, rot, series, opts){
     opts = opts || {};
-    const dados = series.map((s, i) => ({ label: s.t, data: s.v, backgroundColor: s.c || PAL[i], borderRadius: 6, borderSkipped: false, maxBarThickness: series.length > 1 ? 14 : 20, categoryPercentage: .72, barPercentage: .86 }));
-    return desenhar(id, { type: "bar", data: { labels: rot.map(r => opts.umaLinha ? curto(r, opts.maxRotulo || (innerWidth < 640 ? 20 : 30)) : quebrar(r)), datasets: dados },
-      options: { indexAxis: "y", layout: { padding: { right: 16 + 7 * Math.max(3, ...series.flatMap(x => x.v).map(v => (opts.fmtValor || fmt)(v).length)) } }, scales: eixo(true, Object.assign({ tx: opts.unidade ? titulo(opts.unidade) : "" }, opts.eixo || {})),
-        plugins: { valores: { ativo: true, fmt: opts.fmtValor }, legend: { display: series.length > 1, position: "bottom" },
-          tooltip: { callbacks: { title: i => (opts.titulos || rot)[i[0].dataIndex], label: i => ` ${i.dataset.label}: ${(opts.fmtValor || fmt)(i.raw)}${opts.unidade ? " " + opts.unidade : ""}` } } } } },
-      !series.some(s => s.v.some(v => v > 0)) && (opts.vazio || true));
+    const par = !!opts.sobrepor && series.length === 2;   // barra larga = solicitado, barra estreita por cima = atendido (uma linha por categoria)
+    const dados = series.map((x, i) => par
+      ? { label: x.t, data: x.v, backgroundColor: x.c, borderRadius: 5, borderSkipped: false, grouped: false, order: i === 0 ? 2 : 1, barThickness: tam(i === 0 ? 20 : 10) }
+      : { label: x.t, data: x.v, backgroundColor: x.c || PAL[i], borderRadius: 6, borderSkipped: false, maxBarThickness: tam(series.length > 1 ? 16 : 22), categoryPercentage: .8, barPercentage: .92 });
+    const fv = opts.fmtValor || fmt, maiorTxt = Math.max(3, ...(par ? series[0].v.map((a, i) => `${fv(series[1].v[i])} de ${fv(a)}`.length) : series.flatMap(x => x.v).map(v => fv(v).length)));
+    return desenhar(id, { type: "bar", data: { labels: rot.map(r => opts.umaLinha ? curto(r, opts.maxRotulo || (PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 20 : 30))) : quebrar(r)), datasets: dados },
+      options: Object.assign({ indexAxis: "y", layout: { padding: { right: 12 + tam(7) * maiorTxt } }, scales: eixo(true, Object.assign({ tx: opts.unidade ? titulo(opts.unidade) : "" }, opts.eixo || {})),
+        plugins: { valores: { ativo: true, fmt: opts.fmtValor, modo: par ? "par" : undefined }, legend: { display: series.length > 1, position: "bottom", labels: par ? { sort: (a, b) => a.datasetIndex - b.datasetIndex } : {} },
+          tooltip: { callbacks: { title: i => (opts.titulos || rot)[i[0].dataIndex], label: i => ` ${i.dataset.label}: ${fv(i.raw)}${opts.unidade ? " " + opts.unidade : ""}` } } } }, opts.semAnimacao ? { animation: false } : {}) },
+      !series.some(x => x.v.some(v => v > 0)) && (opts.vazio || true));
   }
   /* Rosca: ao passar o mouse mostra a quantidade e o percentual; a legenda também traz o percentual. */
   function rosca(id, rot, val, cores, sub, unidade, extra){
     extra = extra || {};
     const total = val.reduce((a, b) => a + b, 0), un = unidade || sub || "";
     return desenhar(id, { type: "doughnut", data: { labels: rot, datasets: [{ data: val, backgroundColor: cores || PAL, borderColor: cor("--surface") || "#fff", borderWidth: 3, hoverOffset: 10, spacing: 1 }] },
-      options: { cutout: "66%", layout: { padding: 8 }, plugins: {
-        legend: { position: extra.legenda && innerWidth >= 640 ? extra.legenda : (innerWidth < 640 ? "bottom" : "right"), maxWidth: extra.maxLegenda, align: "center", labels: { font: { size: extra.legendaQtd ? 13 : 12, weight: "600" }, padding: extra.legendaQtd ? 14 : 16,
+      options: Object.assign({ cutout: "66%", layout: { padding: 8 }, plugins: {
+        legend: { position: extra.legenda && !estreito() ? extra.legenda : (PAPEL ? "right" : (innerWidth < 640 ? "bottom" : "right")), maxWidth: extra.maxLegenda, align: "center", labels: { font: { size: tam(extra.legendaQtd ? 13 : 12), weight: "600" }, padding: estreito() ? tam(7) : tam(extra.legendaQtd ? 14 : 16),
           generateLabels: ch => Chart.overrides.doughnut.plugins.legend.labels.generateLabels(ch).map(l => Object.assign(l, { text: extra.legendaQtd ? `${l.text} – ${fmt(val[l.index])} ${un} (${pct(val[l.index], total)})` : `${l.text}  ${pct(val[l.index], total)}` })) } },
-        tooltip: { callbacks: { title: i => extra.titulos ? extra.titulos[i[0].dataIndex] : i[0].label, label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? un.replace(/s$/, "") : un} (${pct(i.raw, total)})`, footer: () => `Total: ${fmt(total)} ${un}` }, footerColor: "#C9D6D0", footerFont: { weight: "600", size: 11.5 } } } },
+        tooltip: { callbacks: { title: i => extra.titulos ? extra.titulos[i[0].dataIndex] : i[0].label, label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? un.replace(/s$/, "") : un} (${pct(i.raw, total)})`, footer: () => `Total: ${fmt(total)} ${un}` }, footerColor: "#C9D6D0", footerFont: { weight: "600", size: 11.5 } } } }, extra.semAnimacao ? { animation: false } : {}),
       plugins: [centro(fmt(total), sub || "")] }, !total);
   }
   /* Imagem do gráfico com fundo branco (para PDF e Excel). */
@@ -1735,7 +1809,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     g.evol = desenhar(id("evol"), { type: "line", data: { labels: rot, datasets: [
         { label: "Solicitado", data: vs, borderColor: C.pinho, backgroundColor: degrade("30,82,64"), fill: true, tension: .38, pointRadius: pontos, pointBackgroundColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 6, borderWidth: 2.6 },
         { label: "Atendido", data: va, borderColor: C.ambar, backgroundColor: degrade("217,146,46"), fill: true, tension: .38, pointRadius: pontos, pointBackgroundColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 6, borderWidth: 2.6 }] },
-      options: { interaction: { mode: "index", intersect: false }, scales: eixo(false, { ty: "Unidades", x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: innerWidth < 640 ? 6 : 14, padding: 6 } } }),
+      options: { interaction: { mode: "index", intersect: false }, scales: eixo(false, { ty: "Unidades", x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: PAPEL ? 9 : (innerWidth < 640 ? 6 : 14), padding: 6 } } }),
         plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: i => ` ${i.dataset.label}: ${fmt(i.raw)} unidades` } } } } }, !totS && !totA);
     /* Status (rosca com percentual) */
     const sits = SITS.filter(s => peds.some(p => p.status === s));
@@ -1758,15 +1832,15 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     /* Materiais mais solicitados (só o nome do material) */
     const mm = {}; linhas.forEach(({ p, l }) => { if(p.status === "Recusado") return; const nome = nomeMaterial(l.descricao); mm[l.id] = mm[l.id] || { t: nome, full: titulo(l.descricao), s: 0 }; mm[l.id].s += l.qtd; });
     const top = Object.values(mm).sort((a, b) => b.s - a.s).slice(0, 10);
-    g.top = barrasH(id("top"), top.map(x => x.t), [{ t: "Unidades solicitadas", v: top.map(x => x.s), c: C.pinho }], { titulos: top.map(x => x.full), unidade: "unidades", umaLinha: true, maxRotulo: innerWidth < 640 ? 24 : 64 });
+    g.top = barrasH(id("top"), top.map(x => x.t), [{ t: "Unidades solicitadas", v: top.map(x => x.s), c: C.pinho }], { titulos: top.map(x => x.full), unidade: "unidades", umaLinha: true, maxRotulo: PAPEL ? PAPEL.rotMax : (innerWidth < 640 ? 24 : 64) });
     /* Setores */
     const ms = {}; linhas.forEach(({ p, l }) => { const k = p.setor || "Sem setor"; ms[k] = ms[k] || { s: 0, a: 0, fs: 0, fa: 0 }; if(p.status !== "Recusado") ms[k].s += l.qtd; ms[k].a += l.atendida || 0; if(FINALIZADOS.includes(p.status)){ ms[k].fs += l.qtd; ms[k].fa += l.atendida || 0; } });
     const st = Object.entries(ms).sort((a, b) => b[1].s - a[1].s).slice(0, 10);
-    g.setor = barrasH(id("setor"), st.map(x => x[0]), [{ t: "Solicitado", v: st.map(x => x[1].s), c: C.pinho }, { t: "Atendido", v: st.map(x => x[1].a), c: C.ambar }], { unidade: "unidades" });
+    g.setor = barrasH(id("setor"), st.map(x => x[0]), [{ t: "Solicitado", v: st.map(x => x[1].s), c: "#A9CCBA" }, { t: "Atendido", v: st.map(x => x[1].a), c: C.pinho }], { unidade: "unidades", sobrepor: true });
     /* Natureza de despesa (rosca com percentual, só nomes) */
     const mn = {}; linhas.forEach(({ p, l }) => { if(p.status === "Recusado") return; const it = porId[l.id] || {}, k = nomeNatureza(it.naturezaNome, it.natureza); mn[k] = (mn[k] || 0) + l.qtd; });
     const nt = Object.entries(mn).sort((a, b) => b[1] - a[1]);
-    g.nat = rosca(id("nat"), nt.map(x => innerWidth < 640 ? curto(x[0], 34) : x[0]), nt.map(x => x[1]), PAL, "unidades", "unidades", { legenda: "left", maxLegenda: 620, legendaQtd: innerWidth >= 640, titulos: nt.map(x => x[0]) });
+    g.nat = rosca(id("nat"), nt.map(x => estreito() ? curto(x[0], PAPEL ? Math.min(PAPEL.rotMax, 22) : 34) : x[0]), nt.map(x => x[1]), PAL, "unidades", "unidades", { legenda: "left", maxLegenda: 620, legendaQtd: !estreito(), titulos: nt.map(x => x[0]) });
     /* Estoque por natureza (barras horizontais, só nomes) */
     const visiveis = dados.itens.filter(i => (!f.nat || i.natureza === f.nat) && (!f.mat || i.id === f.mat));
     const me = {}; visiveis.forEach(i => { const k = nomeNatureza(i.naturezaNome, i.natureza); me[k] = me[k] || { t: k, d: 0, r: 0 }; me[k].d += i.qtd; me[k].r += i.reservado || 0; });
@@ -1786,7 +1860,7 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
     /* Dia da semana */
     const sem = [0, 0, 0, 0, 0, 0, 0]; peds.forEach(p => sem[new Date(p.dataISO).getDay()]++);
     const maior = Math.max(...sem), nomesSem = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-    g.semana = desenhar(id("semana"), { type: "bar", data: { labels: nomesSem.map(n => innerWidth < 640 ? n.slice(0, 3) : n), datasets: [{ label: "Pedidos", data: sem, backgroundColor: sem.map(v => v === maior && v > 0 ? C.ambar : C.pinho2), borderRadius: 8, borderSkipped: false, maxBarThickness: 42 }] },
+    g.semana = desenhar(id("semana"), { type: "bar", data: { labels: nomesSem.map(n => !PAPEL && innerWidth < 640 ? n.slice(0, 3) : n), datasets: [{ label: "Pedidos", data: sem, backgroundColor: sem.map(v => v === maior && v > 0 ? C.ambar : C.pinho2), borderRadius: 8, borderSkipped: false, maxBarThickness: 42 }] },
       options: { layout: { padding: { top: 20 } }, scales: eixo(false, { ty: "Pedidos" }), plugins: { valores: { ativo: true }, legend: { display: false }, tooltip: { callbacks: { title: i => nomesSem[i[0].dataIndex], label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? "pedido" : "pedidos"}` } } } } }, !peds.length);
     /* Horário */
     const hora = Array(24).fill(0); peds.forEach(p => hora[new Date(p.dataISO).getHours()]++);
@@ -1796,70 +1870,144 @@ window.BRASAO_IEMA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOQAAADwCAMA
       options: { scales: eixo(false, { ty: "Pedidos" }), plugins: { legend: { display: false }, tooltip: { callbacks: { label: i => ` ${fmt(i.raw)} ${i.raw === 1 ? "pedido" : "pedidos"}` } } } } }, !peds.length);
     return g;
   }
+  const rotuloMax = padrao => PAPEL ? PAPEL.rotMax : padrao;   // tamanho máximo dos nomes: o da tela ou o do papel
+  /* ---------- Gráficos para papel (PDF, impressão e Excel) ----------
+     Cada gráfico é redesenhado FORA DA TELA, num tamanho próprio (largura × altura em px) e com fonte maior; depois vira imagem e é descartado. */
+  function areaPapel(){ const d = document.createElement("div"); d.style.cssText = "position:fixed;left:-20000px;top:0;visibility:hidden;pointer-events:none"; document.body.appendChild(d); return d; }
+  function novoCanvas(area, id, w, h){ const box = document.createElement("div"); box.style.cssText = `position:relative;width:${w}px;height:${h}px`; const cv = document.createElement("canvas"); cv.id = id; box.appendChild(cv); area.appendChild(box); return cv; }
+  /* itens: [{ w, h, desenhar: idCanvas => chart }]  →  [{ png, w, h } | null] */
+  function paraPapel(itens, opc){
+    const area = areaPapel(), saida = [];
+    try{
+      itens.forEach((it, k) => {
+        const id = "papel-" + k; novoCanvas(area, id, it.w, it.h);
+        PAPEL = Object.assign({ escala: 1.25, rotMax: 30, estreito: false }, opc || {}, it.opc || {});
+        const ch = it.desenhar(id); saida.push(ch ? pngDe(ch) : null);
+        if(graficos[id]){ graficos[id].destroy(); delete graficos[id]; }
+      });
+    } finally { PAPEL = null; area.remove(); }
+    return saida;
+  }
+  /* Todos os gráficos do dashboard no tamanho de papel. medidas: { chave: [w, h] } → { chave: { png, w, h } | null } */
+  function dashboardParaPapel(dados, f, medidas, opc){
+    const area = areaPapel(), saida = {};
+    try{
+      ORDEM.forEach(k => { const m = medidas[k] || [640, 340]; novoCanvas(area, "papel-" + k, m[0], m[1]); });
+      PAPEL = Object.assign({ escala: 1.3, rotMax: 26, estreito: true }, opc || {});
+      const g = dashboard(dados, f, "papel-");
+      ORDEM.forEach(k => { saida[k] = g[k] ? pngDe(g[k]) : null; });
+      ORDEM.forEach(k => { const id = "papel-" + k; if(graficos[id]){ graficos[id].destroy(); delete graficos[id]; } });
+    } finally { PAPEL = null; area.remove(); }
+    return saida;
+  }
   /* HTML dos cartões de gráfico (mesmo visual na área do gestor e no painel). */
   function cartoes(prefixo, quais){
     return (quais || ORDEM).map(k => `<section class="dash-card${LARGOS.includes(k) ? " largo" : ""}" data-graf="${k}"><h3>${TITULOS[k][0]}</h3><p id="${prefixo}${k}-sub">${TITULOS[k][1]}</p><div class="dash-box${LARGOS.includes(k) ? " alto" : ""}"><canvas id="${prefixo}${k}"></canvas></div></section>`).join("");
   }
-  window.GRAF = { PAL, SIT_COR, SITS, ABERTOS, TITULOS, ORDEM, LARGOS, cor, fmt, curto, dia0, iso, desenhar, eixo, degrade, centro, barrasH, rosca, pngDe, filtrar, dashboard, cartoes,
+  window.GRAF = { PAL, SIT_COR, SITS, ABERTOS, TITULOS, ORDEM, LARGOS, cor, fmt, curto, dia0, iso, desenhar, eixo, degrade, centro, barrasH, rosca, pngDe, filtrar, dashboard, cartoes, paraPapel, dashboardParaPapel, C, rotuloMax,
     titulo, nomeMaterial, nomeNatureza, quebrar, fmtTempo, temposDoPedido };
 })();
 
 </script>
 <script>/* painel.js */
 /* Painel público de gráficos – para incorporar no Google Looker Studio (Inserir › Incorporar URL).
-   Parâmetros do link: t (chave), g (um gráfico), per | de, ate (período), setor, sit, nat, mat (código), cab=0 (sem título). */
+   Parâmetros do link: t (chave), g (um gráfico), per | de, ate (período), setor, sit, nat, mat (código), cab=0 (sem título), pf=0 (sem botão de período).
+   SOMENTE CONSULTA: esta página só lê dados (ações "painelPublico" e "versao"). O botão de período filtra apenas o que esta pessoa vê, no próprio navegador:
+   não grava nada, não muda o link e não altera os dados nem o portal. */
 (function(){
   const CFG = window.CONFIG || {}, $ = s => document.querySelector(s);
   const q = new URLSearchParams(location.search);
   const chave = q.get("t") || "";
   const ATUALIZAR_MS = Math.max(30, Number(q.get("atualizar")) || 60) * 1000;
   if(window.U && U.aplicarTextos) U.aplicarTextos();
-  const graf = q.get("g"), unico = graf && GRAF.TITULOS[graf] ? [graf] : null;
+  const graf = q.get("g"), unico = graf && GRAF.TITULOS[graf] ? [graf] : null, comBarra = q.get("pf") !== "0";
   if(q.get("cab") === "0") document.body.classList.add("sem-cab");
   if(unico) document.body.classList.add("pp-unico");
+  if(comBarra) document.body.classList.add("pp-com-barra");
   $("#pp-grid").innerHTML = GRAF.cartoes("p-", unico || GRAF.ORDEM);
 
-  /* Período: "per" é relativo (avança sozinho com os dias); "de"/"ate" são datas fixas. */
+  /* ---------- Períodos ---------- */
+  const NOMES = { "7": "últimos 7 dias", "30": "últimos 30 dias", "90": "últimos 90 dias", "mes": "este mês", "mesant": "mês anterior", "ano": "este ano", "365": "últimos 12 meses", "tudo": "todo o período" };
   const dataLocal = v => { if(!v) return null; const [a, m, d] = v.split("-").map(Number); return a ? new Date(a, m - 1, d) : null; };
+  function intervalo(per, de, ate){   // períodos relativos avançam sozinhos com os dias
+    const h = new Date(), hoje = new Date(h.getFullYear(), h.getMonth(), h.getDate());
+    if(per === "tudo") return { ini: null, fim: null };
+    if(per === "mes") return { ini: new Date(h.getFullYear(), h.getMonth(), 1), fim: hoje };
+    if(per === "mesant") return { ini: new Date(h.getFullYear(), h.getMonth() - 1, 1), fim: new Date(h.getFullYear(), h.getMonth(), 0) };
+    if(per === "ano") return { ini: new Date(h.getFullYear(), 0, 1), fim: hoje };
+    if(per && per !== "custom") return { ini: new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (Number(per) - 1)), fim: hoje };
+    let ini = dataLocal(de), fim = dataLocal(ate); if(ini && fim && ini > fim){ const t = ini; ini = fim; fim = t; }
+    return { ini, fim };
+  }
+  const textoPeriodo = (per, ini, fim) => per && NOMES[per] ? NOMES[per] : [ini ? "de " + ini.toLocaleDateString("pt-BR") : "", fim ? "até " + fim.toLocaleDateString("pt-BR") : ""].filter(Boolean).join(" ") || "todo o período";
+  const doLink = { per: q.get("per") || "", de: q.get("de") || "", ate: q.get("ate") || "" };
+  let local = null;   // escolha feita no botão de período (só nesta tela)
+  try{ const g = JSON.parse(sessionStorage.getItem("pp_periodo") || "null"); if(g && (g.per === "custom" || NOMES[g.per])) local = g; }catch(e){}
+  const guardar = () => { try{ if(local) sessionStorage.setItem("pp_periodo", JSON.stringify(local)); else sessionStorage.removeItem("pp_periodo"); }catch(e){} };
+
   function filtros(dados){
-    const h = new Date(), per = q.get("per"); let ini = dataLocal(q.get("de")), fim = dataLocal(q.get("ate"));
-    if(per){
-      fim = per === "tudo" ? null : new Date(h.getFullYear(), h.getMonth(), h.getDate());
-      ini = per === "mes" ? new Date(h.getFullYear(), h.getMonth(), 1) : per === "ano" ? new Date(h.getFullYear(), 0, 1)
-          : per === "tudo" ? null : new Date(h.getFullYear(), h.getMonth(), h.getDate() - (Number(per) - 1));
-    }
+    const base = intervalo(doLink.per, doLink.de, doLink.ate), uso = local ? intervalo(local.per, local.de, local.ate) : base, perUso = local ? local.per : doLink.per;
     const codMat = q.get("mat"), mat = codMat ? ((dados.itens.find(i => i.codigo === codMat) || {}).id || "__nenhum__") : "";
     const ANTIGOS = { "Pendente": "Em Análise / Separação", "Aprovado": "Em Análise / Separação", "Atendido": "Entrega total realizada", "Parcialmente atendido": "Entrega parcial realizada", "Entrega realizada": "Entrega total realizada" };
-    const sit0 = q.get("sit") || "", f = { ini, fim, setor: q.get("setor") || "", sit: ANTIGOS[sit0] || sit0, nat: q.get("nat") || "", mat };
-    const nomesPer = { "7": "últimos 7 dias", "30": "últimos 30 dias", "90": "últimos 90 dias", "mes": "este mês", "ano": "este ano", "365": "últimos 12 meses", "tudo": "todo o período" };
-    const tx = [];
-    if(per && nomesPer[per]) tx.push(nomesPer[per]);
-    else { if(ini) tx.push("de " + ini.toLocaleDateString("pt-BR")); if(fim) tx.push("até " + fim.toLocaleDateString("pt-BR")); }
+    const sit0 = q.get("sit") || "", f = { ini: uso.ini, fim: uso.fim, setor: q.get("setor") || "", sit: ANTIGOS[sit0] || sit0, nat: q.get("nat") || "", mat };
+    const tx = [textoPeriodo(perUso, uso.ini, uso.fim)];
     if(f.setor) tx.push("setor " + f.setor); if(f.sit) tx.push("status " + f.sit); if(f.nat) tx.push("natureza " + f.nat); if(codMat) tx.push("material " + codMat);
-    f.txt = tx.join(" · ") || "todos os pedidos";
+    f.txt = tx.join(" · "); f.periodoTxt = tx[0]; f.linkTxt = textoPeriodo(doLink.per, base.ini, base.fim);
     return f;
   }
-  let versao = null, ultimoCompleto = 0;
-  function erro(msg){ $("#pp-erro").hidden = false; $("#pp-erro").textContent = msg; $("#pp-grid").hidden = true; $("#pp-atual").textContent = ""; }
+
+  /* ---------- Botão de período ---------- */
+  const sel = $("#pp-per"), custom = $("#pp-custom");
+  function montarBotao(){
+    if(!comBarra) return;
+    $("#pp-barra").hidden = false;
+    const ops = [["", "Padrão do link"], ["7", "Últimos 7 dias"], ["30", "Últimos 30 dias"], ["90", "Últimos 90 dias"], ["mes", "Este mês"], ["mesant", "Mês anterior"], ["ano", "Este ano"], ["365", "Últimos 12 meses"], ["tudo", "Todo o período"], ["custom", "Personalizado…"]];
+    sel.innerHTML = ops.map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+    sel.value = local ? local.per : ""; $("#pp-de").value = local && local.de || ""; $("#pp-ate").value = local && local.ate || ""; custom.hidden = sel.value !== "custom";
+    sel.onchange = () => {
+      custom.hidden = sel.value !== "custom";
+      if(sel.value === "") local = null;
+      else if(sel.value === "custom"){ local = { per: "custom", de: $("#pp-de").value, ate: $("#pp-ate").value }; }
+      else local = { per: sel.value, de: "", ate: "" };
+      guardar(); redesenhar();
+    };
+    [$("#pp-de"), $("#pp-ate")].forEach(i => i.onchange = () => { local = { per: "custom", de: $("#pp-de").value, ate: $("#pp-ate").value }; guardar(); redesenhar(); });
+  }
+  function atualizarRotulos(f){
+    $("#pp-filtros").textContent = "Filtros: " + f.txt;
+    if(comBarra){
+      sel.options[0].textContent = "Padrão do link (" + f.linkTxt + ")";
+      $("#pp-resumo").textContent = local ? "Mostrando " + f.periodoTxt + " · só consulta" : "Só consulta: escolha outro período para comparar";
+    }
+  }
+
+  /* ---------- Carga e atualização (somente leitura) ---------- */
+  let versao = null, ultimoCompleto = 0, dadosAtuais = null;
+  function erro(msg){ $("#pp-erro").hidden = false; $("#pp-erro").textContent = msg; $("#pp-grid").hidden = true; $("#pp-barra").hidden = true; $("#pp-atual").textContent = ""; }
+  function redesenhar(){
+    if(!dadosAtuais) return;
+    const f = filtros(dadosAtuais);
+    $("#pp-erro").hidden = true; $("#pp-grid").hidden = false;
+    GRAF.dashboard(dadosAtuais, f, "p-");
+    atualizarRotulos(f);
+  }
   async function carregar(){
     if(!chave) return erro("Link incompleto: falta a chave do painel. Gere o link na área do gestor (Relatórios › Dashboard › Link para o Looker Studio).");
     try{
       const d = await API.chamar("painelPublico", { t: chave });
       if(d.baixo == null) d.baixo = CFG.ESTOQUE_BAIXO || 10;
-      versao = d.versao; ultimoCompleto = Date.now();
-      const f = filtros(d);
-      $("#pp-erro").hidden = true; $("#pp-grid").hidden = false;
-      GRAF.dashboard(d, f, "p-");
-      $("#pp-filtros").textContent = "Filtros: " + f.txt;
+      versao = d.versao; ultimoCompleto = Date.now(); dadosAtuais = d;
+      redesenhar();
       $("#pp-atual").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     }catch(e){ erro(e.message || "Não foi possível carregar o painel."); }
   }
-  /* Atualização automática: confere a cada minuto se houve mudança; recarrega tudo a cada 10 minutos (o período avança). */
+  /* Confere a cada minuto se houve mudança; recarrega tudo a cada 10 minutos (os períodos relativos avançam). */
   setInterval(async () => {
     try{ const r = await API.chamar("versao"); if(r.versao !== versao || Date.now() - ultimoCompleto > 10 * 60000) carregar(); }catch(e){}
   }, ATUALIZAR_MS);
-  let tRes; window.addEventListener("resize", () => { clearTimeout(tRes); tRes = setTimeout(carregar, 400); });
+  let tRes; window.addEventListener("resize", () => { clearTimeout(tRes); tRes = setTimeout(redesenhar, 300); });
   if(API.modoDemo) $("#pp-atual").textContent = "Modo demonstração";
+  montarBotao();
   carregar();
 })();
 
