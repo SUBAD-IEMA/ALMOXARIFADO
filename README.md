@@ -539,6 +539,12 @@ Isso acontece quando o Google não pediu a autorização das novas permissões a
 
 Isso é feito uma única vez.
 
+**Aparece "Erro no servidor: Invalid time value"**
+O servidor encontrou, numa planilha, uma data inválida (por exemplo, texto ou valor estranho numa célula de data). Nesta versão isso não trava mais nenhuma tela: a linha aparece sem data.
+1. Cole o `Code.gs` novo no Apps Script e publique uma **nova versão** da implantação.
+2. Para achar as células com problema, abra a planilha e use o menu **Almoxarifado › Verificar datas da planilha**. Ele lista a aba, a linha e a coluna. Corrija ou apague a data dessas células.
+3. Se uma mensagem de erro aparecer de novo, ela traz a ação entre colchetes (ex.: `[ação: painel]`), e o detalhe fica em *Execuções* no Apps Script.
+
 **O backup mensal não chegou aos e-mails**
 Confira nesta ordem:
 1. **Pasta de spam** de subad@iema.es.gov.br, subad.iema2026@gmail.com e almoxarifado@iema.es.gov.br. O remetente é o próprio endereço da conta que publicou o Apps Script.

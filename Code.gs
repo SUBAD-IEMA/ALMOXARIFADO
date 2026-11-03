@@ -123,7 +123,8 @@ function doPost(e) {
     if (req.site && /^https?:\/\//.test(req.site)) lembrarSite(req.site);
     return saida(Object.assign({ ok: true }, f(req) || {}));
   } catch (err) {
-    return saida({ ok: false, erro: err.amigavel ? err.message : 'Erro no servidor: ' + err.message, sessaoExpirada: !!err.sessao });
+    if (!err.amigavel) { try { console.error('Erro na ação ' + req.acao + ': ' + (err.stack || err)); } catch (x) {} }
+    return saida({ ok: false, erro: err.amigavel ? err.message : 'Erro no servidor: ' + err.message + ' [ação: ' + req.acao + ']', sessaoExpirada: !!err.sessao });
   }
 }
 
@@ -159,7 +160,9 @@ function anexar(chave, rows) {
   const sh = aba(chave);
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
-function iso(v) { if (!v) return ''; if (v instanceof Date) return v.toISOString(); return String(v); }
+/* Datas: nunca deixam o sistema travar. Valor vazio ou inválido vira '' (a linha continua aparecendo, só sem data). */
+function dataValida(v) { if (v === '' || v === null || v === undefined) return ''; const d = v instanceof Date ? v : new Date(v); return isNaN(d.getTime()) ? '' : d; }
+function iso(v) { if (!v) return ''; if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.toISOString(); return String(v); }
 /* Texto digitado pelos usuários nunca vira fórmula na planilha (ex.: "=IMPORTXML(...)"). */
 function seguro(v) { return typeof v === 'string' && /^[=+\-@]/.test(v) ? "'" + v : v; }
 const props = () => PropertiesService.getScriptProperties();
@@ -187,7 +190,7 @@ function dadosContato() {
   const c = lerConfig();
   return { nome: c.gestor_nome || '', setor: c.gestor_setor || '', telefone: String(c.gestor_telefone || ''), email: c.gestor_email || '' };
 }
-function dataBR(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm'); }
+function dataBR(d) { const x = d ? dataValida(d) : new Date(); return x ? Utilities.formatDate(x, 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm') : ''; }
 function registrar(rows) { anexar('historico', rows.map(r => (r.length >= 11 ? r : r.concat(new Array(10 - r.length).fill(''), [QUEM])).map(seguro))); }
 
 /* ---------- Catálogo ---------- */
@@ -384,7 +387,7 @@ function lerPedidos() {
   return { sh, pedidos };
 }
 function linhaPedido(p) {
-  return [p.numero, new Date(p.dataISO), seguro(nomeMaiusculo(p.solicitante.nome)), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
+  return [p.numero, dataValida(p.dataISO), seguro(nomeMaiusculo(p.solicitante.nome)), seguro(p.solicitante.setor), seguro(p.solicitante.telefone), seguro(p.solicitante.email), seguro(p.obs),
     JSON.stringify(p.itens), p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, new Date(), seguro(p.resposta || ''), JSON.stringify(p.andamento),
     p.rascunho ? JSON.stringify(p.rascunho) : '', p.conversa && p.conversa.msgs && p.conversa.msgs.length ? JSON.stringify(p.conversa) : ''];
 }
@@ -1102,9 +1105,9 @@ function acaoBackupDados(req) {
   registrar([[new Date(), 'Backup gerado', '', '', '', d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico', '', '', '', 'Arquivos PDF, Excel e JSON baixados pelo gestor']]);
   return { dados: d };
 }
-function dataArq(d) { return Utilities.formatDate(d || new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd'); }
+function dataArq(d) { return Utilities.formatDate((d && dataValida(d)) || new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd'); }
 function tabelasBackupBase(d) {
-  const dt = s => s ? new Date(s) : '';
+  const dt = s => s ? dataValida(s) : '';
   return {
     'Pedidos': [['Pedido', 'Data', 'Nome completo', 'Setor', 'Telefone', 'E-mail', 'Materiais', 'Solicitado', 'Atendido', 'Status', 'Observação', 'Resposta do almoxarifado']]
       .concat(d.pedidos.map(p => [p.numero, dt(p.dataISO), p.solicitante.nome, p.solicitante.setor, p.solicitante.telefone, p.solicitante.email, p.itens.length, p.totalUnidades, p.totalAtendido == null ? '' : p.totalAtendido, p.status, p.obs || '', p.resposta || ''])),
@@ -1173,7 +1176,7 @@ function tabelasBackup(d) {
   const t = {}, r = d.resumoMes;
   if (r) {
     const st = r.porStatus || {};
-    t['Resumo'] = [['Item', 'Valor'], ['Mês de referência', r.rotulo], ['Gerado em', dataBR(new Date(d.geradoEm))], ['Pedidos recebidos no mês', r.pedidosRecebidos]]
+    t['Resumo'] = [['Item', 'Valor'], ['Mês de referência', r.rotulo], ['Gerado em', dataBR(d.geradoEm)], ['Pedidos recebidos no mês', r.pedidosRecebidos]]
       .concat(SITUACOES.map(x => ['      ' + x + ' (status atual)', st[x] || 0]))
       .concat([['Unidades solicitadas no mês', r.unidadesSolicitadas], ['Unidades atendidas no mês', r.unidadesAtendidas], ['Entregas concluídas no mês', r.entregasConcluidasNoMes],
         ['Registros de histórico no mês', r.registrosHistoricoNoMes], ['Materiais cadastrados', r.materiais], ['Materiais na zona de estoque mínimo', r.materiaisNaZonaMinima],
@@ -1183,11 +1186,13 @@ function tabelasBackup(d) {
 }
 function backupGatilhoOk() { return props().getProperty('BACKUP_ATIVO') === '1' && props().getProperty('BACKUP_GATILHO_V') === '2'; }
 function situacaoBackup() {
-  const agora = new Date(), pend = temDadosBackup() ? mesesPendentesBackup(agora) : [], atual = mesSP(agora);
+  const agora = new Date(), atual = mesSP(agora);
+  let pend = [], proximoEnvio = '', erroSit = '';
+  try { pend = temDadosBackup() ? mesesPendentesBackup(agora) : []; } catch (e) { erroSit = 'Não foi possível verificar os meses pendentes: ' + e.message; }
+  try { const ini = inicioMes(mesDeslocado(atual, 1)); if (!isNaN(ini.getTime())) proximoEnvio = new Date(ini.getTime() + 6 * 36e5).toISOString(); } catch (e) {}
   return { emails: BACKUP_EMAILS, ativo: backupGatilhoOk(), ultimo: props().getProperty('ULTIMO_BACKUP') || '', ultimoMes: props().getProperty('ULTIMO_BACKUP_MES') || '',
-    erro: props().getProperty('BACKUP_ERRO') || '', pendente: pend.length > 0, pendentes: pend, mesInicial: BACKUP_MES_INICIAL,
-    proximoReferencia: atual, proximoEnvio: new Date(inicioMes(mesDeslocado(atual, 1)).getTime() + 6 * 36e5).toISOString(),
-    google: typeof MailApp !== 'undefined' };
+    erro: erroSit || props().getProperty('BACKUP_ERRO') || '', pendente: pend.length > 0, pendentes: pend, mesInicial: BACKUP_MES_INICIAL,
+    proximoReferencia: atual, proximoEnvio, google: typeof MailApp !== 'undefined' };
 }
 /* Ativa (ou atualiza) sozinho os gatilhos, sem precisar do menu da planilha: no máximo uma tentativa a cada 6 horas. */
 function ativarBackupAutomatico() {
@@ -1339,7 +1344,7 @@ function acaoImportarBackup(req) {
   const res = { geradoEm: d.geradoEm || '', pedidos: 0, historico: 0, materiaisNovos: 0, materiaisAtualizados: 0, ajustesQtd: 0 };
   const lock = bloquear();
   try {
-    const agora = new Date(), origem = 'Importação do backup de ' + (d.geradoEm ? dataBR(new Date(d.geradoEm)) : 'data desconhecida');
+    const agora = new Date(), origem = 'Importação do backup de ' + (dataBR(d.geradoEm) || 'data desconhecida');
     const txt = (v, n) => String(v == null ? '' : v).trim().slice(0, n || 400);
     // Estoque e catálogo
     if (op.estoque) {
@@ -1372,7 +1377,7 @@ function acaoImportarBackup(req) {
     if (op.pedidos) {
       const existentes = new Set(lerPedidos().pedidos.map(p => p.numero));
       const novos = d.pedidos.filter(p => p && p.numero && !existentes.has(String(p.numero))).map(p => ({
-        numero: String(p.numero), dataISO: p.dataISO || agora.toISOString(),
+        numero: String(p.numero), dataISO: dataValida(p.dataISO) ? iso(dataValida(p.dataISO)) : agora.toISOString(),
         solicitante: { nome: txt((p.solicitante || {}).nome, 120), setor: txt((p.solicitante || {}).setor, 120), telefone: txt((p.solicitante || {}).telefone, 30), email: txt((p.solicitante || {}).email, 120) },
         obs: txt(p.obs, 1000), itens: (p.itens || []).map(l => ({ id: String(l.id), codigo: txt(l.codigo, 40), descricao: txt(l.descricao), unidade: txt(l.unidade, 60), qtd: Number(l.qtd) || 0, atendida: l.atendida == null ? null : Number(l.atendida) })),
         totalUnidades: Number(p.totalUnidades) || 0, totalAtendido: p.totalAtendido == null ? null : Number(p.totalAtendido),
@@ -1387,14 +1392,14 @@ function acaoImportarBackup(req) {
     // Histórico: junta os registros que faltam, em ordem de data
     if (op.historico) {
       const sh = aba('historico'), atuais = linhas(sh).map(r => r.slice(0, 11));
-      const chave = r => [iso(r[0] instanceof Date ? r[0] : new Date(r[0])), r[1], r[2], r[3], r[9]].join('|');
+      const chave = r => [iso(dataValida(r[0])), r[1], r[2], r[3], r[9]].join('|');
       const vistos = new Set(atuais.map(chave));
-      const novos = d.historico.filter(h => h && h.dataISO && h.tipo).map(h => [new Date(h.dataISO), txt(h.tipo, 80), txt(h.pedido, 20), txt(h.id, 40), txt(h.codigo, 40), txt(h.descricao),
+      const novos = d.historico.filter(h => h && h.tipo && dataValida(h.dataISO)).map(h => [dataValida(h.dataISO), txt(h.tipo, 80), txt(h.pedido, 20), txt(h.id, 40), txt(h.codigo, 40), txt(h.descricao),
         h.antes == null ? '' : Number(h.antes), h.depois == null ? '' : Number(h.depois), h.delta == null ? '' : Number(h.delta), txt(h.detalhes, 2000), txt(h.quem, 120)]).filter(r => !vistos.has(chave(r)));
       res.historico = novos.length;
       if (!simular && novos.length) {
         const todas = atuais.map(r => { const c = r.slice(); while (c.length < 11) c.push(''); return c; }).concat(novos)
-          .sort((a, b) => new Date(a[0]) - new Date(b[0])).map(r => r.map(seguro));
+          .sort((a, b) => (dataValida(a[0]) || 0) - (dataValida(b[0]) || 0)).map(r => r.map(seguro));
         if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
         sh.getRange(2, 1, todas.length, 11).setValues(todas);
       }
@@ -1464,6 +1469,7 @@ function onOpen() {
     .addItem('Ativar backup mensal por e-mail (dia 1º)', 'menuBackup')
     .addItem('Enviar backups pendentes por e-mail agora', 'menuBackupAgora')
     .addItem('Redefinir a senha de um gestor', 'menuRedefinirSenha')
+    .addItem('Verificar datas da planilha', 'menuVerificarDatas')
     .addItem('Desconectar todos os gestores', 'menuDesconectar')
     .addToUi();
 }
@@ -1519,6 +1525,23 @@ function menuBackupAgora() {
     else { const d = enviarBackupManual(); ui.alert('Nenhum mês pendente. Foi enviado um backup avulso de agora para ' + BACKUP_EMAILS.join(', ') + ' (' + d.pedidos.length + ' pedidos, ' + d.historico.length + ' registros de histórico).'); }
   }
   catch (e) { ui.alert('Não foi possível enviar: ' + e.message); }
+}
+/* Procura linhas com data ausente ou inválida (o sistema funciona mesmo assim; a linha só aparece sem data). */
+function verificarDatasPlanilha() {
+  const achados = [];
+  const confere = (nome, rotulo, col, obrigatoria) => {
+    const sh = aba(nome), n = sh.getLastRow() - 1; if (n < 1) return;
+    sh.getRange(2, col, n, 1).getValues().forEach((r, i) => {
+      const v = r[0], vazio = v === '' || v === null, ok = v instanceof Date ? !isNaN(v.getTime()) : (!vazio && !isNaN(new Date(v).getTime()));
+      if (!ok && !(vazio && !obrigatoria)) achados.push({ aba: rotulo, linha: i + 2, coluna: col, valor: v instanceof Date ? 'data inválida' : String(v).slice(0, 40) });
+    });
+  };
+  confere('pedidos', 'Pedidos', 2, true); confere('pedidos', 'Pedidos', 13, false); confere('historico', 'Histórico', 1, true);
+  return achados;
+}
+function menuVerificarDatas() {
+  const ui = SpreadsheetApp.getUi(), a = verificarDatasPlanilha();
+  ui.alert(a.length ? 'Datas com problema (' + a.length + ')' : 'Datas conferidas', a.length ? a.slice(0, 25).map(x => 'Aba ' + x.aba + ', linha ' + x.linha + ', coluna ' + x.coluna + ': "' + x.valor + '"').join('\n') + (a.length > 25 ? '\n… e mais ' + (a.length - 25) + '.' : '') + '\n\nCorrija ou apague a data dessas células. O sistema continua funcionando; essas linhas só aparecem sem data.' : 'Nenhum problema encontrado nas datas dos pedidos e do histórico.', ui.ButtonSet.OK);
 }
 function menuDesconectar() { chavesSessao().forEach(k => props().deleteProperty(k)); SpreadsheetApp.getUi().alert('Todos os gestores foram desconectados.'); }
 
